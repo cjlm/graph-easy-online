@@ -460,11 +460,10 @@
                     my $input = '${escapedInput}';
 
                     eval {
-                        my $graph = Graph::Easy->new();
-                        my $result = $graph->parse_from_text($input);
+                        my $graph = Graph::Easy->new($input);
 
-                        if ($result) {
-                            print "Error: " . $result;
+                        if ($graph->error()) {
+                            print "Error: " . $graph->error();
                         } else {
                             print $graph->as_ascii();
                         }
