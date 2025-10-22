@@ -330,19 +330,22 @@
             console.log('Current Perl state:', Perl.state);
             console.log('Checking for FS...', typeof FS);
 
-            // Wait for Perl to reach "Ready" state
-            if (Perl.state !== 'Ready') {
-                console.log('Waiting for Perl to become Ready...');
+            // Wait for Perl to reach "Ready" or later state (it might already be Running)
+            // Valid states: Ready, Running, or Ended
+            const validStates = ['Ready', 'Running', 'Ended'];
+
+            if (!validStates.includes(Perl.state)) {
+                console.log('Waiting for Perl to initialize...');
                 document.getElementById('status').textContent = 'Waiting for WebPerl to initialize...';
 
                 await new Promise((resolve, reject) => {
                     const timeout = setTimeout(() => {
-                        reject(new Error('Timeout waiting for Perl to become Ready'));
+                        reject(new Error('Timeout waiting for Perl to initialize'));
                     }, 30000); // 30 second timeout
 
                     Perl.addStateChangeListener(function(from, to) {
                         console.log(`Perl state changed: ${from} -> ${to}`);
-                        if (to === 'Ready') {
+                        if (validStates.includes(to)) {
                             clearTimeout(timeout);
                             resolve();
                         }
@@ -350,7 +353,7 @@
                 });
             }
 
-            console.log('Perl is Ready! FS type:', typeof FS);
+            console.log('Perl is ready! State:', Perl.state, 'FS type:', typeof FS);
             document.getElementById('status').textContent = 'Loading Graph::Easy modules...';
 
             try {
@@ -397,11 +400,13 @@
             }
         }
 
-        // Wait for WebPerl to initialize, then load modules
-        window.addEventListener('load', function() {
-            console.log('Page loaded, waiting 2s before loading modules...');
-            // Wait a bit for WebPerl to initialize
-            setTimeout(loadModules, 2000);
+        // Load modules as soon as Perl becomes ready
+        Perl.addStateChangeListener(function(from, to) {
+            if (to === 'Ready' && !modulesLoaded) {
+                console.log('Perl became Ready, starting module load...');
+                // Small delay to let FS fully initialize
+                setTimeout(loadModules, 100);
+            }
         });
 
         function convertGraph() {
