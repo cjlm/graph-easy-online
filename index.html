@@ -480,12 +480,22 @@
 
                 const result = Perl.eval(perlScript);
 
+                // Debug: always log what we got back
+                console.log('Perl.eval result type:', typeof result);
+                console.log('Perl.eval result:', result);
+                console.log('Perl.eval result length:', result ? result.length : 'N/A');
+
                 if (result && result.startsWith && result.startsWith('Error:')) {
+                    console.error('Got error:', result);
                     errorDiv.textContent = result;
                     errorDiv.style.display = 'block';
                     output.textContent = 'Conversion failed. See error above.';
+                } else if (result) {
+                    console.log('Got result, displaying...');
+                    output.textContent = result;
                 } else {
-                    output.textContent = result || 'No output generated';
+                    console.warn('No result returned');
+                    output.textContent = 'No output generated';
                 }
             } catch (e) {
                 console.error('JavaScript error:', e);
