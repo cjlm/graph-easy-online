@@ -361,15 +361,27 @@
                     throw new Error('FS is still undefined after Perl became Ready');
                 }
 
+                // Helper to create directory, ignoring "already exists" errors
+                function mkdirSafe(path) {
+                    try {
+                        FS.mkdir(path);
+                    } catch (e) {
+                        // errno 17 is EEXIST - ignore it
+                        if (e.errno !== 17) {
+                            throw e;
+                        }
+                    }
+                }
+
                 // Create directory structure
-                FS.mkdir('/lib');
-                FS.mkdir('/lib/Graph');
-                FS.mkdir('/lib/Graph/Easy');
-                FS.mkdir('/lib/Graph/Easy/Edge');
-                FS.mkdir('/lib/Graph/Easy/Group');
-                FS.mkdir('/lib/Graph/Easy/Layout');
-                FS.mkdir('/lib/Graph/Easy/Node');
-                FS.mkdir('/lib/Graph/Easy/Parser');
+                mkdirSafe('/lib');
+                mkdirSafe('/lib/Graph');
+                mkdirSafe('/lib/Graph/Easy');
+                mkdirSafe('/lib/Graph/Easy/Edge');
+                mkdirSafe('/lib/Graph/Easy/Group');
+                mkdirSafe('/lib/Graph/Easy/Layout');
+                mkdirSafe('/lib/Graph/Easy/Node');
+                mkdirSafe('/lib/Graph/Easy/Parser');
 
                 console.log('Directories created, loading modules...');
 
@@ -444,21 +456,23 @@
             try {
                 output.textContent = 'Converting...';
 
-                // Escape the input for Perl
+                // Escape the input for Perl heredoc (only need to escape backslashes and $)
                 const escapedInput = input
                     .replace(/\\/g, '\\\\')
-                    .replace(/'/g, "\\'")
-                    .replace(/\n/g, '\\n');
+                    .replace(/\$/g, '\\$');
 
                 // Call Perl directly with a script
-                // Important: Don't use 'print', use return or string assignment
+                // Use heredoc to preserve newlines and special characters
                 const perlScript = `
                     use strict;
                     use warnings;
                     use lib '/lib';
                     use Graph::Easy;
 
-                    my $input = '${escapedInput}';
+                    my $input = <<'END_INPUT';
+${escapedInput}
+END_INPUT
+
                     my $output;
 
                     eval {
