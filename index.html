@@ -320,31 +320,36 @@
         // Function to load all Graph::Easy modules into WebPerl's filesystem
         async function loadModules() {
             console.log('loadModules() called');
+            console.log('Current Perl state:', Perl.state);
+            console.log('Checking for FS...', typeof FS);
+
+            // Wait for Perl to reach "Ready" state
+            if (Perl.state !== 'Ready') {
+                console.log('Waiting for Perl to become Ready...');
+                document.getElementById('status').textContent = 'Waiting for WebPerl to initialize...';
+
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Timeout waiting for Perl to become Ready'));
+                    }, 30000); // 30 second timeout
+
+                    Perl.addStateChangeListener(function(from, to) {
+                        console.log(`Perl state changed: ${from} -> ${to}`);
+                        if (to === 'Ready') {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    });
+                });
+            }
+
+            console.log('Perl is Ready! FS type:', typeof FS);
             document.getElementById('status').textContent = 'Loading Graph::Easy modules...';
 
             try {
-                // Wait for Perl to be ready
-                console.log('Checking for Perl...', typeof Perl);
-                console.log('Checking for Module...', typeof Module);
-                console.log('Checking for Module.FS...', typeof (typeof Module !== 'undefined' && Module.FS));
-
-                let waitCount = 0;
-                while (typeof Perl === 'undefined' || typeof Module === 'undefined' || typeof Module.FS === 'undefined') {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    waitCount++;
-                    if (waitCount % 10 === 0) {
-                        console.log(`Still waiting... (${waitCount/10}s) Perl=${typeof Perl}, Module=${typeof Module}, Module.FS=${typeof (typeof Module !== 'undefined' ? Module.FS : undefined)}`);
-                    }
-                    if (waitCount > 200) { // 20 seconds max
-                        throw new Error('Timeout waiting for Perl/Module.FS to initialize');
-                    }
+                if (typeof FS === 'undefined') {
+                    throw new Error('FS is still undefined after Perl became Ready');
                 }
-
-                console.log('Perl and Module.FS are ready!');
-                console.log('Creating directories...');
-
-                // Use Module.FS instead of FS
-                const FS = Module.FS;
 
                 // Create directory structure
                 FS.mkdir('/lib');
