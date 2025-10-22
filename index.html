@@ -319,13 +319,28 @@
 
         // Function to load all Graph::Easy modules into WebPerl's filesystem
         async function loadModules() {
+            console.log('loadModules() called');
             document.getElementById('status').textContent = 'Loading Graph::Easy modules...';
 
             try {
                 // Wait for Perl to be ready
+                console.log('Checking for Perl...', typeof Perl);
+                console.log('Checking for FS...', typeof FS);
+
+                let waitCount = 0;
                 while (typeof Perl === 'undefined' || typeof FS === 'undefined') {
                     await new Promise(resolve => setTimeout(resolve, 100));
+                    waitCount++;
+                    if (waitCount % 10 === 0) {
+                        console.log(`Still waiting... (${waitCount/10}s) Perl=${typeof Perl}, FS=${typeof FS}`);
+                    }
+                    if (waitCount > 200) { // 20 seconds max
+                        throw new Error('Timeout waiting for Perl/FS to initialize');
+                    }
                 }
+
+                console.log('Perl and FS are ready!');
+                console.log('Creating directories...');
 
                 // Create directory structure
                 FS.mkdir('/lib');
@@ -337,8 +352,11 @@
                 FS.mkdir('/lib/Graph/Easy/Node');
                 FS.mkdir('/lib/Graph/Easy/Parser');
 
+                console.log('Directories created, loading modules...');
+
                 // Load all module files
                 for (const file of moduleFiles) {
+                    console.log('Fetching:', file);
                     const response = await fetch(file);
                     if (!response.ok) {
                         throw new Error(`Failed to load ${file}: ${response.statusText}`);
@@ -349,6 +367,7 @@
                     console.log('Loaded:', fsPath);
                 }
 
+                console.log('All modules loaded!');
                 modulesLoaded = true;
                 document.getElementById('status').textContent = 'Ready! Enter graph notation and click "Convert to ASCII"';
                 document.getElementById('status').style.background = '#d4edda';
@@ -364,6 +383,7 @@
 
         // Wait for WebPerl to initialize, then load modules
         window.addEventListener('load', function() {
+            console.log('Page loaded, waiting 2s before loading modules...');
             // Wait a bit for WebPerl to initialize
             setTimeout(loadModules, 2000);
         });
