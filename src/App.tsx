@@ -64,9 +64,11 @@ function App() {
 
   // Load WebPerl script
   useEffect(() => {
+    // Set base URL for WebPerl to find its dependencies
     const script = document.createElement('script')
     script.src = '/graph-easy/webperl/webperl.js'
     script.async = true
+    script.setAttribute('data-perl-emperl-url', '/graph-easy/webperl/emperl.js')
     document.body.appendChild(script)
 
     return () => {
