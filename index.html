@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph::Easy in WebAssembly</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .credit {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .credit a {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: #4a5568;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+
+        .panel-body {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            width: 100%;
+            flex: 1;
+            min-height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 15px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        pre {
+            width: 100%;
+            flex: 1;
+            min-height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 15px;
+            overflow: auto;
+            white-space: pre;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #38a169;
+        }
+
+        .examples {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+        }
+
+        .examples h2 {
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+
+        .example-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .example-btn {
+            padding: 8px 16px;
+            background: #edf2f7;
+            color: #2d3748;
+            border: 2px solid #cbd5e0;
+            font-size: 13px;
+        }
+
+        .example-btn:hover {
+            background: #e2e8f0;
+            border-color: #a0aec0;
+        }
+
+        #status {
+            text-align: center;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+
+        #error {
+            color: #c53030;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Graph::Easy in WebAssembly</h1>
+            <p class="subtitle">Draw graphs using ASCII art, powered by Perl + WebAssembly</p>
+            <p class="credit">Inspired by <a href="https://simonwillison.net/2025/Oct/22/sloccount-in-webassembly/" target="_blank">Simon Willison's SLOCCount</a></p>
+        </header>
+
+        <div id="status">Loading WebPerl...</div>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">Input (Graph Notation)</div>
+                <div class="panel-body">
+                    <textarea id="input" placeholder="Enter graph notation here...">[ Bonn ] -> [ Berlin ]
+[ Berlin ] -> [ Frankfurt ] { border: 1px dotted black; }
+[ Frankfurt ] -> [ Dresden ]
+[ Berlin ] ..> [ Potsdam ]
+[ Potsdam ] => [ Cottbus ]</textarea>
+                    <div class="controls">
+                        <button class="btn-primary" onclick="convertGraph()">Convert to ASCII</button>
+                        <button class="btn-secondary" onclick="clearAll()">Clear</button>
+                    </div>
+                    <div id="error"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">Output (ASCII Art)</div>
+                <div class="panel-body">
+                    <pre id="output">Click "Convert to ASCII" to see the result...</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h2>Example Graphs</h2>
+            <div class="example-buttons">
+                <button class="example-btn" onclick="loadExample('cities')">Cities</button>
+                <button class="example-btn" onclick="loadExample('workflow')">Workflow</button>
+                <button class="example-btn" onclick="loadExample('tree')">Tree</button>
+                <button class="example-btn" onclick="loadExample('network')">Network</button>
+                <button class="example-btn" onclick="loadExample('simple')">Simple</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://webperl.zero-g.net/v0.09-beta/webperl.js"></script>
+
+    <script type="text/perl">
+        use strict;
+        use warnings;
+        use lib './lib';
+        use Graph::Easy;
+
+        sub convert_graph {
+            my ($input) = @_;
+
+            eval {
+                my $graph = Graph::Easy->new();
+                my $result = $graph->parse_from_text($input);
+
+                if ($result) {
+                    return "Error: " . $result;
+                }
+
+                return $graph->as_ascii();
+            };
+
+            if ($@) {
+                return "Error: $@";
+            }
+        }
+    </script>
+
+    <script>
+        const examples = {
+            cities: `[ Bonn ] -> [ Berlin ]
+[ Berlin ] -> [ Frankfurt ] { border: 1px dotted black; }
+[ Frankfurt ] -> [ Dresden ]
+[ Berlin ] ..> [ Potsdam ]
+[ Potsdam ] => [ Cottbus ]`,
+
+            workflow: `[ Start ] -> [ Process Data ]
+[ Process Data ] -> [ Validate ]
+[ Validate ] -> [ Success ] { label: valid; }
+[ Validate ] -> [ Error ] { label: invalid; }
+[ Error ] -> [ Process Data ]
+[ Success ] -> [ End ]`,
+
+            tree: `[ Root ] -> [ Branch A ]
+[ Root ] -> [ Branch B ]
+[ Branch A ] -> [ Leaf 1 ]
+[ Branch A ] -> [ Leaf 2 ]
+[ Branch B ] -> [ Leaf 3 ]
+[ Branch B ] -> [ Leaf 4 ]`,
+
+            network: `[ Server ] -> [ Load Balancer ]
+[ Load Balancer ] -> [ App 1 ]
+[ Load Balancer ] -> [ App 2 ]
+[ Load Balancer ] -> [ App 3 ]
+[ App 1 ] -> [ Database ]
+[ App 2 ] -> [ Database ]
+[ App 3 ] -> [ Database ]`,
+
+            simple: `[ A ] -> [ B ]
+[ B ] -> [ C ]
+[ C ] -> [ D ]`
+        };
+
+        let perlReady = false;
+
+        // Wait for WebPerl to be ready
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof Perl !== 'undefined') {
+                    perlReady = true;
+                    document.getElementById('status').textContent = 'Ready! Enter graph notation and click "Convert to ASCII"';
+                    document.getElementById('status').style.background = '#d4edda';
+                    document.getElementById('status').style.color = '#155724';
+                } else {
+                    document.getElementById('status').textContent = 'Error loading WebPerl. Please refresh the page.';
+                    document.getElementById('status').style.background = '#f8d7da';
+                    document.getElementById('status').style.color = '#721c24';
+                }
+            }, 2000);
+        });
+
+        function convertGraph() {
+            const input = document.getElementById('input').value;
+            const output = document.getElementById('output');
+            const errorDiv = document.getElementById('error');
+
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+
+            if (!perlReady) {
+                errorDiv.textContent = 'WebPerl is not ready yet. Please wait...';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!input.trim()) {
+                output.textContent = 'Please enter some graph notation.';
+                return;
+            }
+
+            try {
+                output.textContent = 'Converting...';
+
+                // Call Perl function
+                const result = Perl.eval('convert_graph("' + input.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '")');
+
+                if (result.startsWith('Error:')) {
+                    errorDiv.textContent = result;
+                    errorDiv.style.display = 'block';
+                    output.textContent = 'Conversion failed. See error above.';
+                } else {
+                    output.textContent = result;
+                }
+            } catch (e) {
+                errorDiv.textContent = 'Error: ' + e.message;
+                errorDiv.style.display = 'block';
+                output.textContent = 'Conversion failed. See error above.';
+            }
+        }
+
+        function loadExample(name) {
+            if (examples[name]) {
+                document.getElementById('input').value = examples[name];
+                document.getElementById('output').textContent = 'Click "Convert to ASCII" to see the result...';
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('input').value = '';
+            document.getElementById('output').textContent = 'Click "Convert to ASCII" to see the result...';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        // Allow Enter key to convert (with Ctrl/Cmd)
+        document.getElementById('input').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                convertGraph();
+            }
+        });
+    </script>
+</body>
+</html>
