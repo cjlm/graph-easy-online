@@ -293,36 +293,8 @@
         let perlReady = false;
         let modulesLoaded = false;
 
-        // All the Graph::Easy module files we need to load
-        const moduleFiles = [
-            'lib/Graph/Easy.pm',
-            'lib/Graph/Easy/As_ascii.pm',
-            'lib/Graph/Easy/As_graphml.pm',
-            'lib/Graph/Easy/As_graphviz.pm',
-            'lib/Graph/Easy/As_txt.pm',
-            'lib/Graph/Easy/As_vcg.pm',
-            'lib/Graph/Easy/Attributes.pm',
-            'lib/Graph/Easy/Base.pm',
-            'lib/Graph/Easy/Edge.pm',
-            'lib/Graph/Easy/Edge/Cell.pm',
-            'lib/Graph/Easy/Group.pm',
-            'lib/Graph/Easy/Group/Anon.pm',
-            'lib/Graph/Easy/Group/Cell.pm',
-            'lib/Graph/Easy/Layout.pm',
-            'lib/Graph/Easy/Layout/Chain.pm',
-            'lib/Graph/Easy/Layout/Force.pm',
-            'lib/Graph/Easy/Layout/Grid.pm',
-            'lib/Graph/Easy/Layout/Path.pm',
-            'lib/Graph/Easy/Layout/Repair.pm',
-            'lib/Graph/Easy/Layout/Scout.pm',
-            'lib/Graph/Easy/Node.pm',
-            'lib/Graph/Easy/Node/Anon.pm',
-            'lib/Graph/Easy/Node/Cell.pm',
-            'lib/Graph/Easy/Node/Empty.pm',
-            'lib/Graph/Easy/Parser.pm',
-            'lib/Graph/Easy/Parser/Graphviz.pm',
-            'lib/Graph/Easy/Parser/VCG.pm'
-        ];
+        // Single bundled module file (faster loading - 1 request instead of 27!)
+        const bundleFile = 'lib/Graph-Easy-bundle.pm';
 
         // Function to load all Graph::Easy modules into WebPerl's filesystem
         async function loadModules() {
@@ -375,30 +347,19 @@
 
                 // Create directory structure
                 mkdirSafe('/lib');
-                mkdirSafe('/lib/Graph');
-                mkdirSafe('/lib/Graph/Easy');
-                mkdirSafe('/lib/Graph/Easy/Edge');
-                mkdirSafe('/lib/Graph/Easy/Group');
-                mkdirSafe('/lib/Graph/Easy/Layout');
-                mkdirSafe('/lib/Graph/Easy/Node');
-                mkdirSafe('/lib/Graph/Easy/Parser');
 
-                console.log('Directories created, loading modules...');
+                console.log('Loading bundled Graph::Easy module...');
 
-                // Load all module files
-                for (const file of moduleFiles) {
-                    console.log('Fetching:', file);
-                    const response = await fetch(file);
-                    if (!response.ok) {
-                        throw new Error(`Failed to load ${file}: ${response.statusText}`);
-                    }
-                    const content = await response.text();
-                    const fsPath = '/' + file; // e.g., '/lib/Graph/Easy.pm'
-                    FS.writeFile(fsPath, content);
-                    console.log('Loaded:', fsPath);
+                // Load the single bundled file (much faster than 27 separate requests!)
+                const response = await fetch(bundleFile);
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${bundleFile}: ${response.statusText}`);
                 }
+                const content = await response.text();
+                const fsPath = '/' + bundleFile;
+                FS.writeFile(fsPath, content);
 
-                console.log('All modules loaded!');
+                console.log('Bundle loaded! Size:', content.length, 'bytes');
                 modulesLoaded = true;
                 document.getElementById('status').textContent = 'Ready! Enter graph notation and click "Convert to ASCII"';
                 document.getElementById('status').style.background = '#d4edda';
@@ -466,8 +427,7 @@
                 const perlScript = `
                     use strict;
                     use warnings;
-                    use lib '/lib';
-                    use Graph::Easy;
+                    require "/lib/Graph-Easy-bundle.pm";
 
                     my $input = <<'END_INPUT';
 ${escapedInput}
