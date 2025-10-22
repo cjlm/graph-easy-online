@@ -325,22 +325,26 @@
             try {
                 // Wait for Perl to be ready
                 console.log('Checking for Perl...', typeof Perl);
-                console.log('Checking for FS...', typeof FS);
+                console.log('Checking for Module...', typeof Module);
+                console.log('Checking for Module.FS...', typeof (typeof Module !== 'undefined' && Module.FS));
 
                 let waitCount = 0;
-                while (typeof Perl === 'undefined' || typeof FS === 'undefined') {
+                while (typeof Perl === 'undefined' || typeof Module === 'undefined' || typeof Module.FS === 'undefined') {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     waitCount++;
                     if (waitCount % 10 === 0) {
-                        console.log(`Still waiting... (${waitCount/10}s) Perl=${typeof Perl}, FS=${typeof FS}`);
+                        console.log(`Still waiting... (${waitCount/10}s) Perl=${typeof Perl}, Module=${typeof Module}, Module.FS=${typeof (typeof Module !== 'undefined' ? Module.FS : undefined)}`);
                     }
                     if (waitCount > 200) { // 20 seconds max
-                        throw new Error('Timeout waiting for Perl/FS to initialize');
+                        throw new Error('Timeout waiting for Perl/Module.FS to initialize');
                     }
                 }
 
-                console.log('Perl and FS are ready!');
+                console.log('Perl and Module.FS are ready!');
                 console.log('Creating directories...');
+
+                // Use Module.FS instead of FS
+                const FS = Module.FS;
 
                 // Create directory structure
                 FS.mkdir('/lib');
