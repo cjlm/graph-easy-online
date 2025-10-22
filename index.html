@@ -248,6 +248,13 @@
 
     <script src="webperl/webperl.js"></script>
 
+    <!-- This empty Perl script triggers WebPerl to initialize -->
+    <script type="text/perl">
+# WebPerl initialization
+# Graph::Easy modules will be loaded via JavaScript
+1;
+    </script>
+
     <script>
         const examples = {
             cities: `[ Bonn ] -> [ Berlin ]
