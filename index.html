@@ -451,6 +451,7 @@
                     .replace(/\n/g, '\\n');
 
                 // Call Perl directly with a script
+                // Important: Don't use 'print', use return or string assignment
                 const perlScript = `
                     use strict;
                     use warnings;
@@ -458,20 +459,23 @@
                     use Graph::Easy;
 
                     my $input = '${escapedInput}';
+                    my $output;
 
                     eval {
                         my $graph = Graph::Easy->new($input);
 
                         if ($graph->error()) {
-                            print "Error: " . $graph->error();
+                            $output = "Error: " . $graph->error();
                         } else {
-                            print $graph->as_ascii();
+                            $output = $graph->as_ascii();
                         }
                     };
 
                     if ($@) {
-                        print "Error: $@";
+                        $output = "Error: $@";
                     }
+
+                    $output;
                 `;
 
                 const result = Perl.eval(perlScript);
