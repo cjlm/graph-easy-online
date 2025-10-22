@@ -248,32 +248,6 @@
 
     <script src="webperl/webperl.js"></script>
 
-    <script type="text/perl">
-        use strict;
-        use warnings;
-        use lib './lib';
-        use Graph::Easy;
-
-        sub convert_graph {
-            my ($input) = @_;
-
-            eval {
-                my $graph = Graph::Easy->new();
-                my $result = $graph->parse_from_text($input);
-
-                if ($result) {
-                    return "Error: " . $result;
-                }
-
-                return $graph->as_ascii();
-            };
-
-            if ($@) {
-                return "Error: $@";
-            }
-        }
-    </script>
-
     <script>
         const examples = {
             cities: `[ Bonn ] -> [ Berlin ]
@@ -310,21 +284,88 @@
         };
 
         let perlReady = false;
+        let modulesLoaded = false;
 
-        // Wait for WebPerl to be ready
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                if (typeof Perl !== 'undefined') {
-                    perlReady = true;
-                    document.getElementById('status').textContent = 'Ready! Enter graph notation and click "Convert to ASCII"';
-                    document.getElementById('status').style.background = '#d4edda';
-                    document.getElementById('status').style.color = '#155724';
-                } else {
-                    document.getElementById('status').textContent = 'Error loading WebPerl. Please refresh the page.';
-                    document.getElementById('status').style.background = '#f8d7da';
-                    document.getElementById('status').style.color = '#721c24';
+        // All the Graph::Easy module files we need to load
+        const moduleFiles = [
+            'lib/Graph/Easy.pm',
+            'lib/Graph/Easy/As_ascii.pm',
+            'lib/Graph/Easy/As_graphml.pm',
+            'lib/Graph/Easy/As_graphviz.pm',
+            'lib/Graph/Easy/As_txt.pm',
+            'lib/Graph/Easy/As_vcg.pm',
+            'lib/Graph/Easy/Attributes.pm',
+            'lib/Graph/Easy/Base.pm',
+            'lib/Graph/Easy/Edge.pm',
+            'lib/Graph/Easy/Edge/Cell.pm',
+            'lib/Graph/Easy/Group.pm',
+            'lib/Graph/Easy/Group/Anon.pm',
+            'lib/Graph/Easy/Group/Cell.pm',
+            'lib/Graph/Easy/Layout.pm',
+            'lib/Graph/Easy/Layout/Chain.pm',
+            'lib/Graph/Easy/Layout/Force.pm',
+            'lib/Graph/Easy/Layout/Grid.pm',
+            'lib/Graph/Easy/Layout/Path.pm',
+            'lib/Graph/Easy/Layout/Repair.pm',
+            'lib/Graph/Easy/Layout/Scout.pm',
+            'lib/Graph/Easy/Node.pm',
+            'lib/Graph/Easy/Node/Anon.pm',
+            'lib/Graph/Easy/Node/Cell.pm',
+            'lib/Graph/Easy/Node/Empty.pm',
+            'lib/Graph/Easy/Parser.pm',
+            'lib/Graph/Easy/Parser/Graphviz.pm',
+            'lib/Graph/Easy/Parser/VCG.pm'
+        ];
+
+        // Function to load all Graph::Easy modules into WebPerl's filesystem
+        async function loadModules() {
+            document.getElementById('status').textContent = 'Loading Graph::Easy modules...';
+
+            try {
+                // Wait for Perl to be ready
+                while (typeof Perl === 'undefined' || typeof FS === 'undefined') {
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 }
-            }, 2000);
+
+                // Create directory structure
+                FS.mkdir('/lib');
+                FS.mkdir('/lib/Graph');
+                FS.mkdir('/lib/Graph/Easy');
+                FS.mkdir('/lib/Graph/Easy/Edge');
+                FS.mkdir('/lib/Graph/Easy/Group');
+                FS.mkdir('/lib/Graph/Easy/Layout');
+                FS.mkdir('/lib/Graph/Easy/Node');
+                FS.mkdir('/lib/Graph/Easy/Parser');
+
+                // Load all module files
+                for (const file of moduleFiles) {
+                    const response = await fetch(file);
+                    if (!response.ok) {
+                        throw new Error(`Failed to load ${file}: ${response.statusText}`);
+                    }
+                    const content = await response.text();
+                    const fsPath = '/' + file; // e.g., '/lib/Graph/Easy.pm'
+                    FS.writeFile(fsPath, content);
+                    console.log('Loaded:', fsPath);
+                }
+
+                modulesLoaded = true;
+                document.getElementById('status').textContent = 'Ready! Enter graph notation and click "Convert to ASCII"';
+                document.getElementById('status').style.background = '#d4edda';
+                document.getElementById('status').style.color = '#155724';
+
+            } catch (error) {
+                console.error('Error loading modules:', error);
+                document.getElementById('status').textContent = 'Error loading modules: ' + error.message;
+                document.getElementById('status').style.background = '#f8d7da';
+                document.getElementById('status').style.color = '#721c24';
+            }
+        }
+
+        // Wait for WebPerl to initialize, then load modules
+        window.addEventListener('load', function() {
+            // Wait a bit for WebPerl to initialize
+            setTimeout(loadModules, 2000);
         });
 
         function convertGraph() {
@@ -335,8 +376,8 @@
             errorDiv.style.display = 'none';
             errorDiv.textContent = '';
 
-            if (!perlReady) {
-                errorDiv.textContent = 'WebPerl is not ready yet. Please wait...';
+            if (!modulesLoaded) {
+                errorDiv.textContent = 'Modules are not loaded yet. Please wait...';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -349,17 +390,48 @@
             try {
                 output.textContent = 'Converting...';
 
-                // Call Perl function
-                const result = Perl.eval('convert_graph("' + input.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '")');
+                // Escape the input for Perl
+                const escapedInput = input
+                    .replace(/\\/g, '\\\\')
+                    .replace(/'/g, "\\'")
+                    .replace(/\n/g, '\\n');
 
-                if (result.startsWith('Error:')) {
+                // Call Perl directly with a script
+                const perlScript = `
+                    use strict;
+                    use warnings;
+                    use lib '/lib';
+                    use Graph::Easy;
+
+                    my $input = '${escapedInput}';
+
+                    eval {
+                        my $graph = Graph::Easy->new();
+                        my $result = $graph->parse_from_text($input);
+
+                        if ($result) {
+                            print "Error: " . $result;
+                        } else {
+                            print $graph->as_ascii();
+                        }
+                    };
+
+                    if ($@) {
+                        print "Error: $@";
+                    }
+                `;
+
+                const result = Perl.eval(perlScript);
+
+                if (result && result.startsWith && result.startsWith('Error:')) {
                     errorDiv.textContent = result;
                     errorDiv.style.display = 'block';
                     output.textContent = 'Conversion failed. See error above.';
                 } else {
-                    output.textContent = result;
+                    output.textContent = result || 'No output generated';
                 }
             } catch (e) {
+                console.error('JavaScript error:', e);
                 errorDiv.textContent = 'Error: ' + e.message;
                 errorDiv.style.display = 'block';
                 output.textContent = 'Conversion failed. See error above.';
