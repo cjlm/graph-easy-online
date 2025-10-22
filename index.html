@@ -293,6 +293,37 @@
         let perlReady = false;
         let modulesLoaded = false;
 
+        // Module files list - we'll extract these from the bundle
+        const moduleFiles = [
+            'lib/Graph/Easy/Base.pm',
+            'lib/Graph/Easy/Attributes.pm',
+            'lib/Graph/Easy/Node.pm',
+            'lib/Graph/Easy/Node/Anon.pm',
+            'lib/Graph/Easy/Node/Cell.pm',
+            'lib/Graph/Easy/Node/Empty.pm',
+            'lib/Graph/Easy/Edge.pm',
+            'lib/Graph/Easy/Edge/Cell.pm',
+            'lib/Graph/Easy/Group.pm',
+            'lib/Graph/Easy/Group/Anon.pm',
+            'lib/Graph/Easy/Group/Cell.pm',
+            'lib/Graph/Easy/Layout.pm',
+            'lib/Graph/Easy/Layout/Chain.pm',
+            'lib/Graph/Easy/Layout/Force.pm',
+            'lib/Graph/Easy/Layout/Grid.pm',
+            'lib/Graph/Easy/Layout/Path.pm',
+            'lib/Graph/Easy/Layout/Repair.pm',
+            'lib/Graph/Easy/Layout/Scout.pm',
+            'lib/Graph/Easy/Parser.pm',
+            'lib/Graph/Easy/Parser/Graphviz.pm',
+            'lib/Graph/Easy/Parser/VCG.pm',
+            'lib/Graph/Easy/As_ascii.pm',
+            'lib/Graph/Easy/As_graphml.pm',
+            'lib/Graph/Easy/As_graphviz.pm',
+            'lib/Graph/Easy/As_txt.pm',
+            'lib/Graph/Easy/As_vcg.pm',
+            'lib/Graph/Easy.pm'
+        ];
+
         // Single bundled module file (faster loading - 1 request instead of 27!)
         const bundleFile = 'lib/Graph-Easy-bundle.pm';
 
@@ -347,19 +378,29 @@
 
                 // Create directory structure
                 mkdirSafe('/lib');
+                mkdirSafe('/lib/Graph');
+                mkdirSafe('/lib/Graph/Easy');
+                mkdirSafe('/lib/Graph/Easy/Edge');
+                mkdirSafe('/lib/Graph/Easy/Group');
+                mkdirSafe('/lib/Graph/Easy/Layout');
+                mkdirSafe('/lib/Graph/Easy/Node');
+                mkdirSafe('/lib/Graph/Easy/Parser');
 
-                console.log('Loading bundled Graph::Easy module...');
+                console.log('Directories created, loading modules...');
 
-                // Load the single bundled file (much faster than 27 separate requests!)
-                const response = await fetch(bundleFile);
-                if (!response.ok) {
-                    throw new Error(`Failed to load ${bundleFile}: ${response.statusText}`);
+                // Load all module files individually
+                // Note: Could optimize by bundling, but Perl's use statements require proper file structure
+                for (const file of moduleFiles) {
+                    const response = await fetch(file);
+                    if (!response.ok) {
+                        throw new Error(`Failed to load ${file}: ${response.statusText}`);
+                    }
+                    const content = await response.text();
+                    const fsPath = '/' + file;
+                    FS.writeFile(fsPath, content);
                 }
-                const content = await response.text();
-                const fsPath = '/' + bundleFile;
-                FS.writeFile(fsPath, content);
 
-                console.log('Bundle loaded! Size:', content.length, 'bytes');
+                console.log('All modules loaded!');
                 modulesLoaded = true;
                 document.getElementById('status').textContent = 'Ready! Enter graph notation and click "Convert to ASCII"';
                 document.getElementById('status').style.background = '#d4edda';
@@ -427,7 +468,8 @@
                 const perlScript = `
                     use strict;
                     use warnings;
-                    require "/lib/Graph-Easy-bundle.pm";
+                    use lib '/lib';
+                    use Graph::Easy;
 
                     my $input = <<'END_INPUT';
 ${escapedInput}
