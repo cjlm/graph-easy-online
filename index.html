@@ -402,11 +402,24 @@
 
         // Load modules as soon as Perl becomes ready
         Perl.addStateChangeListener(function(from, to) {
+            console.log('State transition detected:', from, '->', to);
             if (to === 'Ready' && !modulesLoaded) {
                 console.log('Perl became Ready, starting module load...');
                 // Small delay to let FS fully initialize
                 setTimeout(loadModules, 100);
             }
+        });
+
+        // Also check on page load in case we missed the Ready transition
+        window.addEventListener('load', function() {
+            console.log('Page loaded. Perl state:', Perl.state, 'modulesLoaded:', modulesLoaded);
+            setTimeout(function() {
+                console.log('After 2s: Perl state:', Perl.state, 'modulesLoaded:', modulesLoaded);
+                if (!modulesLoaded && (Perl.state === 'Ready' || Perl.state === 'Running' || Perl.state === 'Ended')) {
+                    console.log('Modules not loaded yet and Perl is ready, loading now...');
+                    loadModules();
+                }
+            }, 2000);
         });
 
         function convertGraph() {
