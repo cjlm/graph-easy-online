@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -98,8 +98,6 @@ function App() {
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [loadingState, setLoadingState] = useState<LoadingState>('initializing')
-  const [loadingMessage, setLoadingMessage] = useState('Initializing WebPerl...')
-  const [converting, setConverting] = useState(false)
   const [paneWidth, setPaneWidth] = useState(400)
   const [paneHeight, setPaneHeight] = useState(300)
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
@@ -153,7 +151,6 @@ function App() {
 
         try {
           setLoadingState('loading-modules')
-          setLoadingMessage('Loading Graph::Easy modules...')
 
           const moduleFiles = [
             'lib/Graph/Easy/Base.pm',
@@ -224,14 +221,12 @@ function App() {
 
           modulesLoadedRef.current = true
           setLoadingState('ready')
-          setLoadingMessage('Ready to convert!')
           setError('') // Clear any loading errors
 
           // Auto-convert the first example
           setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
         } catch (err: any) {
           setLoadingState('error')
-          setLoadingMessage(`Error loading modules: ${err.message}`)
           setError(err.message)
         }
       }
@@ -338,7 +333,6 @@ function App() {
     }
 
     try {
-      setConverting(true)
       setError('')
 
       const escapedInput = textToConvert
@@ -403,8 +397,6 @@ END_INPUT
     } catch (err: any) {
       setError(`Conversion error: ${err.message}`)
       // Keep previous output visible
-    } finally {
-      setConverting(false)
     }
   }
 
