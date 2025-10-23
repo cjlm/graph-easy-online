@@ -201,6 +201,7 @@ function App() {
   const [zoom, setZoom] = useState(1)
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
+  const [isConverting, setIsConverting] = useState(false)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
@@ -381,6 +382,7 @@ function App() {
     if (loadingState !== 'ready' || !input.trim()) return
 
     const timeoutId = setTimeout(() => {
+      setIsConverting(true)
       convertGraph()
     }, 500) // 500ms debounce
 
@@ -392,6 +394,7 @@ function App() {
     if (loadingState === 'ready' && input.trim() && output) {
       // Only re-convert if we already have output
       // (don't convert on initial mount)
+      setIsConverting(true)
       convertGraph()
     }
   }, [outputFormat])
@@ -403,10 +406,12 @@ function App() {
         const svgElement = vizInstanceRef.current.renderSVGElement(output)
         setRenderedGraphviz(svgElement)
         setError('')
+        setIsConverting(false)
       } catch (err: any) {
         console.error('Graphviz rendering error:', err)
         setError(`Graphviz rendering error: ${err.message}`)
         setRenderedGraphviz(null)
+        setIsConverting(false)
       }
     } else {
       setRenderedGraphviz(null)
@@ -481,16 +486,24 @@ END_INPUT
 
       if (result && result.startsWith('Error:')) {
         setError(result)
+        setIsConverting(false)
         // Keep previous output visible
       } else if (result) {
         setOutput(result)
         setError('')
+        // For non-graphviz formats, conversion is complete immediately
+        // For graphviz, the rendering effect will set isConverting to false
+        if (outputFormat !== 'graphviz') {
+          setIsConverting(false)
+        }
       } else {
         setError('No output generated')
+        setIsConverting(false)
         // Keep previous output visible
       }
     } catch (err: any) {
       setError(`Conversion error: ${err.message}`)
+      setIsConverting(false)
       // Keep previous output visible
     }
   }
@@ -694,6 +707,33 @@ END_INPUT
                 <p className="text-base md:text-lg">Enter graph notation to see output</p>
               </div>
             ) : null}
+      <div className={`absolute inset-0 flex items-center justify-center p-4 md:p-8 ${
+        mobileView === 'editor' ? 'hidden md:flex' : 'flex'
+      }`}>
+        {loadingState === 'ready' && output && !isConverting ? (
+          outputFormat === 'graphviz' && renderedGraphviz ? (
+            <div
+              className="flex items-center justify-center w-full h-full overflow-auto"
+              ref={(el) => {
+                if (el && renderedGraphviz) {
+                  el.innerHTML = ''
+                  el.appendChild(renderedGraphviz.cloneNode(true))
+                }
+              }}
+            />
+          ) : outputFormat === 'html' || outputFormat === 'svg' ? (
+            <div
+              className="flex items-center justify-center w-full h-full overflow-auto"
+              dangerouslySetInnerHTML={{ __html: output }}
+            />
+          ) : (
+            <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90 select-text">
+              {output}
+            </pre>
+          )
+        ) : loadingState === 'ready' && !output ? (
+          <div className="text-center text-muted-foreground">
+            <p className="text-base md:text-lg">Enter graph notation to see output</p>
           </div>
         </div>
       </div>
@@ -839,8 +879,8 @@ END_INPUT
         </Button>
       </div>
 
-      {/* Format Selector Panel - Bottom Right on desktop, hidden on mobile when editor is shown */}
-      <div className={`absolute bottom-20 right-4 md:bottom-8 md:right-8 ${
+      {/* Format Selector Panel - Top on mobile, Bottom Right on desktop, hidden on mobile when editor is shown */}
+      <div className={`absolute top-4 right-4 md:top-auto md:bottom-8 md:right-8 ${
         mobileView === 'editor' ? 'hidden md:block' : 'block'
       }`}>
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden transition-all duration-200">
