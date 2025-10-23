@@ -19,7 +19,7 @@ export interface ConversionResult {
 export class GraphConversionService {
   private jsWasmConverter: any = null
   private jsWasmInitialized = false
-  private preferredEngine: ConversionEngine = 'jswasm'
+  private preferredEngine: ConversionEngine = 'wasm'
 
   /**
    * Set the preferred conversion engine
@@ -72,7 +72,7 @@ export class GraphConversionService {
     const startTime = performance.now()
 
     try {
-      if (engine === 'jswasm') {
+      if (engine === 'wasm' || engine === 'typescript') {
         // Check if format is supported
         if (format !== 'ascii' && format !== 'boxart') {
           console.warn(`JS/WASM doesn't support ${format} format, using WebPerl`)
@@ -102,7 +102,7 @@ export class GraphConversionService {
 
           return {
             output,
-            engine: 'jswasm',
+            engine,
             timeMs,
           }
         } catch (jsError) {

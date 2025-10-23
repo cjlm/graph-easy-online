@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -154,25 +154,30 @@ graph { flow: east; }
 ]
 
 // Utility functions for URL state serialization
-const getStateFromURL = (): { input?: string; format?: OutputFormat } => {
+const getStateFromURL = (): { input?: string; format?: OutputFormat; engine?: ConversionEngine } => {
   const params = new URLSearchParams(window.location.search)
   const input = params.get('input')
   const format = params.get('format') as OutputFormat | null
+  const engine = params.get('engine') as ConversionEngine | null
 
   return {
     input: input || undefined,
     format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
       ? format
+      : undefined,
+    engine: engine && ['webperl', 'wasm', 'typescript'].includes(engine)
+      ? engine
       : undefined
   }
 }
 
-const updateURL = (input: string, format: OutputFormat) => {
+const updateURL = (input: string, format: OutputFormat, engine: ConversionEngine) => {
   const params = new URLSearchParams()
   if (input.trim()) {
     params.set('input', input)
   }
   params.set('format', format)
+  params.set('engine', engine)
 
   const newURL = `${window.location.pathname}?${params.toString()}`
   window.history.replaceState({}, '', newURL)
@@ -198,9 +203,12 @@ type LoadingState = 'initializing' | 'loading-modules' | 'ready' | 'error'
 
 export type OutputFormat = 'ascii' | 'boxart' | 'html' | 'svg' | 'graphviz' | 'graphml' | 'vcg' | 'txt'
 
-const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
+const COMMON_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
   { value: 'ascii', label: 'ASCII Art', description: 'Uses +, -, <, | to render boxes' },
   { value: 'boxart', label: 'Box Art', description: 'Unicode box drawing characters' },
+]
+
+const ADVANCED_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
   { value: 'html', label: 'HTML', description: 'HTML table output' },
   { value: 'svg', label: 'SVG', description: 'Scalable Vector Graphics' },
   { value: 'graphviz', label: 'Graphviz', description: 'Graphviz DOT format' },
@@ -208,6 +216,8 @@ const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string;
   { value: 'vcg', label: 'VCG/GDL', description: 'VCG Graph Description Language' },
   { value: 'txt', label: 'Text', description: 'Normalized text representation' },
 ]
+
+const OUTPUT_FORMATS = [...COMMON_FORMATS, ...ADVANCED_FORMATS]
 
 function App() {
   // Initialize state from URL or defaults
@@ -221,6 +231,7 @@ function App() {
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>(urlState.format || 'ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
+  const [advancedFormatsOpen, setAdvancedFormatsOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [copied, setCopied] = useState(false)
   const [renderedGraphviz, setRenderedGraphviz] = useState<SVGSVGElement | null>(null)
@@ -234,7 +245,7 @@ function App() {
   const [panStartX, setPanStartX] = useState(0)
   const [panStartY, setPanStartY] = useState(0)
   const [conversionEngine, setConversionEngine] = useState<ConversionEngine>(
-    () => graphConversionService.getPreferredEngine()
+    () => urlState.engine || graphConversionService.getPreferredEngine()
   )
   const [conversionTime, setConversionTime] = useState<number>(0)
   const [engineUsed, setEngineUsed] = useState<ConversionEngine | null>(null)
@@ -380,8 +391,8 @@ function App() {
       }
     }
 
-    // Eagerly initialize if jswasm is preferred
-    if (conversionEngine === 'jswasm') {
+    // Eagerly initialize if wasm/typescript is preferred
+    if (conversionEngine === 'wasm' || conversionEngine === 'typescript') {
       initJsWasm()
     }
   }, [])
@@ -416,10 +427,10 @@ function App() {
     }
   }, [isDarkMode])
 
-  // Update URL when input or output format changes
+  // Update URL when input, output format, or engine changes
   useEffect(() => {
-    updateURL(input, outputFormat)
-  }, [input, outputFormat])
+    updateURL(input, outputFormat, conversionEngine)
+  }, [input, outputFormat, conversionEngine])
   
   // Handle window resize to update isMobile state
   useEffect(() => {
@@ -796,7 +807,7 @@ function App() {
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
                 <span className="font-medium">
-                  {engineUsed === 'jswasm' ? 'JS/WASM' : 'WebPerl'}
+                  {engineUsed === 'wasm' ? 'Rust/WASM' : engineUsed === 'typescript' ? 'TypeScript' : 'WebPerl'}
                 </span>
               </div>
               <span>•</span>
@@ -936,23 +947,43 @@ function App() {
                 <div className="text-xs font-medium text-muted-foreground mb-2 px-1">Conversion Engine</div>
                 <div className="space-y-1">
                   <button
-                    onClick={() => handleEngineChange('jswasm')}
+                    onClick={() => handleEngineChange('wasm')}
                     className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
-                      conversionEngine === 'jswasm'
+                      conversionEngine === 'wasm'
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-muted/50'
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       <Zap className="w-3 h-3" />
-                      <div className="text-sm font-medium">JS/WASM</div>
+                      <div className="text-sm font-medium">Rust/WASM</div>
                     </div>
                     <div className={`text-xs mt-0.5 ${
-                      conversionEngine === 'jswasm'
+                      conversionEngine === 'wasm'
                         ? 'text-primary-foreground/80'
                         : 'text-muted-foreground'
                     }`}>
-                      Fast, lightweight (ASCII/Boxart only)
+                      Fastest (ASCII/Boxart only)
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleEngineChange('typescript')}
+                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                      conversionEngine === 'typescript'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Code className="w-3 h-3" />
+                      <div className="text-sm font-medium">TypeScript</div>
+                    </div>
+                    <div className={`text-xs mt-0.5 ${
+                      conversionEngine === 'typescript'
+                        ? 'text-primary-foreground/80'
+                        : 'text-muted-foreground'
+                    }`}>
+                      Pure JS (ASCII/Boxart only)
                     </div>
                   </button>
                   <button
@@ -963,45 +994,93 @@ function App() {
                         : 'hover:bg-muted/50'
                     }`}
                   >
-                    <div className="text-sm font-medium">WebPerl</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium">WebPerl</div>
+                    </div>
                     <div className={`text-xs mt-0.5 ${
                       conversionEngine === 'webperl'
                         ? 'text-primary-foreground/80'
                         : 'text-muted-foreground'
                     }`}>
-                      Original, all formats supported
+                      Original (all formats)
                     </div>
                   </button>
                 </div>
               </div>
 
               {/* Format options */}
-              <div className="p-2 space-y-1">
-                {OUTPUT_FORMATS.map((format) => (
-                  <button
-                    key={format.value}
-                    onClick={() => !format.disabled && setOutputFormat(format.value)}
-                    disabled={format.disabled}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
-                      format.disabled
-                        ? 'opacity-50 cursor-not-allowed'
-                        : outputFormat === format.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="text-sm font-medium">{format.label}</div>
-                    <div className={`text-xs mt-0.5 ${
-                      format.disabled
-                        ? 'text-muted-foreground'
-                        : outputFormat === format.value
-                        ? 'text-primary-foreground/80'
-                        : 'text-muted-foreground'
-                    }`}>
-                      {format.description}
+              <div className="p-2 space-y-2">
+                <div className="text-xs font-medium text-muted-foreground px-1">Output Format</div>
+
+                {/* Common formats */}
+                <div className="space-y-1">
+                  {COMMON_FORMATS.map((format) => (
+                    <button
+                      key={format.value}
+                      onClick={() => !format.disabled && setOutputFormat(format.value)}
+                      disabled={format.disabled}
+                      className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                        format.disabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : outputFormat === format.value
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="text-sm font-medium">{format.label}</div>
+                      <div className={`text-xs mt-0.5 ${
+                        format.disabled
+                          ? 'text-muted-foreground'
+                          : outputFormat === format.value
+                          ? 'text-primary-foreground/80'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {format.description}
                     </div>
                   </button>
                 ))}
+                </div>
+
+                {/* Advanced formats collapsible */}
+                <div className="border-t border-border pt-2">
+                  <button
+                    onClick={() => setAdvancedFormatsOpen(!advancedFormatsOpen)}
+                    className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 transition-all duration-150 flex items-center justify-between"
+                  >
+                    <span className="text-xs font-medium text-muted-foreground">Advanced Formats</span>
+                    <ChevronRight className={`w-3 h-3 text-muted-foreground transition-transform ${advancedFormatsOpen ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {advancedFormatsOpen && (
+                    <div className="space-y-1 mt-1">
+                      {ADVANCED_FORMATS.map((format) => (
+                        <button
+                          key={format.value}
+                          onClick={() => !format.disabled && setOutputFormat(format.value)}
+                          disabled={format.disabled}
+                          className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                            format.disabled
+                              ? 'opacity-50 cursor-not-allowed'
+                              : outputFormat === format.value
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="text-sm font-medium">{format.label}</div>
+                          <div className={`text-xs mt-0.5 ${
+                            format.disabled
+                              ? 'text-muted-foreground'
+                              : outputFormat === format.value
+                              ? 'text-primary-foreground/80'
+                              : 'text-muted-foreground'
+                          }`}>
+                            {format.description}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

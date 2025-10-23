@@ -263,7 +263,34 @@ fn assign_positions(
 
     let horizontal = config.flow == "east" || config.flow == "west";
 
+    // Calculate layer positions first
+    let mut layer_positions: Vec<i32> = Vec::new();
+    let mut current_pos = 0;
+
+    for layer in layers.iter() {
+        layer_positions.push(current_pos);
+
+        // Find max width in this layer for horizontal flow (or max height for vertical)
+        let max_size = layer.iter()
+            .map(|node_id| {
+                let node = node_map.get(node_id).unwrap();
+                if horizontal {
+                    if node.width > 0 { node.width } else {
+                        node.label.len().max(node.name.len()).max(3) as u32 + 4
+                    }
+                } else {
+                    if node.height > 0 { node.height } else { 3 }
+                }
+            })
+            .max()
+            .unwrap_or(10) as i32;
+
+        current_pos += max_size + config.rank_spacing;
+    }
+
     for (layer_idx, layer) in layers.iter().enumerate() {
+        let mut offset = 0; // Offset within layer
+
         for (node_idx, node_id) in layer.iter().enumerate() {
             let node = node_map.get(node_id).unwrap();
 
@@ -273,14 +300,16 @@ fn assign_positions(
             let height = if node.height > 0 { node.height } else { 3 };
 
             let (x, y) = if horizontal {
-                // Horizontal flow: nodes in a layer are side-by-side, layers stack vertically
-                let x = (node_idx as i32) * (width as i32 + config.node_spacing);
-                let y = (layer_idx as i32) * (height as i32 + config.rank_spacing);
+                // Horizontal flow: layers go left-to-right, nodes within layer stack vertically
+                let x = layer_positions[layer_idx];
+                let y = offset;
+                offset += height as i32 + config.node_spacing;
                 (x, y)
             } else {
-                // Vertical flow: nodes in a layer are top-to-bottom, layers stack horizontally
-                let x = (layer_idx as i32) * (width as i32 + config.node_spacing);
-                let y = (node_idx as i32) * (height as i32 + config.rank_spacing);
+                // Vertical flow: layers go top-to-bottom, nodes within layer go side-by-side
+                let x = offset;
+                let y = layer_positions[layer_idx];
+                offset += width as i32 + config.node_spacing;
                 (x, y)
             };
 

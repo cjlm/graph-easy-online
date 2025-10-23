@@ -217,10 +217,18 @@ export class GraphEasyASCII {
       },
     }
 
-    // Call WASM layout engine
-    const result = this.layoutEngine.layout(graphData)
+    console.log('🦀 WASM input:', JSON.stringify(graphData, null, 2))
 
-    return result
+    // Call WASM layout engine
+    try {
+      const result = this.layoutEngine.layout(graphData)
+      console.log('🦀 WASM output:', JSON.stringify(result, null, 2))
+      return result
+    } catch (error) {
+      console.error('🦀 WASM layout failed:', error)
+      console.error('Input was:', graphData)
+      throw error
+    }
   }
 
   /**
