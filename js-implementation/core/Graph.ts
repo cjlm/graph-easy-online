@@ -482,16 +482,34 @@ export class Graph {
     // Step 2: Calculate node dimensions
     const nodeLayouts = new Map<string, NodeLayout>()
     const nodeHeight = 5 // Fixed height for ASCII boxes
-    const nodeSpacing = 10 // Horizontal spacing between nodes
-    const rankSpacing = 20 // Vertical spacing between ranks
+    const nodeSpacing = 3 // Spacing between nodes within a rank
+    const rankSpacing = 5 // Spacing between ranks
 
-    // Step 3: Position nodes in each rank
-    let maxRankSize = 0  // Max size of any rank (perpendicular to flow)
-    let numRanks = ranks.size
+    // Step 3: Calculate rank positions (similar to WASM implementation)
+    const rankPositions: number[] = []
+    let currentPos = 0
+    let maxRankSize = 0
 
+    ranks.forEach((rankNodes) => {
+      rankPositions.push(currentPos)
+
+      // Find max node width/height in this rank
+      const maxNodeSize = Math.max(
+        ...rankNodes.map(node => {
+          const label = node.name
+          return isHorizontal
+            ? Math.max(label.length + 4, 10) // Width for horizontal flow
+            : nodeHeight // Height for vertical flow
+        })
+      )
+
+      currentPos += maxNodeSize + rankSpacing
+    })
+
+    // Step 4: Position nodes in each rank
+    const numRanks = ranks.size
     ranks.forEach((rankNodes, rankIndex) => {
-      let rankSize = 0  // Size of this rank (perpendicular to flow)
-      let offset = 0    // Offset within the rank
+      let offset = 0 // Offset within the rank
 
       rankNodes.forEach((node) => {
         const label = node.name
@@ -501,12 +519,12 @@ export class Graph {
 
         if (isHorizontal) {
           // Horizontal flow (east/west): ranks go left-to-right, nodes within rank stack top-to-bottom
-          x = rankIndex * rankSpacing
+          x = rankPositions[rankIndex]
           y = offset
         } else {
           // Vertical flow (north/south): ranks go top-to-bottom, nodes within rank go left-to-right
           x = offset
-          y = rankIndex * rankSpacing
+          y = rankPositions[rankIndex]
         }
 
         nodeLayouts.set(node.id, {
@@ -518,11 +536,9 @@ export class Graph {
           label: label,
         })
 
-        offset += nodeWidth + nodeSpacing
-        rankSize = offset - nodeSpacing
+        offset += (isHorizontal ? nodeHeight : nodeWidth) + nodeSpacing
+        maxRankSize = Math.max(maxRankSize, offset - nodeSpacing)
       })
-
-      maxRankSize = Math.max(maxRankSize, rankSize)
     })
 
     // Step 4: Route edges
@@ -572,12 +588,12 @@ export class Graph {
 
     // Calculate bounds based on flow direction
     const boundsWidth = isHorizontal
-      ? numRanks * rankSpacing  // Horizontal: width is number of ranks * spacing (left to right)
+      ? currentPos  // Horizontal: width is the total accumulated position
       : maxRankSize  // Vertical: width is max rank size
 
     const boundsHeight = isHorizontal
       ? maxRankSize  // Horizontal: height is max rank size (nodes stack vertically)
-      : numRanks * rankSpacing  // Vertical: height is number of ranks * spacing
+      : currentPos  // Vertical: height is the total accumulated position
 
     return {
       nodes: Array.from(nodeLayouts.values()),
