@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check } from 'lucide-react'
+import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -602,6 +602,8 @@ END_INPUT
             <Copy className="h-4 w-4" />
           )}
         </Button>
+      </div>
+
       {/* Dark Mode Toggle - Top Right on desktop, top right on mobile */}
       <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10">
         <Button
