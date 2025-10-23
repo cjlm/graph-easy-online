@@ -478,6 +478,7 @@ export class Graph {
           { x: 0, y: 0 },
           { x: 100, y: 0 },
         ],
+        label: edge.label || edge.getAttribute('label'),
       })),
       bounds: {
         width: this.nodes.size * 100,
