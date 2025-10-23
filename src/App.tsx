@@ -198,6 +198,7 @@ function App() {
   const [renderedGraphviz, setRenderedGraphviz] = useState<SVGSVGElement | null>(null)
   const [mobileView, setMobileView] = useState<'editor' | 'results'>('editor')
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isConverting, setIsConverting] = useState(false)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
@@ -376,6 +377,7 @@ function App() {
     if (loadingState !== 'ready' || !input.trim()) return
 
     const timeoutId = setTimeout(() => {
+      setIsConverting(true)
       convertGraph()
     }, 500) // 500ms debounce
 
@@ -387,6 +389,7 @@ function App() {
     if (loadingState === 'ready' && input.trim() && output) {
       // Only re-convert if we already have output
       // (don't convert on initial mount)
+      setIsConverting(true)
       convertGraph()
     }
   }, [outputFormat])
@@ -398,10 +401,12 @@ function App() {
         const svgElement = vizInstanceRef.current.renderSVGElement(output)
         setRenderedGraphviz(svgElement)
         setError('')
+        setIsConverting(false)
       } catch (err: any) {
         console.error('Graphviz rendering error:', err)
         setError(`Graphviz rendering error: ${err.message}`)
         setRenderedGraphviz(null)
+        setIsConverting(false)
       }
     } else {
       setRenderedGraphviz(null)
@@ -476,16 +481,24 @@ END_INPUT
 
       if (result && result.startsWith('Error:')) {
         setError(result)
+        setIsConverting(false)
         // Keep previous output visible
       } else if (result) {
         setOutput(result)
         setError('')
+        // For non-graphviz formats, conversion is complete immediately
+        // For graphviz, the rendering effect will set isConverting to false
+        if (outputFormat !== 'graphviz') {
+          setIsConverting(false)
+        }
       } else {
         setError('No output generated')
+        setIsConverting(false)
         // Keep previous output visible
       }
     } catch (err: any) {
       setError(`Conversion error: ${err.message}`)
+      setIsConverting(false)
       // Keep previous output visible
     }
   }
@@ -543,7 +556,7 @@ END_INPUT
       <div className={`absolute inset-0 flex items-center justify-center p-4 md:p-8 ${
         mobileView === 'editor' ? 'hidden md:flex' : 'flex'
       }`}>
-        {loadingState === 'ready' && output ? (
+        {loadingState === 'ready' && output && !isConverting ? (
           outputFormat === 'graphviz' && renderedGraphviz ? (
             <div
               className="flex items-center justify-center w-full h-full overflow-auto"
