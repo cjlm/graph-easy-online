@@ -45,8 +45,130 @@
   fill: #ffffff !important;
 }
 
+/* Dark mode text color - default to light text */
 .dark svg text {
   fill: hsl(var(--foreground)) !important;
+}
+
+/* For light-colored nodes, use dark text for readability */
+/* Handle common light colors that need dark text */
+.dark svg g:has(> rect[fill*="light"]) text,
+.dark svg g:has(> rect[fill*="Light"]) text,
+.dark svg g:has(> rect[fill^="#f"]) text,
+.dark svg g:has(> rect[fill^="#e"]) text,
+.dark svg g:has(> rect[fill^="#d"]) text,
+.dark svg g:has(> rect[fill^="#c"]) text,
+.dark svg g:has(> rect[fill^="#b"]) text,
+.dark svg g:has(> rect[fill="#ffff"]) text,
+.dark svg g:has(> rect[fill="#ff0"]) text,
+.dark svg g:has(> rect[fill="yellow"]) text,
+.dark svg g:has(> rect[fill="Yellow"]) text,
+.dark svg g:has(> rect[fill="cyan"]) text,
+.dark svg g:has(> rect[fill="Cyan"]) text,
+.dark svg g:has(> rect[fill="white"]) text,
+.dark svg g:has(> rect[fill="White"]) text,
+.dark svg g:has(> rect[fill="#ffffff"]) text,
+.dark svg g:has(> rect[fill="lime"]) text,
+.dark svg g:has(> rect[fill="Lime"]) text,
+.dark svg g:has(> rect[fill="aqua"]) text,
+.dark svg g:has(> rect[fill="Aqua"]) text,
+.dark svg g:has(> rect[fill="magenta"]) text,
+.dark svg g:has(> rect[fill="Magenta"]) text,
+.dark svg g:has(> rect[fill="pink"]) text,
+.dark svg g:has(> rect[fill="Pink"]) text,
+.dark svg g:has(> rect[fill="orange"]) text,
+.dark svg g:has(> rect[fill="Orange"]) text,
+.dark svg g:has(> rect[fill="gold"]) text,
+.dark svg g:has(> rect[fill="Gold"]) text,
+.dark svg g:has(> rect[fill="khaki"]) text,
+.dark svg g:has(> rect[fill="Khaki"]) text,
+.dark svg g:has(> rect[fill="beige"]) text,
+.dark svg g:has(> rect[fill="Beige"]) text,
+.dark svg g:has(> rect[fill="wheat"]) text,
+.dark svg g:has(> rect[fill="Wheat"]) text,
+.dark svg g:has(> rect[fill="silver"]) text,
+.dark svg g:has(> rect[fill="Silver"]) text {
+  fill: #000000 !important;
+}
+
+/* Same for Graphviz ellipse shapes */
+.dark svg g:has(> ellipse[fill*="light"]) text,
+.dark svg g:has(> ellipse[fill*="Light"]) text,
+.dark svg g:has(> ellipse[fill^="#f"]) text,
+.dark svg g:has(> ellipse[fill^="#e"]) text,
+.dark svg g:has(> ellipse[fill^="#d"]) text,
+.dark svg g:has(> ellipse[fill^="#c"]) text,
+.dark svg g:has(> ellipse[fill^="#b"]) text,
+.dark svg g:has(> ellipse[fill="#ffff"]) text,
+.dark svg g:has(> ellipse[fill="#ff0"]) text,
+.dark svg g:has(> ellipse[fill="yellow"]) text,
+.dark svg g:has(> ellipse[fill="Yellow"]) text,
+.dark svg g:has(> ellipse[fill="cyan"]) text,
+.dark svg g:has(> ellipse[fill="Cyan"]) text,
+.dark svg g:has(> ellipse[fill="white"]) text,
+.dark svg g:has(> ellipse[fill="White"]) text,
+.dark svg g:has(> ellipse[fill="#ffffff"]) text,
+.dark svg g:has(> ellipse[fill="lime"]) text,
+.dark svg g:has(> ellipse[fill="Lime"]) text,
+.dark svg g:has(> ellipse[fill="aqua"]) text,
+.dark svg g:has(> ellipse[fill="Aqua"]) text,
+.dark svg g:has(> ellipse[fill="magenta"]) text,
+.dark svg g:has(> ellipse[fill="Magenta"]) text,
+.dark svg g:has(> ellipse[fill="pink"]) text,
+.dark svg g:has(> ellipse[fill="Pink"]) text,
+.dark svg g:has(> ellipse[fill="orange"]) text,
+.dark svg g:has(> ellipse[fill="Orange"]) text,
+.dark svg g:has(> ellipse[fill="gold"]) text,
+.dark svg g:has(> ellipse[fill="Gold"]) text,
+.dark svg g:has(> ellipse[fill="khaki"]) text,
+.dark svg g:has(> ellipse[fill="Khaki"]) text,
+.dark svg g:has(> ellipse[fill="beige"]) text,
+.dark svg g:has(> ellipse[fill="Beige"]) text,
+.dark svg g:has(> ellipse[fill="wheat"]) text,
+.dark svg g:has(> ellipse[fill="Wheat"]) text,
+.dark svg g:has(> ellipse[fill="silver"]) text,
+.dark svg g:has(> ellipse[fill="Silver"]) text {
+  fill: #000000 !important;
+}
+
+/* Same for Graphviz polygon shapes */
+.dark svg g:has(> polygon[fill*="light"]) text,
+.dark svg g:has(> polygon[fill*="Light"]) text,
+.dark svg g:has(> polygon[fill^="#f"]) text,
+.dark svg g:has(> polygon[fill^="#e"]) text,
+.dark svg g:has(> polygon[fill^="#d"]) text,
+.dark svg g:has(> polygon[fill^="#c"]) text,
+.dark svg g:has(> polygon[fill^="#b"]) text,
+.dark svg g:has(> polygon[fill="#ffff"]) text,
+.dark svg g:has(> polygon[fill="#ff0"]) text,
+.dark svg g:has(> polygon[fill="yellow"]) text,
+.dark svg g:has(> polygon[fill="Yellow"]) text,
+.dark svg g:has(> polygon[fill="cyan"]) text,
+.dark svg g:has(> polygon[fill="Cyan"]) text,
+.dark svg g:has(> polygon[fill="white"]) text,
+.dark svg g:has(> polygon[fill="White"]) text,
+.dark svg g:has(> polygon[fill="#ffffff"]) text,
+.dark svg g:has(> polygon[fill="lime"]) text,
+.dark svg g:has(> polygon[fill="Lime"]) text,
+.dark svg g:has(> polygon[fill="aqua"]) text,
+.dark svg g:has(> polygon[fill="Aqua"]) text,
+.dark svg g:has(> polygon[fill="magenta"]) text,
+.dark svg g:has(> polygon[fill="Magenta"]) text,
+.dark svg g:has(> polygon[fill="pink"]) text,
+.dark svg g:has(> polygon[fill="Pink"]) text,
+.dark svg g:has(> polygon[fill="orange"]) text,
+.dark svg g:has(> polygon[fill="Orange"]) text,
+.dark svg g:has(> polygon[fill="gold"]) text,
+.dark svg g:has(> polygon[fill="Gold"]) text,
+.dark svg g:has(> polygon[fill="khaki"]) text,
+.dark svg g:has(> polygon[fill="Khaki"]) text,
+.dark svg g:has(> polygon[fill="beige"]) text,
+.dark svg g:has(> polygon[fill="Beige"]) text,
+.dark svg g:has(> polygon[fill="wheat"]) text,
+.dark svg g:has(> polygon[fill="Wheat"]) text,
+.dark svg g:has(> polygon[fill="silver"]) text,
+.dark svg g:has(> polygon[fill="Silver"]) text {
+  fill: #000000 !important;
 }
 
 /* Fix black borders on rectangles in dark mode */
