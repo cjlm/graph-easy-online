@@ -249,6 +249,7 @@ function App() {
   )
   const [conversionTime, setConversionTime] = useState<number>(0)
   const [engineUsed, setEngineUsed] = useState<ConversionEngine | null>(null)
+  const [perlReady, setPerlReady] = useState(false)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
@@ -384,6 +385,7 @@ function App() {
           }
 
           modulesLoadedRef.current = true
+          setPerlReady(true)
           console.log('✅ Perl modules loaded')
         } catch (err: any) {
           console.error('❌ Failed to load Perl modules:', err)
@@ -923,14 +925,17 @@ function App() {
           </button>
           <button
             onClick={() => handleEngineChange('webperl')}
+            disabled={!perlReady}
             className={`px-2 py-1 rounded text-xs font-medium transition-all ${
               conversionEngine === 'webperl'
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                : perlReady
+                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                : 'text-muted-foreground/50 cursor-not-allowed'
             }`}
-            title="WebPerl (All formats)"
+            title={perlReady ? "WebPerl (All formats)" : "Loading Perl modules..."}
           >
-            Perl
+            {perlReady ? 'Perl' : 'Perl...'}
           </button>
         </div>
 
