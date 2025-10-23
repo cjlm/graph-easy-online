@@ -56,7 +56,7 @@ const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string;
   { value: 'ascii', label: 'ASCII Art', description: 'Uses +, -, <, | to render boxes' },
   { value: 'boxart', label: 'Box Art', description: 'Unicode box drawing characters' },
   { value: 'html', label: 'HTML', description: 'HTML table output' },
-  { value: 'svg', label: 'SVG', description: 'Not available (requires As_svg module)', disabled: true },
+  { value: 'svg', label: 'SVG', description: 'Scalable Vector Graphics' },
   { value: 'graphviz', label: 'Graphviz', description: 'Graphviz DOT format' },
   { value: 'graphml', label: 'GraphML', description: 'GraphML XML format' },
   { value: 'vcg', label: 'VCG/GDL', description: 'VCG Graph Description Language' },
@@ -144,6 +144,7 @@ function App() {
             'lib/Graph/Easy/As_ascii.pm',
             'lib/Graph/Easy/As_graphml.pm',
             'lib/Graph/Easy/As_graphviz.pm',
+            'lib/Graph/Easy/As_svg.pm',
             'lib/Graph/Easy/As_txt.pm',
             'lib/Graph/Easy/As_vcg.pm',
             'lib/Graph/Easy.pm'
@@ -314,17 +315,17 @@ END_INPUT
 
       if (result && result.startsWith('Error:')) {
         setError(result)
-        setOutput('')
+        // Keep previous output visible
       } else if (result) {
         setOutput(result)
         setError('')
       } else {
         setError('No output generated')
-        setOutput('')
+        // Keep previous output visible
       }
     } catch (err: any) {
       setError(`Conversion error: ${err.message}`)
-      setOutput('')
+      // Keep previous output visible
     } finally {
       setConverting(false)
     }
@@ -370,9 +371,9 @@ END_INPUT
       {/* Output - Full screen background */}
       <div className="absolute inset-0 flex items-center justify-center p-8">
         {loadingState === 'ready' && output ? (
-          outputFormat === 'html' ? (
+          outputFormat === 'html' || outputFormat === 'svg' ? (
             <div
-              className="w-full h-full overflow-auto"
+              className="flex items-center justify-center w-full h-full overflow-auto"
               dangerouslySetInnerHTML={{ __html: output }}
             />
           ) : (
@@ -382,7 +383,7 @@ END_INPUT
           )
         ) : loadingState === 'ready' && !output ? (
           <div className="text-center text-muted-foreground">
-            <p className="text-lg">Enter graph notation and click Convert</p>
+            <p className="text-lg">Enter graph notation to see output</p>
           </div>
         ) : null}
       </div>
@@ -439,7 +440,7 @@ END_INPUT
           />
 
           {/* Error display */}
-          {error && (
+          {error && loadingState === 'ready' && (
             <div className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
               {error}
             </div>
