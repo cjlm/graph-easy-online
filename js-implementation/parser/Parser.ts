@@ -117,9 +117,9 @@ export class Parser {
       return
     }
 
-    // Parse second node
+    // Parse second node (don't parse its attributes yet)
     this.skipWhitespace()
-    const secondNode = this.parseNode()
+    const secondNode = this.parseNode(false)
 
     // Create edge
     const edge = this.graph.addEdge(firstNode, secondNode)
@@ -127,11 +127,19 @@ export class Parser {
     // Set edge style based on type
     this.applyEdgeStyle(edge, edgeType)
 
-    // Parse edge attributes if present
+    // Parse attributes - these belong to the edge
+    // (In Graph::Easy, attributes after an edge go to that edge)
     this.skipWhitespace()
     if (this.peekChar() === '{') {
       const attrs = this.parseAttributes()
       edge.setAttributes(attrs)
+    }
+
+    // Now check for node attributes for second node
+    this.skipWhitespace()
+    if (this.peekChar() === '{') {
+      const attrs = this.parseAttributes()
+      secondNode.setAttributes(attrs)
     }
 
     // Check for chained edges: A -> B -> C
@@ -146,15 +154,23 @@ export class Parser {
 
   private continueEdgeChain(fromNode: Node, edgeType: string): void {
     this.skipWhitespace()
-    const toNode = this.parseNode()
+    const toNode = this.parseNode(false)
 
     const edge = this.graph.addEdge(fromNode, toNode)
     this.applyEdgeStyle(edge, edgeType)
 
+    // Parse edge attributes
     this.skipWhitespace()
     if (this.peekChar() === '{') {
       const attrs = this.parseAttributes()
       edge.setAttributes(attrs)
+    }
+
+    // Parse node attributes for toNode
+    this.skipWhitespace()
+    if (this.peekChar() === '{') {
+      const attrs = this.parseAttributes()
+      toNode.setAttributes(attrs)
     }
 
     // Continue chain if more edges
@@ -167,7 +183,7 @@ export class Parser {
 
   // ===== Node Parsing =====
 
-  private parseNode(): Node {
+  private parseNode(parseAttrs: boolean = true): Node {
     this.expect('[')
     this.skipWhitespace()
 
@@ -178,11 +194,13 @@ export class Parser {
 
     const node = this.graph.addNode(name)
 
-    // Parse attributes if present
-    this.skipWhitespace()
-    if (this.peekChar() === '{') {
-      const attrs = this.parseAttributes()
-      node.setAttributes(attrs)
+    // Parse attributes if present and requested
+    if (parseAttrs) {
+      this.skipWhitespace()
+      if (this.peekChar() === '{') {
+        const attrs = this.parseAttributes()
+        node.setAttributes(attrs)
+      }
     }
 
     return node
@@ -212,8 +230,13 @@ export class Parser {
     // Bidirectional: <->
     if (this.tryConsume('<->')) return '<->'
 
-    // Double forward: ==>
+    // Double forward: ==> or =>
     if (this.tryConsume('==>')) return '==>'
+    if (this.tryConsume('=>')) return '=>'
+
+    // Dashed: --> or - >
+    if (this.tryConsume('-->')) return '-->'
+    if (this.tryConsume('- >')) return '- >'
 
     // Dotted: ..>
     if (this.tryConsume('..>')) return '..>'
@@ -223,9 +246,6 @@ export class Parser {
 
     // Wave: ~~>
     if (this.tryConsume('~~>')) return '~~>'
-
-    // Dashed: - > (with space)
-    if (this.tryConsume('- >')) return '- >'
 
     // Regular forward: ->
     if (this.tryConsume('->')) return '->'
@@ -258,6 +278,7 @@ export class Parser {
         edge.setAttribute('arrowStyle', 'both')
         break
 
+      case '=>':
       case '==>':
         edge.setAttribute('style', 'double')
         edge.setAttribute('arrowStyle', 'forward')
@@ -283,6 +304,7 @@ export class Parser {
         edge.setAttribute('arrowStyle', 'forward')
         break
 
+      case '-->':
       case '- >':
         edge.setAttribute('style', 'dashed')
         edge.setAttribute('arrowStyle', 'forward')

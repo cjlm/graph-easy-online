@@ -73,10 +73,32 @@ export class GraphConversionService {
 
     try {
       if (engine === 'jswasm') {
+        // Check if format is supported
+        if (format !== 'ascii' && format !== 'boxart') {
+          console.warn(`JS/WASM doesn't support ${format} format, using WebPerl`)
+          const output = this.convertWithWebPerl(input, format)
+          const timeMs = performance.now() - startTime
+
+          return {
+            output,
+            engine: 'webperl',
+            timeMs,
+            error: `Format '${format}' requires WebPerl. Only ASCII/Boxart supported in JS/WASM.`,
+          }
+        }
+
         // Try JS/WASM first
         try {
+          if (!this.jsWasmInitialized) {
+            console.log('🔧 Initializing JS/WASM engine...')
+            await this.initializeJsWasm()
+          }
+
+          console.log('🚀 Converting with JS/WASM engine...')
           const output = await this.convertWithJsWasm(input, format)
           const timeMs = performance.now() - startTime
+
+          console.log(`✅ JS/WASM conversion succeeded in ${timeMs.toFixed(1)}ms`)
 
           return {
             output,
@@ -84,7 +106,9 @@ export class GraphConversionService {
             timeMs,
           }
         } catch (jsError) {
-          console.warn('JS/WASM conversion failed, falling back to WebPerl:', jsError)
+          const errorMessage = jsError instanceof Error ? jsError.message : String(jsError)
+          console.error('❌ JS/WASM conversion failed:', errorMessage)
+          console.warn('⚠️  Falling back to WebPerl...')
 
           // Fallback to WebPerl
           const output = this.convertWithWebPerl(input, format)
@@ -94,13 +118,16 @@ export class GraphConversionService {
             output,
             engine: 'webperl',
             timeMs,
-            error: `JS/WASM failed: ${jsError.message}. Used WebPerl fallback.`,
+            error: `JS/WASM engine failed: ${errorMessage}\n\nFell back to WebPerl. Your graph was still converted successfully.`,
           }
         }
       } else {
         // Use WebPerl directly
+        console.log('🐪 Converting with WebPerl engine...')
         const output = this.convertWithWebPerl(input, format)
         const timeMs = performance.now() - startTime
+
+        console.log(`✅ WebPerl conversion succeeded in ${timeMs.toFixed(1)}ms`)
 
         return {
           output,
@@ -110,11 +137,14 @@ export class GraphConversionService {
       }
     } catch (error) {
       const timeMs = performance.now() - startTime
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('💥 Conversion failed completely:', errorMessage)
+
       throw {
         output: '',
         engine,
         timeMs,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       }
     }
   }
