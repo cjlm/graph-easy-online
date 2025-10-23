@@ -8,6 +8,16 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Load WebPerl before React app so it can auto-detect its location -->
+    <script src="/graph-easy/webperl/webperl.js"></script>
+
+    <!-- Minimal Perl script to trigger initialization -->
+    <script type="text/perl">
+      # WebPerl initialization
+      1;
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

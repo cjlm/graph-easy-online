@@ -62,21 +62,8 @@ function App() {
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
   const modulesLoadedRef = useRef(false)
 
-  // Load WebPerl script
-  useEffect(() => {
-    // Set base URL for WebPerl to find its dependencies
-    const script = document.createElement('script')
-    script.src = '/graph-easy/webperl/webperl.js'
-    script.async = true
-    script.setAttribute('data-perl-emperl-url', '/graph-easy/webperl/emperl.js')
-    document.body.appendChild(script)
-
-    return () => {
-      document.body.removeChild(script)
-    }
-  }, [])
-
   // Initialize Perl modules
+  // Note: WebPerl is loaded in index.html, not dynamically
   useEffect(() => {
     const initPerl = async () => {
       // Wait for Perl to be ready
@@ -189,17 +176,8 @@ function App() {
       }
     }
 
-    // Add minimal Perl script to trigger initialization
-    const perlScript = document.createElement('script')
-    perlScript.type = 'text/perl'
-    perlScript.textContent = '# WebPerl initialization\n1;'
-    document.body.appendChild(perlScript)
-
+    // WebPerl and initialization script are loaded in index.html
     initPerl()
-
-    return () => {
-      document.body.removeChild(perlScript)
-    }
   }, [])
 
   const convertGraph = (graphInput?: string) => {
