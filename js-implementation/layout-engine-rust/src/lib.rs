@@ -273,14 +273,14 @@ fn assign_positions(
             let height = if node.height > 0 { node.height } else { 3 };
 
             let (x, y) = if horizontal {
-                // Layers go left-to-right (or right-to-left)
-                let x = (layer_idx as i32) * (width as i32 + config.node_spacing);
-                let y = (node_idx as i32) * (height as i32 + config.rank_spacing);
-                (x, y)
-            } else {
-                // Layers go top-to-bottom (or bottom-to-top)
+                // Horizontal flow: nodes in a layer are side-by-side, layers stack vertically
                 let x = (node_idx as i32) * (width as i32 + config.node_spacing);
                 let y = (layer_idx as i32) * (height as i32 + config.rank_spacing);
+                (x, y)
+            } else {
+                // Vertical flow: nodes in a layer are top-to-bottom, layers stack horizontally
+                let x = (layer_idx as i32) * (width as i32 + config.node_spacing);
+                let y = (node_idx as i32) * (height as i32 + config.rank_spacing);
                 (x, y)
             };
 

@@ -7,7 +7,7 @@
 
 import type { OutputFormat } from '../App'
 
-export type ConversionEngine = 'webperl' | 'jswasm'
+export type ConversionEngine = 'webperl' | 'wasm' | 'typescript'
 
 export interface ConversionResult {
   output: string
