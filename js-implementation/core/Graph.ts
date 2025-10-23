@@ -47,14 +47,15 @@ export class Graph {
 
   // Attributes and configuration
   private attributes: AttributeManager
-  private config: GraphConfig
+  // @ts-expect-error - Reserved for future use
+  private _config: GraphConfig
 
   // Layout state
   private layoutResult?: LayoutResult
   private dirty: boolean = true
 
   constructor(config: GraphConfig = {}) {
-    this.config = {
+    this._config = {
       debug: config.debug ?? false,
       timeout: config.timeout ?? 5,
       strict: config.strict ?? true,

@@ -196,7 +196,7 @@ declare global {
 
 type LoadingState = 'initializing' | 'loading-modules' | 'ready' | 'error'
 
-type OutputFormat = 'ascii' | 'boxart' | 'html' | 'svg' | 'graphviz' | 'graphml' | 'vcg' | 'txt'
+export type OutputFormat = 'ascii' | 'boxart' | 'html' | 'svg' | 'graphviz' | 'graphml' | 'vcg' | 'txt'
 
 const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
   { value: 'ascii', label: 'ASCII Art', description: 'Uses +, -, <, | to render boxes' },

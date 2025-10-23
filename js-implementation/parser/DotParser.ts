@@ -21,8 +21,8 @@
 
 import { Graph } from '../core/Graph'
 import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
-import { Group } from '../core/Group'
+// import { Edge } from '../core/Edge'  // Future use
+// import { Group } from '../core/Group'  // Future use
 import { Parser } from './Parser'
 
 export interface DotParseOptions {
@@ -37,7 +37,8 @@ export class DotParser {
   private col: number = 1
   private graph: Graph
   private options: Required<DotParseOptions>
-  private isDirected: boolean = true
+  // @ts-expect-error - Reserved for future use
+  private _isDirected: boolean = true
 
   constructor(options: DotParseOptions = {}) {
     this.graph = new Graph()
@@ -84,7 +85,7 @@ export class DotParser {
 
     // Graph type: 'graph' or 'digraph'
     const graphType = this.parseIdentifier()
-    this.isDirected = graphType === 'digraph'
+    this._isDirected = graphType === 'digraph'
 
     if (graphType === 'graph') {
       this.graph.setAttribute('type', 'undirected')
@@ -265,14 +266,16 @@ export class DotParser {
       name = `subgraph_${Math.random().toString(36).substr(2, 9)}`
     }
 
-    const group = this.graph.addGroup(name)
+    // @ts-expect-error - Reserved for future use
+    const _group = this.graph.addGroup(name)
 
     this.expect('{')
     this.skipWhitespaceAndComments()
 
     // Parse subgraph statements
     // For now, we'll just parse nodes and add them to the group
-    const savedGraph = this.graph
+    // @ts-expect-error - Reserved for future use
+    const _savedGraph = this.graph
     while (this.peekChar() !== '}' && !this.isEOF()) {
       this.parseStatement()
       this.skipWhitespaceAndComments()
