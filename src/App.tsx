@@ -255,7 +255,26 @@ function App() {
   const outputContainerRef = useRef<HTMLDivElement>(null)
   const outputContentRef = useRef<HTMLDivElement>(null)
 
-  // Initialize Perl modules
+  // Initialize JS/WASM engines first (fast)
+  useEffect(() => {
+    const initJsWasm = async () => {
+      try {
+        await graphConversionService.initializeJsWasm()
+        setLoadingState('ready')
+
+        // Auto-convert the first example
+        setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
+      } catch (err: any) {
+        console.error('Failed to initialize JS/WASM:', err)
+        // Continue anyway - Perl might still work
+        setLoadingState('ready')
+      }
+    }
+
+    initJsWasm()
+  }, [])
+
+  // Initialize Perl modules in background (slow, non-blocking)
   // Note: WebPerl is loaded in index.html, not dynamically
   useEffect(() => {
     const initPerl = async () => {
@@ -293,7 +312,7 @@ function App() {
         if (modulesLoadedRef.current) return
 
         try {
-          setLoadingState('loading-modules')
+          console.log('Loading Perl modules in background...')
 
           const moduleFiles = [
             'lib/Graph/Easy/Base.pm',
@@ -347,7 +366,9 @@ function App() {
 
           // Load all modules in parallel for speed
           const modulePromises = moduleFiles.map(async (file) => {
-            const response = await fetch(`/graph-easy/${file}`)
+            // Use correct base path depending on environment
+            const basePath = import.meta.env.BASE_URL || '/'
+            const response = await fetch(`${basePath}${file}`)
             if (!response.ok) {
               throw new Error(`Failed to load ${file}`)
             }
@@ -363,14 +384,10 @@ function App() {
           }
 
           modulesLoadedRef.current = true
-          setLoadingState('ready')
-          setError('') // Clear any loading errors
-
-          // Auto-convert the first example
-          setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
+          console.log('✅ Perl modules loaded')
         } catch (err: any) {
-          setLoadingState('error')
-          setError(err.message)
+          console.error('❌ Failed to load Perl modules:', err)
+          // Don't block the app - WASM/TS still work
         }
       }
     }
