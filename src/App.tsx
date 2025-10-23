@@ -580,11 +580,14 @@ function App() {
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
   const [isConverting, setIsConverting] = useState(false)
+  const [isPanning, setIsPanning] = useState(false)
+  const [panStartX, setPanStartX] = useState(0)
+  const [panStartY, setPanStartY] = useState(0)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
   const outputContainerRef = useRef<HTMLDivElement>(null)
-  const lastTouchDistanceRef = useRef<number | null>(null)
+  const outputContentRef = useRef<HTMLDivElement>(null)
 
   // Initialize Perl modules
   // Note: WebPerl is loaded in index.html, not dynamically
@@ -916,10 +919,36 @@ END_INPUT
     setZoom(prevZoom => Math.max(prevZoom / 1.2, 0.1))
   }
 
-  const handleZoomReset = () => {
-    setZoom(1)
-    setPanX(0)
-    setPanY(0)
+  const handleFitToView = () => {
+    const container = outputContainerRef.current
+    const content = outputContentRef.current
+    if (!container || !content) return
+
+    // Get container dimensions (viewport)
+    const containerRect = container.getBoundingClientRect()
+    const containerWidth = containerRect.width - 64 // Account for padding
+    const containerHeight = containerRect.height - 64
+
+    // Get content dimensions
+    const contentWidth = content.scrollWidth
+    const contentHeight = content.scrollHeight
+
+    if (contentWidth === 0 || contentHeight === 0) return
+
+    // Calculate scale to fit content in viewport
+    const scaleX = containerWidth / contentWidth
+    const scaleY = containerHeight / contentHeight
+    const newZoom = Math.min(scaleX, scaleY, 1) // Don't zoom in beyond 100%
+
+    // Center the content
+    const scaledWidth = contentWidth * newZoom
+    const scaledHeight = contentHeight * newZoom
+    const newPanX = (containerWidth - scaledWidth) / 2 / newZoom
+    const newPanY = (containerHeight - scaledHeight) / 2 / newZoom
+
+    setZoom(newZoom)
+    setPanX(newPanX)
+    setPanY(newPanY)
   }
 
   // Handle resize dragging
@@ -947,147 +976,94 @@ END_INPUT
     }
   }, [isDragging])
 
-  // Handle keyboard shortcuts for zoom
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for Ctrl/Cmd key
-      if (!(e.ctrlKey || e.metaKey)) return
-
-      // Prevent browser zoom
-      if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '0') {
-        e.preventDefault()
-      }
-
-      if (e.key === '+' || e.key === '=') {
-        handleZoomIn()
-      } else if (e.key === '-') {
-        handleZoomOut()
-      } else if (e.key === '0') {
-        handleZoomReset()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  // Handle mouse wheel zoom (with Ctrl/Cmd key)
+  // Handle panning with Ctrl/Cmd + click and drag
   useEffect(() => {
     const container = outputContainerRef.current
     if (!container) return
 
-    const handleWheel = (e: WheelEvent) => {
-      // Only zoom with Ctrl/Cmd key, otherwise allow normal scrolling
+    const handleMouseDown = (e: MouseEvent) => {
+      // Only pan with Ctrl/Cmd key
       if (!(e.ctrlKey || e.metaKey)) return
 
       e.preventDefault()
-
-      const delta = e.deltaY > 0 ? 0.9 : 1.1
-      setZoom(prevZoom => Math.max(0.1, Math.min(5, prevZoom * delta)))
+      setIsPanning(true)
+      setPanStartX(e.clientX - panX)
+      setPanStartY(e.clientY - panY)
+      container.style.cursor = 'grabbing'
     }
 
-    container.addEventListener('wheel', handleWheel, { passive: false })
-    return () => container.removeEventListener('wheel', handleWheel)
-  }, [])
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isPanning) return
 
-  // Handle pinch-to-zoom touch gestures
-  useEffect(() => {
-    const container = outputContainerRef.current
-    if (!container) return
-
-    const getTouchDistance = (touch1: Touch, touch2: Touch): number => {
-      const dx = touch1.clientX - touch2.clientX
-      const dy = touch1.clientY - touch2.clientY
-      return Math.sqrt(dx * dx + dy * dy)
+      e.preventDefault()
+      const newPanX = e.clientX - panStartX
+      const newPanY = e.clientY - panStartY
+      setPanX(newPanX)
+      setPanY(newPanY)
     }
 
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault()
-        lastTouchDistanceRef.current = getTouchDistance(e.touches[0], e.touches[1])
+    const handleMouseUp = () => {
+      if (isPanning) {
+        setIsPanning(false)
+        container.style.cursor = ''
       }
     }
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && lastTouchDistanceRef.current !== null) {
-        e.preventDefault()
-
-        const currentDistance = getTouchDistance(e.touches[0], e.touches[1])
-        const delta = currentDistance / lastTouchDistanceRef.current
-
-        setZoom(prevZoom => Math.max(0.1, Math.min(5, prevZoom * delta)))
-
-        lastTouchDistanceRef.current = currentDistance
-      }
-    }
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        lastTouchDistanceRef.current = null
-      }
-    }
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: false })
-    container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    container.addEventListener('touchend', handleTouchEnd)
+    container.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart)
-      container.removeEventListener('touchmove', handleTouchMove)
-      container.removeEventListener('touchend', handleTouchEnd)
+      container.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [])
+  }, [isPanning, panStartX, panStartY, panX, panY])
+
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background font-sans">
       {/* Output - Full screen background, responsive */}
       <div
         ref={outputContainerRef}
-        className={`absolute inset-0 overflow-auto ${
-          mobileView === 'editor' ? 'hidden md:block' : 'block'
+        className={`absolute inset-0 overflow-auto flex items-center justify-center ${
+          mobileView === 'editor' ? 'hidden md:flex' : 'flex'
         }`}
         style={{
           padding: '2rem',
         }}
       >
         <div
+          ref={outputContentRef}
           style={{
             transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
-            transformOrigin: 'top left',
-            minWidth: 'fit-content',
-            minHeight: 'fit-content',
+            transformOrigin: 'center center',
           }}
         >
-          <div className={`absolute inset-0 flex items-center justify-center p-4 md:p-8 ${
-            mobileView === 'editor' ? 'hidden md:flex' : 'flex'
-          }`}>
-            {loadingState === 'ready' && output && !isConverting ? (
-              outputFormat === 'graphviz' && renderedGraphviz ? (
-                <div
-                  className="flex items-center justify-center w-full h-full overflow-auto"
-                  ref={(el) => {
-                    if (el && renderedGraphviz) {
-                      el.innerHTML = ''
-                      el.appendChild(renderedGraphviz.cloneNode(true))
-                    }
-                  }}
-                />
-              ) : outputFormat === 'html' || outputFormat === 'svg' ? (
-                <div
-                  className="flex items-center justify-center w-full h-full overflow-auto"
-                  dangerouslySetInnerHTML={{ __html: output }}
-                />
-              ) : (
-                <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90 select-text">
-                  {output}
-                </pre>
-              )
-            ) : loadingState === 'ready' && !output ? (
-              <div className="text-center text-muted-foreground">
-                <p className="text-base md:text-lg">Enter graph notation to see output</p>
-              </div>
-            ) : null}
-          </div>
+          {loadingState === 'ready' && output && !isConverting ? (
+            outputFormat === 'graphviz' && renderedGraphviz ? (
+              <div
+                ref={(el) => {
+                  if (el && renderedGraphviz) {
+                    el.innerHTML = ''
+                    el.appendChild(renderedGraphviz.cloneNode(true))
+                  }
+                }}
+              />
+            ) : outputFormat === 'html' || outputFormat === 'svg' ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: output }}
+              />
+            ) : (
+              <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90 select-text">
+                {output}
+              </pre>
+            )
+          ) : loadingState === 'ready' && !output ? (
+            <div className="text-center text-muted-foreground">
+              <p className="text-base md:text-lg">Enter graph notation to see output</p>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1193,11 +1169,11 @@ END_INPUT
             <ZoomIn className="h-4 w-4" />
           </Button>
           <Button
-            onClick={handleZoomReset}
+            onClick={handleFitToView}
             size="sm"
             variant="ghost"
             className="h-9 w-9 p-0 rounded-none border-l border-border"
-            title="Reset zoom (Ctrl/Cmd 0)"
+            title="Fit to view"
             disabled={!output || loadingState !== 'ready'}
           >
             <Minimize2 className="h-4 w-4" />
