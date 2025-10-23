@@ -30,6 +30,10 @@
 }
 
 /* SVG dark mode support */
+svg {
+  border: none !important;
+}
+
 .dark svg {
   /* Invert background elements */
   background: transparent;
@@ -180,7 +184,8 @@
 .dark svg path,
 .dark svg line,
 .dark svg polyline,
-.dark svg polygon {
+.dark svg polygon,
+.dark svg rect {
   stroke: hsl(var(--foreground) / 0.8) !important;
 }
 
@@ -190,11 +195,12 @@
   filter: brightness(0.8) saturate(1.2);
 }
 
-/* Stroke colors for edges */
+/* Stroke colors for edges and boxes */
 .dark svg path[stroke="#000000"],
 .dark svg line[stroke="#000000"],
 .dark svg polyline[stroke="#000000"],
-.dark svg polygon[stroke="#000000"] {
+.dark svg polygon[stroke="#000000"],
+.dark svg rect[stroke="#000000"] {
   stroke: hsl(var(--foreground) / 0.8) !important;
 }
 
