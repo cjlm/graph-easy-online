@@ -10,5 +10,5 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: '/graph-easy/',
+  base: process.env.CF_PAGES ? '/' : '/graph-easy/',
 })
