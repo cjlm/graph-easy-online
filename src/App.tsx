@@ -690,15 +690,17 @@ END_INPUT
           }}
         >
           {loadingState === 'ready' && output && !isConverting ? (
-            outputFormat === 'graphviz' && renderedGraphviz ? (
-              <div
-                ref={(el) => {
-                  if (el && renderedGraphviz) {
-                    el.innerHTML = ''
-                    el.appendChild(renderedGraphviz.cloneNode(true))
-                  }
-                }}
-              />
+            outputFormat === 'graphviz' ? (
+              renderedGraphviz ? (
+                <div
+                  ref={(el) => {
+                    if (el && renderedGraphviz) {
+                      el.innerHTML = ''
+                      el.appendChild(renderedGraphviz.cloneNode(true))
+                    }
+                  }}
+                />
+              ) : null
             ) : outputFormat === 'html' || outputFormat === 'svg' ? (
               <div
                 dangerouslySetInnerHTML={{ __html: output }}

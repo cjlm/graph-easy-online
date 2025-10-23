@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - claude/debug-module-loading-011CUPVLJtMJy11wsU6Znc8Q
+      - main
   workflow_dispatch:
 
 permissions:
