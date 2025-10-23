@@ -152,13 +152,20 @@ function App() {
           mkdirSafe('/lib/Graph/Easy/Node')
           mkdirSafe('/lib/Graph/Easy/Parser')
 
-          // Load all modules
-          for (const file of moduleFiles) {
+          // Load all modules in parallel for speed
+          const modulePromises = moduleFiles.map(async (file) => {
             const response = await fetch(`/graph-easy/${file}`)
             if (!response.ok) {
               throw new Error(`Failed to load ${file}`)
             }
             const content = await response.text()
+            return { file, content }
+          })
+
+          const modules = await Promise.all(modulePromises)
+
+          // Write all modules to virtual filesystem
+          for (const { file, content } of modules) {
             window.FS.writeFile(`/${file}`, content)
           }
 
@@ -311,8 +318,8 @@ END_INPUT
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
-          <h1 className="text-sm font-medium text-foreground">
-            Graph::Easy
+          <h1 className="text-sm font-medium text-foreground font-mono">
+            {'[ graph ] ~~> [ easy ]'}
           </h1>
           <div className="flex items-center gap-2">
             {loadingState === 'initializing' || loadingState === 'loading-modules' ? (
