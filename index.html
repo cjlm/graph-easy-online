@@ -2,15 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Graph::Easy WebAssembly</title>
+    <title>graph ~~> easy</title>
   </head>
   <body>
     <div id="root"></div>
 
     <!-- Load WebPerl before React app so it can auto-detect its location -->
-    <script src="/graph-easy/webperl/webperl.js"></script>
+    <script src="./webperl/webperl.js"></script>
 
     <!-- Minimal Perl script to trigger initialization -->
     <script type="text/perl">
@@ -18,6 +17,6 @@
       1;
     </script>
 
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
