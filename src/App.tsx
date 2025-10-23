@@ -33,6 +33,31 @@ const EXAMPLES = [
   }
 ]
 
+// Utility functions for URL state serialization
+const getStateFromURL = (): { input?: string; format?: OutputFormat } => {
+  const params = new URLSearchParams(window.location.search)
+  const input = params.get('input')
+  const format = params.get('format') as OutputFormat | null
+
+  return {
+    input: input || undefined,
+    format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
+      ? format
+      : undefined
+  }
+}
+
+const updateURL = (input: string, format: OutputFormat) => {
+  const params = new URLSearchParams()
+  if (input.trim()) {
+    params.set('input', input)
+  }
+  params.set('format', format)
+
+  const newURL = `${window.location.pathname}?${params.toString()}`
+  window.history.replaceState({}, '', newURL)
+}
+
 // Declare global Perl types
 declare global {
   interface Window {
@@ -65,7 +90,9 @@ const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string;
 ]
 
 function App() {
-  const [input, setInput] = useState(EXAMPLES[0].graph)
+  // Initialize state from URL or defaults
+  const urlState = getStateFromURL()
+  const [input, setInput] = useState(urlState.input || EXAMPLES[0].graph)
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [loadingState, setLoadingState] = useState<LoadingState>('initializing')
@@ -74,7 +101,7 @@ function App() {
   const [paneWidth, setPaneWidth] = useState(400)
   const [paneHeight, setPaneHeight] = useState(300)
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('ascii')
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>(urlState.format || 'ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [renderedGraphviz, setRenderedGraphviz] = useState<SVGSVGElement | null>(null)
@@ -240,6 +267,11 @@ function App() {
     }
   }, [isDarkMode])
 
+  // Update URL when input or output format changes
+  useEffect(() => {
+    updateURL(input, outputFormat)
+  }, [input, outputFormat])
+  
   // Handle window resize to update isMobile state
   useEffect(() => {
     const handleResize = () => {
