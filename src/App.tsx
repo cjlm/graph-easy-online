@@ -708,10 +708,6 @@ END_INPUT
                 {output}
               </pre>
             )
-          ) : loadingState === 'ready' && !output ? (
-            <div className="text-center text-muted-foreground">
-              <p className="text-base md:text-lg">Enter graph notation to see output</p>
-            </div>
           ) : null}
         </div>
       </div>
