@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun } from 'lucide-react'
+import * as Viz from '@viz-js/viz'
 import './App.css'
 
 // Example graphs
@@ -76,7 +77,9 @@ function App() {
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [renderedGraphviz, setRenderedGraphviz] = useState<SVGSVGElement | null>(null)
   const modulesLoadedRef = useRef(false)
+  const vizInstanceRef = useRef<any>(null)
 
   // Initialize Perl modules
   // Note: WebPerl is loaded in index.html, not dynamically
@@ -205,6 +208,15 @@ function App() {
     initPerl()
   }, [])
 
+  // Initialize Viz.js for Graphviz rendering
+  useEffect(() => {
+    Viz.instance().then(viz => {
+      vizInstanceRef.current = viz
+    }).catch(err => {
+      console.error('Failed to initialize Viz.js:', err)
+    })
+  }, [])
+
   // Initialize dark mode from localStorage or system preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
@@ -245,6 +257,23 @@ function App() {
       convertGraph()
     }
   }, [outputFormat])
+
+  // Render Graphviz DOT output when format is 'graphviz'
+  useEffect(() => {
+    if (outputFormat === 'graphviz' && output && vizInstanceRef.current) {
+      try {
+        const svgElement = vizInstanceRef.current.renderSVGElement(output)
+        setRenderedGraphviz(svgElement)
+        setError('')
+      } catch (err: any) {
+        console.error('Graphviz rendering error:', err)
+        setError(`Graphviz rendering error: ${err.message}`)
+        setRenderedGraphviz(null)
+      }
+    } else {
+      setRenderedGraphviz(null)
+    }
+  }, [output, outputFormat])
 
   const convertGraph = (graphInput?: string) => {
     const textToConvert = graphInput || input
@@ -371,7 +400,17 @@ END_INPUT
       {/* Output - Full screen background */}
       <div className="absolute inset-0 flex items-center justify-center p-8">
         {loadingState === 'ready' && output ? (
-          outputFormat === 'html' || outputFormat === 'svg' ? (
+          outputFormat === 'graphviz' && renderedGraphviz ? (
+            <div
+              className="flex items-center justify-center w-full h-full overflow-auto"
+              ref={(el) => {
+                if (el && renderedGraphviz) {
+                  el.innerHTML = ''
+                  el.appendChild(renderedGraphviz.cloneNode(true))
+                }
+              }}
+            />
+          ) : outputFormat === 'html' || outputFormat === 'svg' ? (
             <div
               className="flex items-center justify-center w-full h-full overflow-auto"
               dangerouslySetInnerHTML={{ __html: output }}
@@ -459,7 +498,7 @@ END_INPUT
                 Converting...
               </>
             ) : (
-              'Convert to ASCII'
+              `Convert to ${OUTPUT_FORMATS.find(f => f.value === outputFormat)?.label}`
             )}
           </Button>
         </div>
