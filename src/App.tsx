@@ -605,6 +605,7 @@ END_INPUT
     if (!isDragging) return
 
     const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault() // Prevent text selection during drag
       if (isDragging === 'width') {
         setPaneWidth(Math.max(300, Math.min(800, e.clientX)))
       } else if (isDragging === 'height') {
@@ -671,7 +672,10 @@ END_INPUT
 
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-background font-sans">
+    <div
+      className="h-screen w-screen overflow-hidden bg-background font-sans"
+      style={isDragging ? { userSelect: 'none' } : {}}
+    >
       {/* Output - Full screen background, responsive */}
       <div
         ref={outputContainerRef}
@@ -773,15 +777,22 @@ END_INPUT
         {/* Resize handles - Desktop only */}
         <div
           className="hidden md:block absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/20 transition-colors"
-          onMouseDown={() => setIsDragging('width')}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setIsDragging('width')
+          }}
         />
         <div
           className="hidden md:block absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize hover:bg-primary/20 transition-colors"
-          onMouseDown={() => setIsDragging('height')}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setIsDragging('height')
+          }}
         />
         <div
           className="hidden md:block absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/20 transition-colors rounded-tl-sm"
-          onMouseDown={() => {
+          onMouseDown={(e) => {
+            e.preventDefault()
             setIsDragging('width')
             // Also enable height dragging
             setTimeout(() => setIsDragging('height'), 0)
