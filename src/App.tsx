@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
-import { Loader2, Settings, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun } from 'lucide-react'
 import './App.css'
 
 // Example graphs
@@ -75,6 +75,7 @@ function App() {
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
   const modulesLoadedRef = useRef(false)
 
   // Initialize Perl modules
@@ -202,6 +203,27 @@ function App() {
     // WebPerl and initialization script are loaded in index.html
     initPerl()
   }, [])
+
+  // Initialize dark mode from localStorage or system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      setIsDarkMode(true)
+    }
+  }, [])
+
+  // Update document class and localStorage when dark mode changes
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }, [isDarkMode])
 
   // Auto-convert when input changes (debounced)
   useEffect(() => {
@@ -458,6 +480,23 @@ END_INPUT
             setTimeout(() => setIsDragging('height'), 0)
           }}
         />
+      </div>
+
+      {/* Dark Mode Toggle - Top Right */}
+      <div className="absolute top-8 right-8">
+        <Button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          size="sm"
+          variant="outline"
+          className="h-9 w-9 p-0"
+          title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDarkMode ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       {/* Format Selector Panel - Bottom Right */}
