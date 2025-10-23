@@ -690,8 +690,8 @@ END_INPUT
         </Button>
       </div>
 
-      {/* Format Selector Panel - Bottom Right on desktop, hidden on mobile when editor is shown */}
-      <div className={`absolute bottom-20 right-4 md:bottom-8 md:right-8 ${
+      {/* Format Selector Panel - Top on mobile, Bottom Right on desktop, hidden on mobile when editor is shown */}
+      <div className={`absolute top-4 right-4 md:top-auto md:bottom-8 md:right-8 ${
         mobileView === 'editor' ? 'hidden md:block' : 'block'
       }`}>
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden transition-all duration-200">
