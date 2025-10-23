@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - claude/reduce-network-example-011CUPWYabckgj69e7cY9Zb4
   workflow_dispatch:
 
 permissions:
