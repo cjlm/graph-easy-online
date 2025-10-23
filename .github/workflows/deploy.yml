@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - claude/explore-perl-webassembly-011CUNrGx3LbhUyqKtyh5pgp
+      - claude/debug-module-loading-011CUPVLJtMJy11wsU6Znc8Q
   workflow_dispatch:
 
 permissions:

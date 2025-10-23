@@ -806,7 +806,7 @@ function App() {
     }
 
     if (loadingState !== 'ready') {
-      setError('Please wait for modules to finish loading.')
+      // Silently return - loading state is already indicated in the UI
       return
     }
 
@@ -1058,11 +1058,13 @@ END_INPUT
             minHeight: 'fit-content',
           }}
         >
-          <div className="flex items-center justify-center w-full h-full">
-            {loadingState === 'ready' && output ? (
+          <div className={`absolute inset-0 flex items-center justify-center p-4 md:p-8 ${
+            mobileView === 'editor' ? 'hidden md:flex' : 'flex'
+          }`}>
+            {loadingState === 'ready' && output && !isConverting ? (
               outputFormat === 'graphviz' && renderedGraphviz ? (
                 <div
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center w-full h-full overflow-auto"
                   ref={(el) => {
                     if (el && renderedGraphviz) {
                       el.innerHTML = ''
@@ -1072,7 +1074,7 @@ END_INPUT
                 />
               ) : outputFormat === 'html' || outputFormat === 'svg' ? (
                 <div
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center w-full h-full overflow-auto"
                   dangerouslySetInnerHTML={{ __html: output }}
                 />
               ) : (
@@ -1085,33 +1087,6 @@ END_INPUT
                 <p className="text-base md:text-lg">Enter graph notation to see output</p>
               </div>
             ) : null}
-      <div className={`absolute inset-0 flex items-center justify-center p-4 md:p-8 ${
-        mobileView === 'editor' ? 'hidden md:flex' : 'flex'
-      }`}>
-        {loadingState === 'ready' && output && !isConverting ? (
-          outputFormat === 'graphviz' && renderedGraphviz ? (
-            <div
-              className="flex items-center justify-center w-full h-full overflow-auto"
-              ref={(el) => {
-                if (el && renderedGraphviz) {
-                  el.innerHTML = ''
-                  el.appendChild(renderedGraphviz.cloneNode(true))
-                }
-              }}
-            />
-          ) : outputFormat === 'html' || outputFormat === 'svg' ? (
-            <div
-              className="flex items-center justify-center w-full h-full overflow-auto"
-              dangerouslySetInnerHTML={{ __html: output }}
-            />
-          ) : (
-            <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90 select-text">
-              {output}
-            </pre>
-          )
-        ) : loadingState === 'ready' && !output ? (
-          <div className="text-center text-muted-foreground">
-            <p className="text-base md:text-lg">Enter graph notation to see output</p>
           </div>
         </div>
       </div>
