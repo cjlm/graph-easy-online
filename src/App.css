@@ -49,6 +49,12 @@
   fill: hsl(var(--foreground)) !important;
 }
 
+/* Fix black borders on rectangles in dark mode */
+.dark svg rect[stroke="#000000"],
+.dark svg rect[stroke="black"] {
+  stroke: hsl(var(--foreground) / 0.8) !important;
+}
+
 .dark svg path,
 .dark svg line,
 .dark svg polyline,
@@ -68,4 +74,30 @@
 .dark svg polyline[stroke="#000000"],
 .dark svg polygon[stroke="#000000"] {
   stroke: hsl(var(--foreground) / 0.8) !important;
+}
+
+/* Fix Graphviz rendering in dark mode */
+.dark svg ellipse[stroke="#000000"],
+.dark svg ellipse[stroke="black"] {
+  stroke: hsl(var(--foreground) / 0.8) !important;
+}
+
+.dark svg ellipse[fill="#ffffff"],
+.dark svg ellipse[fill="white"] {
+  fill: #1a1a1a !important;
+}
+
+.dark svg ellipse[fill="#000000"],
+.dark svg ellipse[fill="black"] {
+  fill: #ffffff !important;
+}
+
+.dark svg polygon[fill="#ffffff"],
+.dark svg polygon[fill="white"] {
+  fill: #1a1a1a !important;
+}
+
+.dark svg polygon[fill="#000000"],
+.dark svg polygon[fill="black"] {
+  fill: #ffffff !important;
 }
