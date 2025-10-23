@@ -32,6 +32,96 @@ const EXAMPLES = [
 [ End ] { fill: lightblue; }
 
 [ Start ] -> [ Process ] -> [ End ]`
+  },
+  {
+    name: 'Link Styles',
+    graph: `[ Bonn ] <-> [ Berlin ]           # bidirectional
+[ Berlin ] ==> [ Rostock ]         # double
+[ Hamburg ] ..> [ Altona ]         # dotted
+[ Dresden ] - > [ Bautzen ]        # dashed
+[ Leipzig ] ~~> [ Kirchhain ]      # wave
+[ Hof ] .-> [ Chemnitz ]           # dot-dash
+[ Magdeburg ] <=> [ Ulm ]          # bidirectional, double
+[ Magdeburg ] -- [ Ulm ]           # arrow-less edge`
+  },
+  {
+    name: 'Network Topology',
+    graph: `graph { flow: south; }
+
+[ Internet ] { fill: lightblue; }
+[ Firewall ] { fill: orange; }
+[ Router ] { fill: lightyellow; }
+[ Switch ] { fill: lightgreen; }
+[ Server 1 ] { fill: lightcoral; }
+[ Server 2 ] { fill: lightcoral; }
+[ Workstation A ] { fill: lightgray; }
+[ Workstation B ] { fill: lightgray; }
+[ Workstation C ] { fill: lightgray; }
+
+[ Internet ] ==> [ Firewall ] { label: WAN; }
+[ Firewall ] ==> [ Router ] { label: DMZ; }
+[ Router ] ==> [ Switch ] { label: LAN; }
+[ Switch ] -> [ Server 1 ] { label: 192.168.1.10; }
+[ Switch ] -> [ Server 2 ] { label: 192.168.1.11; }
+[ Switch ] -> [ Workstation A ] { label: 192.168.1.20; }
+[ Switch ] -> [ Workstation B ] { label: 192.168.1.21; }
+[ Switch ] -> [ Workstation C ] { label: 192.168.1.22; }
+[ Server 1 ] <-> [ Server 2 ] { label: sync; }`
+  },
+  {
+    name: 'Seven Bridges of Königsberg',
+    graph: `# The famous Seven Bridges problem solved by Euler
+graph { flow: east; }
+
+[ North Bank ] { fill: lightgreen; }
+[ South Bank ] { fill: lightgreen; }
+[ Island Kneiphof ] { fill: lightyellow; }
+[ Island Lomse ] { fill: lightyellow; }
+
+# Two bridges connecting North Bank to Kneiphof
+[ North Bank ] -- [ Island Kneiphof ] { label: Bridge 1; }
+[ North Bank ] -- [ Island Kneiphof ] { label: Bridge 2; }
+
+# Two bridges connecting South Bank to Kneiphof
+[ South Bank ] -- [ Island Kneiphof ] { label: Bridge 3; }
+[ South Bank ] -- [ Island Kneiphof ] { label: Bridge 4; }
+
+# One bridge connecting North to South via Lomse
+[ North Bank ] -- [ Island Lomse ] { label: Bridge 5; }
+[ Island Lomse ] -- [ South Bank ] { label: Bridge 6; }
+
+# One bridge connecting Lomse to Kneiphof
+[ Island Lomse ] -- [ Island Kneiphof ] { label: Bridge 7; }`
+  },
+  {
+    name: 'Project Task Flow',
+    graph: `graph { flow: south; }
+
+[ Project Start ] { fill: lightgreen; }
+[ Requirements Gathering ] { fill: lightyellow; }
+[ Design Phase ] { fill: lightyellow; }
+[ Development ] { fill: lightblue; }
+[ Code Review ] { fill: lightblue; }
+[ Testing ] { fill: orange; }
+[ Bug Fixes ] { fill: orange; }
+[ Staging Deployment ] { fill: lightcoral; }
+[ QA Approval ] { fill: lightcoral; }
+[ Production Deployment ] { fill: lightgreen; }
+[ Project Complete ] { fill: lightgreen; }
+
+[ Project Start ] -> [ Requirements Gathering ]
+[ Requirements Gathering ] -> [ Design Phase ]
+[ Design Phase ] -> [ Development ]
+[ Development ] -> [ Code Review ]
+[ Code Review ] -> [ Testing ]
+[ Code Review ] ..> [ Development ] { label: needs changes; }
+[ Testing ] -> [ QA Approval ]
+[ Testing ] ..> [ Bug Fixes ] { label: bugs found; }
+[ Bug Fixes ] --> [ Testing ]
+[ QA Approval ] -> [ Staging Deployment ]
+[ Staging Deployment ] ..> [ Bug Fixes ] { label: issues found; }
+[ Staging Deployment ] -> [ Production Deployment ]
+[ Production Deployment ] -> [ Project Complete ]`
   }
 ]
 
