@@ -507,7 +507,6 @@ export class Graph {
     })
 
     // Step 4: Position nodes in each rank
-    const numRanks = ranks.size
     ranks.forEach((rankNodes, rankIndex) => {
       let offset = 0 // Offset within the rank
 
