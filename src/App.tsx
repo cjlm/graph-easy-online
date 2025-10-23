@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2 } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -198,10 +198,15 @@ function App() {
   const [renderedGraphviz, setRenderedGraphviz] = useState<SVGSVGElement | null>(null)
   const [mobileView, setMobileView] = useState<'editor' | 'results'>('editor')
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [zoom, setZoom] = useState(1)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
   const [isConverting, setIsConverting] = useState(false)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
+  const outputContainerRef = useRef<HTMLDivElement>(null)
+  const lastTouchDistanceRef = useRef<number | null>(null)
 
   // Initialize Perl modules
   // Note: WebPerl is loaded in index.html, not dynamically
@@ -525,6 +530,20 @@ END_INPUT
     }
   }
 
+  const handleZoomIn = () => {
+    setZoom(prevZoom => Math.min(prevZoom * 1.2, 5))
+  }
+
+  const handleZoomOut = () => {
+    setZoom(prevZoom => Math.max(prevZoom / 1.2, 0.1))
+  }
+
+  const handleZoomReset = () => {
+    setZoom(1)
+    setPanX(0)
+    setPanY(0)
+  }
+
   // Handle resize dragging
   useEffect(() => {
     if (!isDragging) return
@@ -550,9 +569,144 @@ END_INPUT
     }
   }, [isDragging])
 
+  // Handle keyboard shortcuts for zoom
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl/Cmd key
+      if (!(e.ctrlKey || e.metaKey)) return
+
+      // Prevent browser zoom
+      if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '0') {
+        e.preventDefault()
+      }
+
+      if (e.key === '+' || e.key === '=') {
+        handleZoomIn()
+      } else if (e.key === '-') {
+        handleZoomOut()
+      } else if (e.key === '0') {
+        handleZoomReset()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Handle mouse wheel zoom (with Ctrl/Cmd key)
+  useEffect(() => {
+    const container = outputContainerRef.current
+    if (!container) return
+
+    const handleWheel = (e: WheelEvent) => {
+      // Only zoom with Ctrl/Cmd key, otherwise allow normal scrolling
+      if (!(e.ctrlKey || e.metaKey)) return
+
+      e.preventDefault()
+
+      const delta = e.deltaY > 0 ? 0.9 : 1.1
+      setZoom(prevZoom => Math.max(0.1, Math.min(5, prevZoom * delta)))
+    }
+
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [])
+
+  // Handle pinch-to-zoom touch gestures
+  useEffect(() => {
+    const container = outputContainerRef.current
+    if (!container) return
+
+    const getTouchDistance = (touch1: Touch, touch2: Touch): number => {
+      const dx = touch1.clientX - touch2.clientX
+      const dy = touch1.clientY - touch2.clientY
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        lastTouchDistanceRef.current = getTouchDistance(e.touches[0], e.touches[1])
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && lastTouchDistanceRef.current !== null) {
+        e.preventDefault()
+
+        const currentDistance = getTouchDistance(e.touches[0], e.touches[1])
+        const delta = currentDistance / lastTouchDistanceRef.current
+
+        setZoom(prevZoom => Math.max(0.1, Math.min(5, prevZoom * delta)))
+
+        lastTouchDistanceRef.current = currentDistance
+      }
+    }
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        lastTouchDistanceRef.current = null
+      }
+    }
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [])
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-background font-sans">
       {/* Output - Full screen background, responsive */}
+      <div
+        ref={outputContainerRef}
+        className={`absolute inset-0 overflow-auto ${
+          mobileView === 'editor' ? 'hidden md:block' : 'block'
+        }`}
+        style={{
+          padding: '2rem',
+        }}
+      >
+        <div
+          style={{
+            transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
+            transformOrigin: 'top left',
+            minWidth: 'fit-content',
+            minHeight: 'fit-content',
+          }}
+        >
+          <div className="flex items-center justify-center w-full h-full">
+            {loadingState === 'ready' && output ? (
+              outputFormat === 'graphviz' && renderedGraphviz ? (
+                <div
+                  className="flex items-center justify-center"
+                  ref={(el) => {
+                    if (el && renderedGraphviz) {
+                      el.innerHTML = ''
+                      el.appendChild(renderedGraphviz.cloneNode(true))
+                    }
+                  }}
+                />
+              ) : outputFormat === 'html' || outputFormat === 'svg' ? (
+                <div
+                  className="flex items-center justify-center"
+                  dangerouslySetInnerHTML={{ __html: output }}
+                />
+              ) : (
+                <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90 select-text">
+                  {output}
+                </pre>
+              )
+            ) : loadingState === 'ready' && !output ? (
+              <div className="text-center text-muted-foreground">
+                <p className="text-base md:text-lg">Enter graph notation to see output</p>
+              </div>
+            ) : null}
       <div className={`absolute inset-0 flex items-center justify-center p-4 md:p-8 ${
         mobileView === 'editor' ? 'hidden md:flex' : 'flex'
       }`}>
@@ -581,7 +735,7 @@ END_INPUT
           <div className="text-center text-muted-foreground">
             <p className="text-base md:text-lg">Enter graph notation to see output</p>
           </div>
-        ) : null}
+        </div>
       </div>
 
       {/* Input Pane - Full screen on mobile, floating on desktop */}
@@ -659,8 +813,43 @@ END_INPUT
         />
       </div>
 
-      {/* Top Right Controls - Copy and Dark Mode Toggle */}
+      {/* Top Right Controls - Zoom, Copy and Dark Mode Toggle */}
       <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10 flex gap-2">
+        <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
+          <Button
+            onClick={handleZoomOut}
+            size="sm"
+            variant="ghost"
+            className="h-9 w-9 p-0 rounded-none"
+            title="Zoom out (Ctrl/Cmd -)"
+            disabled={!output || loadingState !== 'ready'}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center justify-center min-w-[3rem] px-2 text-xs font-medium text-muted-foreground border-x border-border">
+            {Math.round(zoom * 100)}%
+          </div>
+          <Button
+            onClick={handleZoomIn}
+            size="sm"
+            variant="ghost"
+            className="h-9 w-9 p-0 rounded-none"
+            title="Zoom in (Ctrl/Cmd +)"
+            disabled={!output || loadingState !== 'ready'}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={handleZoomReset}
+            size="sm"
+            variant="ghost"
+            className="h-9 w-9 p-0 rounded-none border-l border-border"
+            title="Reset zoom (Ctrl/Cmd 0)"
+            disabled={!output || loadingState !== 'ready'}
+          >
+            <Minimize2 className="h-4 w-4" />
+          </Button>
+        </div>
         <Button
           onClick={handleCopyOutput}
           size="sm"
