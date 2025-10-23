@@ -202,6 +202,10 @@ export class GraphEasyASCII {
    * Layout using WASM engine
    */
   private async layoutWithWASM(graph: Graph): Promise<LayoutResult> {
+    // Create a fresh LayoutEngine instance for each layout to avoid stale state
+    const { LayoutEngine } = await import('./layout-engine-rust/pkg/graph_easy_layout.js')
+    const engine = new LayoutEngine()
+
     // Convert graph to format expected by WASM
     const graphData = {
       nodes: graph.getNodes().map(node => ({
@@ -226,10 +230,24 @@ export class GraphEasyASCII {
 
     // Call WASM layout engine
     try {
-      const result = this.layoutEngine.layout(graphData)
+      console.log('🦀 WASM input nodes:', graphData.nodes.map(n => ({ id: n.id, name: n.name, label: n.label })))
+      const result = engine.layout(graphData)
+
+      // Explicitly free the engine instance
+      if (typeof engine.free === 'function') {
+        engine.free()
+      }
+
       return result
     } catch (error) {
       console.error('🦀 WASM layout failed:', error)
+      console.error('Input that caused error:', JSON.stringify(graphData, null, 2))
+
+      // Clean up even on error
+      if (typeof engine.free === 'function') {
+        engine.free()
+      }
+
       throw error
     }
   }
