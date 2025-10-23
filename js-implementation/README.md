@@ -79,7 +79,32 @@ js-implementation/
 
 ## Quick Start
 
-### 1. TypeScript API Usage
+### 1. High-Level API (Recommended)
+
+```typescript
+import { GraphEasyASCII } from './GraphEasyASCII'
+
+// Create converter instance
+const converter = await GraphEasyASCII.create()
+
+// Graph::Easy notation
+const ascii1 = await converter.convert(`
+  [Bonn] -> [Berlin]
+  [Berlin] -> [Dresden]
+`)
+
+// Graphviz DOT notation (auto-detected)
+const ascii2 = await converter.convert(`
+  digraph G {
+    A -> B -> C
+  }
+`)
+
+console.log(ascii1)
+console.log(ascii2)
+```
+
+### 2. Low-Level API (Advanced)
 
 ```typescript
 import { Graph } from './core/Graph'
@@ -103,22 +128,21 @@ const ascii = renderAscii(layout)
 console.log(ascii)
 ```
 
-### 2. Building the Rust Layout Engine
+### 3. Building the Rust Layout Engine
 
 ```bash
 cd layout-engine-rust
 
-# Install wasm-pack
-curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+# Install wasm-pack (if not already installed)
+cargo install wasm-pack
 
 # Build for web
-wasm-pack build --target web --out-dir ../pkg
+wasm-pack build --target web
 
-# Or for Node.js
-wasm-pack build --target nodejs --out-dir ../pkg
+# Output will be in pkg/ directory
 ```
 
-### 3. Using the WASM Layout Engine
+### 4. Testing the Integration
 
 ```typescript
 import init, { LayoutEngine } from './pkg/graph_easy_layout'
@@ -157,28 +181,35 @@ console.log(layout)
 
 ### Implemented ✅
 
-- Core graph data structures (Graph, Node, Edge, Group)
-- Attribute management system
-- Basic layout engine (placeholder in TypeScript)
-- ASCII/BoxArt renderer
-- TypeScript type definitions
-- Rust layout engine skeleton
+- **Core graph data structures** (Graph, Node, Edge, Group)
+- **Attribute management system**
+- **Full Rust/WASM layout engine** with:
+  - Topological sort (Kahn's algorithm)
+  - Grid-based positioning
+  - Manhattan edge routing
+  - Cycle detection and handling
+- **Graph::Easy parser** - Hand-written recursive descent parser
+- **Graphviz DOT parser** - Full DOT format support
+- **Auto-format detection** - Automatically detect input format
+- **ASCII/BoxArt renderers** - Both ASCII and Unicode output
+- **React integration** - Engine toggle with automatic fallback
+- **TypeScript type definitions**
+- **143KB WASM binary** (vs 12MB WebPerl)
 
 ### In Progress 🚧
 
-- Rust layout implementation (topological sort, layer assignment)
-- Edge routing with A* pathfinding
-- Parser for Graph::Easy syntax (PEG.js)
+- Performance optimization
+- Edge label positioning
+- Additional layout algorithms
 
 ### Planned 📋
 
 - SVG renderer
 - HTML renderer
-- Graphviz DOT exporter
 - GraphML exporter
 - Full attribute validation
-- Group rendering
-- Complete Graph::Easy syntax compatibility
+- Group rendering improvements
+- Additional node shapes
 
 ## API Examples
 
