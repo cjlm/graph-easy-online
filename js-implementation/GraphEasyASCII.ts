@@ -206,8 +206,8 @@ export class GraphEasyASCII {
     const graphData = {
       nodes: graph.getNodes().map(node => ({
         id: node.id,
-        name: node.name,
-        label: node.label,
+        name: node.name || '',
+        label: node.label || node.name || '',
         width: node.getAttribute('width') || 0,
         height: node.getAttribute('height') || 0,
       })),
@@ -215,7 +215,7 @@ export class GraphEasyASCII {
         id: edge.id,
         from: edge.from.id,
         to: edge.to.id,
-        label: edge.label,
+        label: edge.label || '',
       })),
       config: {
         flow: this.options.flow,

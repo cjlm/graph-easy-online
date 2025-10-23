@@ -272,15 +272,20 @@ fn assign_positions(
 
         // Find max width in this layer for horizontal flow (or max height for vertical)
         let max_size = layer.iter()
-            .map(|node_id| {
-                let node = node_map.get(node_id).unwrap();
-                if horizontal {
-                    if node.width > 0 { node.width } else {
-                        node.label.len().max(node.name.len()).max(3) as u32 + 4
+            .filter_map(|node_id| {
+                node_map.get(node_id).map(|node| {
+                    if horizontal {
+                        if node.width > 0 {
+                            node.width
+                        } else {
+                            let label_len = if node.label.is_empty() { 0 } else { node.label.chars().count() };
+                            let name_len = if node.name.is_empty() { 0 } else { node.name.chars().count() };
+                            label_len.max(name_len).max(3) as u32 + 4
+                        }
+                    } else {
+                        if node.height > 0 { node.height } else { 3 }
                     }
-                } else {
-                    if node.height > 0 { node.height } else { 3 }
-                }
+                })
             })
             .max()
             .unwrap_or(10) as i32;
@@ -291,11 +296,18 @@ fn assign_positions(
     for (layer_idx, layer) in layers.iter().enumerate() {
         let mut offset = 0; // Offset within layer
 
-        for (node_idx, node_id) in layer.iter().enumerate() {
-            let node = node_map.get(node_id).unwrap();
+        for (_node_idx, node_id) in layer.iter().enumerate() {
+            let node = match node_map.get(node_id) {
+                Some(n) => n,
+                None => continue, // Skip if node not found
+            };
 
-            let width = if node.width > 0 { node.width } else {
-                node.label.len().max(node.name.len()).max(3) as u32 + 4
+            let width = if node.width > 0 {
+                node.width
+            } else {
+                let label_len = if node.label.is_empty() { 0 } else { node.label.chars().count() };
+                let name_len = if node.name.is_empty() { 0 } else { node.name.chars().count() };
+                label_len.max(name_len).max(3) as u32 + 4
             };
             let height = if node.height > 0 { node.height } else { 3 };
 
