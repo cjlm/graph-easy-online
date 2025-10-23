@@ -52,11 +52,11 @@ type LoadingState = 'initializing' | 'loading-modules' | 'ready' | 'error'
 
 type OutputFormat = 'ascii' | 'boxart' | 'html' | 'svg' | 'graphviz' | 'graphml' | 'vcg' | 'txt'
 
-const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string }[] = [
+const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
   { value: 'ascii', label: 'ASCII Art', description: 'Uses +, -, <, | to render boxes' },
   { value: 'boxart', label: 'Box Art', description: 'Unicode box drawing characters' },
   { value: 'html', label: 'HTML', description: 'HTML table output' },
-  { value: 'svg', label: 'SVG', description: 'Scalable Vector Graphics (requires plugin)' },
+  { value: 'svg', label: 'SVG', description: 'Not available (requires As_svg module)', disabled: true },
   { value: 'graphviz', label: 'Graphviz', description: 'Graphviz DOT format' },
   { value: 'graphml', label: 'GraphML', description: 'GraphML XML format' },
   { value: 'vcg', label: 'VCG/GDL', description: 'VCG Graph Description Language' },
@@ -490,16 +490,21 @@ END_INPUT
                 {OUTPUT_FORMATS.map((format) => (
                   <button
                     key={format.value}
-                    onClick={() => setOutputFormat(format.value)}
+                    onClick={() => !format.disabled && setOutputFormat(format.value)}
+                    disabled={format.disabled}
                     className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
-                      outputFormat === format.value
+                      format.disabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : outputFormat === format.value
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-muted/50'
                     }`}
                   >
                     <div className="text-sm font-medium">{format.label}</div>
                     <div className={`text-xs mt-0.5 ${
-                      outputFormat === format.value
+                      format.disabled
+                        ? 'text-muted-foreground'
+                        : outputFormat === format.value
                         ? 'text-primary-foreground/80'
                         : 'text-muted-foreground'
                     }`}>
