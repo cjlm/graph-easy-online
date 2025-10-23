@@ -348,9 +348,16 @@ END_INPUT
       {/* Output - Full screen background */}
       <div className="absolute inset-0 flex items-center justify-center p-8">
         {loadingState === 'ready' && output ? (
-          <pre className="font-mono text-sm leading-relaxed text-foreground/90 select-text">
-            {output}
-          </pre>
+          outputFormat === 'html' ? (
+            <div
+              className="w-full h-full overflow-auto"
+              dangerouslySetInnerHTML={{ __html: output }}
+            />
+          ) : (
+            <pre className="font-mono text-sm leading-relaxed text-foreground/90 select-text">
+              {output}
+            </pre>
+          )
         ) : loadingState === 'ready' && !output ? (
           <div className="text-center text-muted-foreground">
             <p className="text-lg">Enter graph notation and click Convert</p>
