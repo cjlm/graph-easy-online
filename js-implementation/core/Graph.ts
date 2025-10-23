@@ -455,41 +455,202 @@ export class Graph {
       return this.layoutResult
     }
 
-    // This would call into the WASM layout engine
-    // For now, return a placeholder
-
-    console.log('Layout would be computed here')
-
-    // Placeholder layout
-    const result: LayoutResult = {
-      nodes: this.getNodes().map((node, i) => ({
-        id: node.id,
-        x: i * 100,
-        y: 0,
-        width: 80,
-        height: 40,
-        label: node.name,
-      })),
-      edges: this.getEdges().map(edge => ({
-        id: edge.id,
-        from: edge.from.id,
-        to: edge.to.id,
-        points: [
-          { x: 0, y: 0 },
-          { x: 100, y: 0 },
-        ],
-        label: edge.label || edge.getAttribute('label'),
-      })),
-      bounds: {
-        width: this.nodes.size * 100,
-        height: 100,
-      },
-    }
-
+    const result = this.computeLayout()
     this.layoutResult = result
     this.dirty = false
 
     return result
+  }
+
+  /**
+   * Compute a simple layered layout for the graph
+   */
+  private computeLayout(): LayoutResult {
+    const nodes = this.getNodes()
+    const edges = this.getEdges()
+
+    if (nodes.length === 0) {
+      return { nodes: [], edges: [], bounds: { width: 0, height: 0 } }
+    }
+
+    const flow = this.getAttribute('flow') || 'east'
+    const isHorizontal = flow === 'east' || flow === 'west'
+
+    // Step 1: Assign nodes to ranks (layers)
+    const ranks = this.assignRanks()
+
+    // Step 2: Calculate node dimensions
+    const nodeLayouts = new Map<string, NodeLayout>()
+    const nodeHeight = 5 // Fixed height for ASCII boxes
+    const nodeSpacing = 10 // Horizontal spacing between nodes
+    const rankSpacing = 20 // Vertical spacing between ranks
+
+    // Step 3: Position nodes in each rank
+    let maxRankSize = 0  // Max size of any rank (perpendicular to flow)
+    let numRanks = ranks.size
+
+    ranks.forEach((rankNodes, rankIndex) => {
+      let rankSize = 0  // Size of this rank (perpendicular to flow)
+      let offset = 0    // Offset within the rank
+
+      rankNodes.forEach((node) => {
+        const label = node.name
+        const nodeWidth = Math.max(label.length + 4, 10) // Label + padding, min 10
+
+        let x, y
+
+        if (isHorizontal) {
+          // Horizontal flow: ranks stack vertically, nodes within rank are horizontal
+          x = offset
+          y = rankIndex * rankSpacing
+        } else {
+          // Vertical flow: ranks stack horizontally, nodes within rank are vertical
+          x = rankIndex * rankSpacing
+          y = offset
+        }
+
+        nodeLayouts.set(node.id, {
+          id: node.id,
+          x,
+          y,
+          width: nodeWidth,
+          height: nodeHeight,
+          label: label,
+        })
+
+        offset += nodeWidth + nodeSpacing
+        rankSize = offset - nodeSpacing
+      })
+
+      maxRankSize = Math.max(maxRankSize, rankSize)
+    })
+
+    // Step 4: Route edges
+    const edgeLayouts: EdgeLayout[] = edges.map(edge => {
+      const fromLayout = nodeLayouts.get(edge.from.id)!
+      const toLayout = nodeLayouts.get(edge.to.id)!
+
+      // Calculate edge endpoints
+      const fromCenterY = fromLayout.y + Math.floor(fromLayout.height / 2)
+      const toCenterY = toLayout.y + Math.floor(toLayout.height / 2)
+
+      // Edge exits from right of from-node, enters left of to-node
+      const fromX = fromLayout.x + fromLayout.width
+      const fromY = fromCenterY
+      const toX = toLayout.x
+      const toY = toCenterY
+
+      // Simple routing: horizontal line, then vertical, then horizontal
+      const points = []
+
+      if (isHorizontal) {
+        points.push({ x: fromX, y: fromY })
+
+        // If nodes are on different ranks, add elbow
+        if (fromY !== toY) {
+          const midX = Math.floor((fromX + toX) / 2)
+          points.push({ x: midX, y: fromY })
+          points.push({ x: midX, y: toY })
+        }
+
+        points.push({ x: toX, y: toY })
+      } else {
+        // Vertical flow (not implemented yet, use horizontal)
+        points.push({ x: fromX, y: fromY })
+        points.push({ x: toX, y: toY })
+      }
+
+      return {
+        id: edge.id,
+        from: edge.from.id,
+        to: edge.to.id,
+        points,
+        label: edge.label || edge.getAttribute('label'),
+      }
+    })
+
+    // Calculate bounds based on flow direction
+    const boundsWidth = isHorizontal
+      ? maxRankSize  // Horizontal: width is max rank width
+      : numRanks * rankSpacing  // Vertical: width is number of ranks * spacing
+
+    const boundsHeight = isHorizontal
+      ? numRanks * rankSpacing  // Horizontal: height is number of ranks * spacing
+      : maxRankSize  // Vertical: height is max rank height
+
+    return {
+      nodes: Array.from(nodeLayouts.values()),
+      edges: edgeLayouts,
+      bounds: {
+        width: boundsWidth,
+        height: boundsHeight,
+      },
+    }
+  }
+
+  /**
+   * Assign nodes to ranks (layers) using BFS from source nodes
+   */
+  private assignRanks(): Map<number, Node[]> {
+    const nodes = this.getNodes()
+    const edges = this.getEdges()
+    const ranks = new Map<number, Node[]>()
+    const nodeRank = new Map<string, number>()
+
+    // Find source nodes (no incoming edges)
+    const inDegree = new Map<string, number>()
+    nodes.forEach(node => inDegree.set(node.id, 0))
+    edges.forEach(edge => {
+      inDegree.set(edge.to.id, (inDegree.get(edge.to.id) || 0) + 1)
+    })
+
+    const sources = nodes.filter(node => inDegree.get(node.id) === 0)
+
+    if (sources.length === 0) {
+      // Graph has cycles or all nodes have incoming edges
+      // Just use all nodes as rank 0
+      ranks.set(0, [...nodes])
+      return ranks
+    }
+
+    // BFS to assign ranks
+    const queue: Array<{ node: Node; rank: number }> = sources.map(node => ({
+      node,
+      rank: 0,
+    }))
+
+    const visited = new Set<string>()
+
+    while (queue.length > 0) {
+      const { node, rank } = queue.shift()!
+
+      if (visited.has(node.id)) continue
+      visited.add(node.id)
+
+      // Assign this node to its rank
+      nodeRank.set(node.id, rank)
+      if (!ranks.has(rank)) ranks.set(rank, [])
+      ranks.get(rank)!.push(node)
+
+      // Find outgoing edges and add their targets to queue
+      const outgoingEdges = edges.filter(e => e.from.id === node.id)
+      outgoingEdges.forEach(edge => {
+        if (!visited.has(edge.to.id)) {
+          queue.push({ node: edge.to, rank: rank + 1 })
+        }
+      })
+    }
+
+    // Handle any unvisited nodes (shouldn't happen with proper graph)
+    nodes.forEach(node => {
+      if (!visited.has(node.id)) {
+        const rank = 0
+        if (!ranks.has(rank)) ranks.set(rank, [])
+        ranks.get(rank)!.push(node)
+      }
+    })
+
+    return ranks
   }
 
   // ===== Statistics =====

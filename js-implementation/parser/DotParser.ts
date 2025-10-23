@@ -636,9 +636,53 @@ export function parseGraphAuto(input: string): Graph {
   const trimmed = input.trim()
 
   // Check if it's DOT format
-  if (trimmed.startsWith('digraph') ||
-      trimmed.startsWith('graph') ||
-      trimmed.startsWith('strict')) {
+  // DOT starts with digraph/graph followed by optional name and { ... }
+  // Graph::Easy may have "graph { attr: value }" but will have other content after
+  if (trimmed.startsWith('digraph') || trimmed.startsWith('strict')) {
+    return parseDot(input)
+  }
+
+  // For "graph", check if it looks like DOT or Graph::Easy
+  if (trimmed.startsWith('graph')) {
+    // If it's "graph {" at the start and has [ or node definitions, it's Graph::Easy
+    // If it's the entire content inside one graph block, it's DOT
+    const afterGraph = trimmed.substring(5).trim()
+
+    // DOT: "graph { ... }" or "graph name { ... }" where everything is inside the braces
+    // Graph::Easy: "graph { flow: south; }\n[A] -> [B]" has content outside the first block
+
+    // Check if there's content after the first closing brace
+    let braceDepth = 0
+    let inQuotes = false
+    let firstBlockEnd = -1
+
+    for (let i = 0; i < afterGraph.length; i++) {
+      const char = afterGraph[i]
+      if (char === '"' && afterGraph[i - 1] !== '\\') {
+        inQuotes = !inQuotes
+      } else if (!inQuotes) {
+        if (char === '{') braceDepth++
+        else if (char === '}') {
+          braceDepth--
+          if (braceDepth === 0) {
+            firstBlockEnd = i
+            break
+          }
+        }
+      }
+    }
+
+    // If there's non-whitespace content after the first closing brace, it's Graph::Easy
+    if (firstBlockEnd >= 0) {
+      const afterFirstBlock = afterGraph.substring(firstBlockEnd + 1).trim()
+      if (afterFirstBlock.length > 0) {
+        // Graph::Easy format
+        const parser = new Parser()
+        return parser.parse(input)
+      }
+    }
+
+    // Otherwise treat as DOT
     return parseDot(input)
   }
 

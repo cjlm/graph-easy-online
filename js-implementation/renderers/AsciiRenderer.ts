@@ -60,6 +60,7 @@ export class AsciiRenderer {
   private height: number = 0
   private chars: typeof BoxChars.ascii
   private options: Required<AsciiRendererOptions>
+  private edgeLabels: Array<{ x: number; y: number; label: string }> = []
 
   constructor(options: AsciiRendererOptions = {}) {
     this.options = {
@@ -76,6 +77,7 @@ export class AsciiRenderer {
   render(layout: LayoutResult): string {
     // Initialize framebuffer
     this.initFramebuffer(layout.bounds.width, layout.bounds.height)
+    this.edgeLabels = []
 
     // Render edges first (they go behind nodes)
     for (const edge of layout.edges) {
@@ -85,6 +87,11 @@ export class AsciiRenderer {
     // Render nodes on top
     for (const node of layout.nodes) {
       this.renderNode(node)
+    }
+
+    // Render edge labels last (on top of everything)
+    for (const { x, y, label } of this.edgeLabels) {
+      this.drawEdgeLabel(x, y, label)
     }
 
     // Convert framebuffer to string
@@ -189,11 +196,11 @@ export class AsciiRenderer {
       else if (dy < 0) this.setCell(lastPoint.x, lastPoint.y, this.chars.arrowUp)
     }
 
-    // Draw label if present
+    // Store label for later rendering (after nodes)
     if (label && points.length >= 2) {
       const midIdx = Math.floor(points.length / 2)
       const midPoint = points[midIdx]
-      this.drawEdgeLabel(midPoint.x, midPoint.y, label)
+      this.edgeLabels.push({ x: midPoint.x, y: midPoint.y, label })
     }
   }
 
