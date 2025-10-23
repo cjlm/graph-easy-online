@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
-import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun } from 'lucide-react'
+import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun, Copy, Check } from 'lucide-react'
 import './App.css'
 
 // Example graphs
@@ -76,6 +76,7 @@ function App() {
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [copied, setCopied] = useState(false)
   const modulesLoadedRef = useRef(false)
 
   // Initialize Perl modules
@@ -341,6 +342,18 @@ END_INPUT
     }
   }
 
+  const handleCopyOutput = async () => {
+    if (!output) return
+
+    try {
+      await navigator.clipboard.writeText(output)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
   // Handle resize dragging
   useEffect(() => {
     if (!isDragging) return
@@ -483,8 +496,22 @@ END_INPUT
         />
       </div>
 
-      {/* Dark Mode Toggle - Top Right */}
-      <div className="absolute top-8 right-8">
+      {/* Top Right Controls - Copy and Dark Mode Toggle */}
+      <div className="absolute top-8 right-8 flex gap-2">
+        <Button
+          onClick={handleCopyOutput}
+          size="sm"
+          variant="outline"
+          className="h-9 w-9 p-0"
+          title="Copy raw text output"
+          disabled={!output || loadingState !== 'ready'}
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </Button>
         <Button
           onClick={() => setIsDarkMode(!isDarkMode)}
           size="sm"
