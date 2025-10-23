@@ -107,15 +107,21 @@ export class GraphEasyASCII {
   private async initialize(): Promise<void> {
     if (this.initialized) return
 
-    // TODO: Initialize WASM layout engine here when integrated
-    /*
-    if (typeof window !== 'undefined') {
-      // Browser environment
-      const { default: init, LayoutEngine } = await import('./wasm/graph_easy_layout')
+    try {
+      // Initialize WASM layout engine
+      const { default: init, LayoutEngine } = await import('./layout-engine-rust/pkg/graph_easy_layout.js')
       await init()
       this.layoutEngine = new LayoutEngine()
+
+      if (this.options.debug) {
+        console.log('✅ WASM layout engine initialized')
+      }
+    } catch (error) {
+      if (this.options.debug) {
+        console.warn('⚠️  Failed to load WASM layout engine, will use TypeScript fallback:', error)
+      }
+      // Continue without WASM - will use TypeScript layout
     }
-    */
 
     this.initialized = true
   }
