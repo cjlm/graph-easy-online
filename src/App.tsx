@@ -589,15 +589,10 @@ END_INPUT
     const scaleY = containerHeight / contentHeight
     const newZoom = Math.min(scaleX, scaleY, 1) // Don't zoom in beyond 100%
 
-    // Center the content
-    const scaledWidth = contentWidth * newZoom
-    const scaledHeight = contentHeight * newZoom
-    const newPanX = (containerWidth - scaledWidth) / 2 / newZoom
-    const newPanY = (containerHeight - scaledHeight) / 2 / newZoom
-
+    // Reset pan to center (flexbox centering handles the actual centering)
     setZoom(newZoom)
-    setPanX(newPanX)
-    setPanY(newPanY)
+    setPanX(0)
+    setPanY(0)
   }
 
   // Handle resize dragging
