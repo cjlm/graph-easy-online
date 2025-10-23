@@ -205,6 +205,7 @@ function App() {
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
   const outputContainerRef = useRef<HTMLDivElement>(null)
+  const lastTouchDistanceRef = useRef<number | null>(null)
 
   // Initialize Perl modules
   // Note: WebPerl is loaded in index.html, not dynamically
@@ -579,13 +580,13 @@ END_INPUT
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Handle mouse wheel zoom
+  // Handle mouse wheel zoom (with Ctrl/Cmd key)
   useEffect(() => {
     const container = outputContainerRef.current
     if (!container) return
 
     const handleWheel = (e: WheelEvent) => {
-      // Only zoom with Ctrl/Cmd key
+      // Only zoom with Ctrl/Cmd key, otherwise allow normal scrolling
       if (!(e.ctrlKey || e.metaKey)) return
 
       e.preventDefault()
@@ -596,6 +597,54 @@ END_INPUT
 
     container.addEventListener('wheel', handleWheel, { passive: false })
     return () => container.removeEventListener('wheel', handleWheel)
+  }, [])
+
+  // Handle pinch-to-zoom touch gestures
+  useEffect(() => {
+    const container = outputContainerRef.current
+    if (!container) return
+
+    const getTouchDistance = (touch1: Touch, touch2: Touch): number => {
+      const dx = touch1.clientX - touch2.clientX
+      const dy = touch1.clientY - touch2.clientY
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        lastTouchDistanceRef.current = getTouchDistance(e.touches[0], e.touches[1])
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && lastTouchDistanceRef.current !== null) {
+        e.preventDefault()
+
+        const currentDistance = getTouchDistance(e.touches[0], e.touches[1])
+        const delta = currentDistance / lastTouchDistanceRef.current
+
+        setZoom(prevZoom => Math.max(0.1, Math.min(5, prevZoom * delta)))
+
+        lastTouchDistanceRef.current = currentDistance
+      }
+    }
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        lastTouchDistanceRef.current = null
+      }
+    }
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
+    }
   }, [])
 
   return (
