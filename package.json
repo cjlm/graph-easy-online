@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build:wasm": "cd js-implementation/layout-engine-rust && PATH=\"$HOME/.cargo/bin:$PATH\" wasm-pack build --target web --out-dir pkg",
-    "build": "npm run build:wasm && tsc && vite build",
+    "build": "tsc && vite build",
+    "build:local": "npm run build:wasm && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
