@@ -665,6 +665,32 @@ END_INPUT
     }
   }, [isPanning, panStartX, panStartY, panX, panY])
 
+  // Handle zoom with Shift + scroll
+  useEffect(() => {
+    const container = outputContainerRef.current
+    if (!container) return
+
+    const handleWheel = (e: WheelEvent) => {
+      // Only zoom with Shift + wheel
+      if (!e.shiftKey) return
+
+      e.preventDefault()
+
+      // deltaY is positive when scrolling down (zoom out), negative when scrolling up (zoom in)
+      if (e.deltaY < 0) {
+        handleZoomIn()
+      } else {
+        handleZoomOut()
+      }
+    }
+
+    container.addEventListener('wheel', handleWheel, { passive: false })
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel)
+    }
+  }, [])
+
 
   return (
     <div
@@ -808,7 +834,7 @@ END_INPUT
           >
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <div className="flex items-center justify-center min-w-[3rem] px-2 text-xs font-medium text-muted-foreground border-x border-border">
+          <div className="flex items-center justify-center min-w-[3rem] px-2 text-xs font-medium text-muted-foreground border-x border-border select-none">
             {Math.round(zoom * 100)}%
           </div>
           <Button
