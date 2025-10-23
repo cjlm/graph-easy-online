@@ -9,22 +9,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@viz-js/viz": "^3.20.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "tailwind-merge": "^2.2.0",
     "lucide-react": "^0.344.0",
-    "react-resizable-panels": "^2.0.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-resizable-panels": "^2.0.0",
+    "tailwind-merge": "^2.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.4",
-    "tailwindcss": "^3.4.1",
     "autoprefixer": "^10.4.18",
-    "postcss": "^8.4.35"
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.4"
   }
 }

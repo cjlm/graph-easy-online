@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
-import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun, Copy, Check } from 'lucide-react'
+
+import { Loader2, Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check } from 'lucide-react'
+import * as Viz from '@viz-js/viz'
+
 import './App.css'
 
 // Example graphs
@@ -31,6 +34,31 @@ const EXAMPLES = [
 [ Start ] -> [ Process ] -> [ End ]`
   }
 ]
+
+// Utility functions for URL state serialization
+const getStateFromURL = (): { input?: string; format?: OutputFormat } => {
+  const params = new URLSearchParams(window.location.search)
+  const input = params.get('input')
+  const format = params.get('format') as OutputFormat | null
+
+  return {
+    input: input || undefined,
+    format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
+      ? format
+      : undefined
+  }
+}
+
+const updateURL = (input: string, format: OutputFormat) => {
+  const params = new URLSearchParams()
+  if (input.trim()) {
+    params.set('input', input)
+  }
+  params.set('format', format)
+
+  const newURL = `${window.location.pathname}?${params.toString()}`
+  window.history.replaceState({}, '', newURL)
+}
 
 // Declare global Perl types
 declare global {
@@ -64,7 +92,9 @@ const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string;
 ]
 
 function App() {
-  const [input, setInput] = useState(EXAMPLES[0].graph)
+  // Initialize state from URL or defaults
+  const urlState = getStateFromURL()
+  const [input, setInput] = useState(urlState.input || EXAMPLES[0].graph)
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [loadingState, setLoadingState] = useState<LoadingState>('initializing')
@@ -73,11 +103,16 @@ function App() {
   const [paneWidth, setPaneWidth] = useState(400)
   const [paneHeight, setPaneHeight] = useState(300)
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('ascii')
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>(urlState.format || 'ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [renderedGraphviz, setRenderedGraphviz] = useState<SVGSVGElement | null>(null)
+  const [mobileView, setMobileView] = useState<'editor' | 'results'>('editor')
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
   const modulesLoadedRef = useRef(false)
+  const vizInstanceRef = useRef<any>(null)
 
   // Initialize Perl modules
   // Note: WebPerl is loaded in index.html, not dynamically
@@ -206,6 +241,15 @@ function App() {
     initPerl()
   }, [])
 
+  // Initialize Viz.js for Graphviz rendering
+  useEffect(() => {
+    Viz.instance().then(viz => {
+      vizInstanceRef.current = viz
+    }).catch(err => {
+      console.error('Failed to initialize Viz.js:', err)
+    })
+  }, [])
+
   // Initialize dark mode from localStorage or system preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
@@ -227,6 +271,21 @@ function App() {
     }
   }, [isDarkMode])
 
+  // Update URL when input or output format changes
+  useEffect(() => {
+    updateURL(input, outputFormat)
+  }, [input, outputFormat])
+  
+  // Handle window resize to update isMobile state
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   // Auto-convert when input changes (debounced)
   useEffect(() => {
     if (loadingState !== 'ready' || !input.trim()) return
@@ -246,6 +305,23 @@ function App() {
       convertGraph()
     }
   }, [outputFormat])
+
+  // Render Graphviz DOT output when format is 'graphviz'
+  useEffect(() => {
+    if (outputFormat === 'graphviz' && output && vizInstanceRef.current) {
+      try {
+        const svgElement = vizInstanceRef.current.renderSVGElement(output)
+        setRenderedGraphviz(svgElement)
+        setError('')
+      } catch (err: any) {
+        console.error('Graphviz rendering error:', err)
+        setError(`Graphviz rendering error: ${err.message}`)
+        setRenderedGraphviz(null)
+      }
+    } else {
+      setRenderedGraphviz(null)
+    }
+  }, [output, outputFormat])
 
   const convertGraph = (graphInput?: string) => {
     const textToConvert = graphInput || input
@@ -381,33 +457,47 @@ END_INPUT
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background font-sans">
-      {/* Output - Full screen background */}
-      <div className="absolute inset-0 flex items-center justify-center p-8">
+      {/* Output - Full screen background, responsive */}
+      <div className={`absolute inset-0 flex items-center justify-center p-4 md:p-8 ${
+        mobileView === 'editor' ? 'hidden md:flex' : 'flex'
+      }`}>
         {loadingState === 'ready' && output ? (
-          outputFormat === 'html' || outputFormat === 'svg' ? (
+          outputFormat === 'graphviz' && renderedGraphviz ? (
+            <div
+              className="flex items-center justify-center w-full h-full overflow-auto"
+              ref={(el) => {
+                if (el && renderedGraphviz) {
+                  el.innerHTML = ''
+                  el.appendChild(renderedGraphviz.cloneNode(true))
+                }
+              }}
+            />
+          ) : outputFormat === 'html' || outputFormat === 'svg' ? (
             <div
               className="flex items-center justify-center w-full h-full overflow-auto"
               dangerouslySetInnerHTML={{ __html: output }}
             />
           ) : (
-            <pre className="font-mono text-sm leading-relaxed text-foreground/90 select-text">
+            <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90 select-text">
               {output}
             </pre>
           )
         ) : loadingState === 'ready' && !output ? (
           <div className="text-center text-muted-foreground">
-            <p className="text-lg">Enter graph notation to see output</p>
+            <p className="text-base md:text-lg">Enter graph notation to see output</p>
           </div>
         ) : null}
       </div>
 
-      {/* Input Pane - Floating, resizable, top-left */}
+      {/* Input Pane - Full screen on mobile, floating on desktop */}
       <div
-        className="absolute top-8 left-8 bg-card border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden transition-shadow duration-200 hover:shadow-3xl"
-        style={{
+        className={`bg-card border border-border flex flex-col overflow-hidden transition-shadow duration-200 ${
+          mobileView === 'results' ? 'hidden md:flex' : 'flex'
+        } fixed inset-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:inset-auto`}
+        style={!isMobile ? {
           width: `${paneWidth}px`,
           height: `${paneHeight}px`,
-        }}
+        } : {}}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
@@ -472,22 +562,22 @@ END_INPUT
                 Converting...
               </>
             ) : (
-              'Convert to ASCII'
+              `Convert to ${OUTPUT_FORMATS.find(f => f.value === outputFormat)?.label}`
             )}
           </Button>
         </div>
 
-        {/* Resize handles */}
+        {/* Resize handles - Desktop only */}
         <div
-          className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/20 transition-colors"
+          className="hidden md:block absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/20 transition-colors"
           onMouseDown={() => setIsDragging('width')}
         />
         <div
-          className="absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize hover:bg-primary/20 transition-colors"
+          className="hidden md:block absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize hover:bg-primary/20 transition-colors"
           onMouseDown={() => setIsDragging('height')}
         />
         <div
-          className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/20 transition-colors rounded-tl-sm"
+          className="hidden md:block absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/20 transition-colors rounded-tl-sm"
           onMouseDown={() => {
             setIsDragging('width')
             // Also enable height dragging
@@ -512,6 +602,8 @@ END_INPUT
             <Copy className="h-4 w-4" />
           )}
         </Button>
+      {/* Dark Mode Toggle - Top Right on desktop, top right on mobile */}
+      <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10">
         <Button
           onClick={() => setIsDarkMode(!isDarkMode)}
           size="sm"
@@ -527,8 +619,10 @@ END_INPUT
         </Button>
       </div>
 
-      {/* Format Selector Panel - Bottom Right */}
-      <div className="absolute bottom-8 right-8">
+      {/* Format Selector Panel - Bottom Right on desktop, hidden on mobile when editor is shown */}
+      <div className={`absolute bottom-20 right-4 md:bottom-8 md:right-8 ${
+        mobileView === 'editor' ? 'hidden md:block' : 'block'
+      }`}>
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden transition-all duration-200">
           {/* Collapsed header */}
           {!formatPanelOpen && (
@@ -589,6 +683,30 @@ END_INPUT
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Mobile View Toggle - Bottom Center (Mobile Only) */}
+      <div className="md:hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden flex">
+          <Button
+            onClick={() => setMobileView('editor')}
+            size="sm"
+            variant={mobileView === 'editor' ? 'default' : 'ghost'}
+            className="rounded-r-none px-6 py-6"
+          >
+            <Code className="h-5 w-5 mr-2" />
+            Editor
+          </Button>
+          <Button
+            onClick={() => setMobileView('results')}
+            size="sm"
+            variant={mobileView === 'results' ? 'default' : 'ghost'}
+            className="rounded-l-none px-6 py-6"
+          >
+            <Eye className="h-5 w-5 mr-2" />
+            Results
+          </Button>
         </div>
       </div>
     </div>
