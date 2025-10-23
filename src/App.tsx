@@ -543,23 +543,6 @@ END_INPUT
               {error}
             </div>
           )}
-
-          {/* Convert button */}
-          <Button
-            onClick={() => convertGraph()}
-            disabled={loadingState !== 'ready' || converting}
-            className="w-full"
-            size="sm"
-          >
-            {converting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Converting...
-              </>
-            ) : (
-              `Convert to ${OUTPUT_FORMATS.find(f => f.value === outputFormat)?.label}`
-            )}
-          </Button>
         </div>
 
         {/* Resize handles - Desktop only */}
