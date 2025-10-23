@@ -17,7 +17,8 @@ export interface ConversionResult {
 }
 
 export class GraphConversionService {
-  private jsWasmConverter: any = null
+  private wasmConverter: any = null
+  private tsConverter: any = null
   private jsWasmInitialized = false
   private preferredEngine: ConversionEngine = 'wasm'
 
@@ -38,7 +39,7 @@ export class GraphConversionService {
   }
 
   /**
-   * Initialize the JS/WASM converter
+   * Initialize the JS/WASM converters
    */
   async initializeJsWasm(): Promise<void> {
     if (this.jsWasmInitialized) return
@@ -47,15 +48,24 @@ export class GraphConversionService {
       // Dynamically import the new implementation
       const { GraphEasyASCII } = await import('../../js-implementation/GraphEasyASCII')
 
-      this.jsWasmConverter = await GraphEasyASCII.create({
-        strict: false, // Don't throw on minor errors
+      // Create WASM converter (with WASM enabled)
+      this.wasmConverter = await GraphEasyASCII.create({
+        strict: false,
         debug: false,
+        disableWasm: false,
+      })
+
+      // Create TypeScript converter (with WASM disabled)
+      this.tsConverter = await GraphEasyASCII.create({
+        strict: false,
+        debug: false,
+        disableWasm: true,
       })
 
       this.jsWasmInitialized = true
-      console.log('✅ JS/WASM converter initialized')
+      console.log('✅ JS/WASM converters initialized')
     } catch (error) {
-      console.error('Failed to initialize JS/WASM converter:', error)
+      console.error('Failed to initialize JS/WASM converters:', error)
       throw error
     }
   }
@@ -90,15 +100,16 @@ export class GraphConversionService {
         // Try JS/WASM first
         try {
           if (!this.jsWasmInitialized) {
-            console.log('🔧 Initializing JS/WASM engine...')
+            console.log('🔧 Initializing JS/WASM engines...')
             await this.initializeJsWasm()
           }
 
-          console.log('🚀 Converting with JS/WASM engine...')
-          const output = await this.convertWithJsWasm(input, format)
+          const engineName = engine === 'wasm' ? 'WASM' : 'TypeScript'
+          console.log(`🚀 Converting with ${engineName} engine...`)
+          const output = await this.convertWithJsWasm(input, format, engine)
           const timeMs = performance.now() - startTime
 
-          console.log(`✅ JS/WASM conversion succeeded in ${timeMs.toFixed(1)}ms`)
+          console.log(`✅ ${engineName} conversion succeeded in ${timeMs.toFixed(1)}ms`)
 
           return {
             output,
@@ -152,7 +163,7 @@ export class GraphConversionService {
   /**
    * Convert using the new JS/WASM implementation
    */
-  private async convertWithJsWasm(input: string, format: OutputFormat): Promise<string> {
+  private async convertWithJsWasm(input: string, format: OutputFormat, engine: ConversionEngine): Promise<string> {
     if (!this.jsWasmInitialized) {
       await this.initializeJsWasm()
     }
@@ -162,8 +173,13 @@ export class GraphConversionService {
       throw new Error(`Format '${format}' not yet supported in JS/WASM. Use WebPerl.`)
     }
 
-    // Use the converter
-    const result = await this.jsWasmConverter.convert(input)
+    // Use the appropriate converter based on engine
+    const converter = engine === 'wasm' ? this.wasmConverter : this.tsConverter
+
+    // Set boxart option based on format
+    converter.setOptions({ boxart: format === 'boxart' })
+
+    const result = await converter.convert(input)
 
     return result
   }

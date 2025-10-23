@@ -500,13 +500,13 @@ export class Graph {
         let x, y
 
         if (isHorizontal) {
-          // Horizontal flow: ranks stack vertically, nodes within rank are horizontal
-          x = offset
-          y = rankIndex * rankSpacing
-        } else {
-          // Vertical flow: ranks stack horizontally, nodes within rank are vertical
+          // Horizontal flow (east/west): ranks go left-to-right, nodes within rank stack top-to-bottom
           x = rankIndex * rankSpacing
           y = offset
+        } else {
+          // Vertical flow (north/south): ranks go top-to-bottom, nodes within rank go left-to-right
+          x = offset
+          y = rankIndex * rankSpacing
         }
 
         nodeLayouts.set(node.id, {
@@ -535,9 +535,10 @@ export class Graph {
       const toCenterY = toLayout.y + Math.floor(toLayout.height / 2)
 
       // Edge exits from right of from-node, enters left of to-node
+      // Leave 1 character gap for the arrow before the destination node
       const fromX = fromLayout.x + fromLayout.width
       const fromY = fromCenterY
-      const toX = toLayout.x
+      const toX = toLayout.x - 1  // Stop 1 char before the node border
       const toY = toCenterY
 
       // Simple routing: horizontal line, then vertical, then horizontal
@@ -571,12 +572,12 @@ export class Graph {
 
     // Calculate bounds based on flow direction
     const boundsWidth = isHorizontal
-      ? maxRankSize  // Horizontal: width is max rank width
-      : numRanks * rankSpacing  // Vertical: width is number of ranks * spacing
+      ? numRanks * rankSpacing  // Horizontal: width is number of ranks * spacing (left to right)
+      : maxRankSize  // Vertical: width is max rank size
 
     const boundsHeight = isHorizontal
-      ? numRanks * rankSpacing  // Horizontal: height is number of ranks * spacing
-      : maxRankSize  // Vertical: height is max rank height
+      ? maxRankSize  // Horizontal: height is max rank size (nodes stack vertically)
+      : numRanks * rankSpacing  // Vertical: height is number of ranks * spacing
 
     return {
       nodes: Array.from(nodeLayouts.values()),

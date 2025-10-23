@@ -358,7 +358,8 @@ fn route_edges(graph: &GraphData, node_positions: &[NodePosition]) -> Vec<EdgePa
         let start_y = from_pos.y + (from_pos.height as i32 / 2);
 
         // End at left-middle of target node
-        let end_x = to_pos.x;
+        // Stop 1 character before the node border to leave room for the arrow
+        let end_x = to_pos.x - 1;
         let end_y = to_pos.y + (to_pos.height as i32 / 2);
 
         // Create path with intermediate points for manhattan routing

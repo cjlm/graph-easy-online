@@ -59,6 +59,11 @@ export interface GraphEasyOptions {
    * Rank spacing (in grid units)
    */
   rankSpacing?: number
+
+  /**
+   * Disable WASM and use pure TypeScript layout
+   */
+  disableWasm?: boolean
 }
 
 export class GraphEasyASCII {
@@ -77,6 +82,7 @@ export class GraphEasyASCII {
       flow: options.flow ?? 'east',
       nodeSpacing: options.nodeSpacing ?? 3,
       rankSpacing: options.rankSpacing ?? 5,
+      disableWasm: options.disableWasm ?? false,
     }
 
     this.graphEasyParser = new Parser({
@@ -107,18 +113,19 @@ export class GraphEasyASCII {
   private async initialize(): Promise<void> {
     if (this.initialized) return
 
-    try {
-      // Initialize WASM layout engine
-      const { default: init, LayoutEngine } = await import('./layout-engine-rust/pkg/graph_easy_layout.js')
-      await init()
-      this.layoutEngine = new LayoutEngine()
-
-      // Get WASM version
-      const version = (LayoutEngine as any).getVersion?.() || 'unknown'
-      console.log(`✅ WASM layout engine initialized (Rust v${version})`)
-    } catch (error) {
-      console.warn('⚠️  Failed to load WASM layout engine, will use TypeScript fallback:', error)
-      // Continue without WASM - will use TypeScript layout
+    if (!this.options.disableWasm) {
+      try {
+        // Initialize WASM layout engine
+        const { default: init, LayoutEngine } = await import('./layout-engine-rust/pkg/graph_easy_layout.js')
+        await init()
+        this.layoutEngine = new LayoutEngine()
+        console.log('✅ WASM layout engine initialized')
+      } catch (error) {
+        console.warn('⚠️  WASM unavailable, using TypeScript fallback')
+        // Continue without WASM - will use TypeScript layout
+      }
+    } else {
+      console.log('✅ TypeScript-only mode (WASM disabled)')
     }
 
     this.initialized = true
@@ -217,16 +224,12 @@ export class GraphEasyASCII {
       },
     }
 
-    console.log('🦀 WASM input:', JSON.stringify(graphData, null, 2))
-
     // Call WASM layout engine
     try {
       const result = this.layoutEngine.layout(graphData)
-      console.log('🦀 WASM output:', JSON.stringify(result, null, 2))
       return result
     } catch (error) {
       console.error('🦀 WASM layout failed:', error)
-      console.error('Input was:', graphData)
       throw error
     }
   }

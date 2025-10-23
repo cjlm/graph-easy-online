@@ -483,7 +483,7 @@ function App() {
     }
   }, [output, outputFormat])
 
-  const convertGraph = async (graphInput?: string) => {
+  const convertGraph = async (graphInput?: string, engineOverride?: ConversionEngine) => {
     const textToConvert = graphInput || input
 
     if (!textToConvert.trim()) {
@@ -504,7 +504,7 @@ function App() {
       const result = await graphConversionService.convert(
         textToConvert,
         outputFormat,
-        conversionEngine
+        engineOverride || conversionEngine
       )
 
       // Update performance metrics
@@ -551,7 +551,7 @@ function App() {
     // Re-convert with new engine
     if (loadingState === 'ready' && input.trim()) {
       setIsConverting(true)
-      convertGraph()
+      convertGraph(undefined, engine)
     }
   }
 
@@ -842,7 +842,7 @@ function App() {
         />
       </div>
 
-      {/* Top Right Controls - Zoom, Copy and Dark Mode Toggle */}
+      {/* Top Right Controls - Zoom, Engine, Copy and Dark Mode Toggle */}
       <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10 flex gap-2">
         <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
           <Button
@@ -879,6 +879,44 @@ function App() {
             <Minimize2 className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Engine Toggle */}
+        <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden p-1">
+          <button
+            onClick={() => handleEngineChange('wasm')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'wasm'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="Rust/WASM (Fastest)"
+          >
+            WASM
+          </button>
+          <button
+            onClick={() => handleEngineChange('typescript')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'typescript'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="TypeScript (Pure JS)"
+          >
+            TS
+          </button>
+          <button
+            onClick={() => handleEngineChange('webperl')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'webperl'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="WebPerl (All formats)"
+          >
+            Perl
+          </button>
+        </div>
+
         <Button
           onClick={handleCopyOutput}
           size="sm"
@@ -941,72 +979,6 @@ function App() {
                 </div>
                 <ChevronDown className="w-3 h-3" />
               </button>
-
-              {/* Engine selector */}
-              <div className="p-2 border-b border-border">
-                <div className="text-xs font-medium text-muted-foreground mb-2 px-1">Conversion Engine</div>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => handleEngineChange('wasm')}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
-                      conversionEngine === 'wasm'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-3 h-3" />
-                      <div className="text-sm font-medium">Rust/WASM</div>
-                    </div>
-                    <div className={`text-xs mt-0.5 ${
-                      conversionEngine === 'wasm'
-                        ? 'text-primary-foreground/80'
-                        : 'text-muted-foreground'
-                    }`}>
-                      Fastest (ASCII/Boxart only)
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleEngineChange('typescript')}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
-                      conversionEngine === 'typescript'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Code className="w-3 h-3" />
-                      <div className="text-sm font-medium">TypeScript</div>
-                    </div>
-                    <div className={`text-xs mt-0.5 ${
-                      conversionEngine === 'typescript'
-                        ? 'text-primary-foreground/80'
-                        : 'text-muted-foreground'
-                    }`}>
-                      Pure JS (ASCII/Boxart only)
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleEngineChange('webperl')}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
-                      conversionEngine === 'webperl'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-medium">WebPerl</div>
-                    </div>
-                    <div className={`text-xs mt-0.5 ${
-                      conversionEngine === 'webperl'
-                        ? 'text-primary-foreground/80'
-                        : 'text-muted-foreground'
-                    }`}>
-                      Original (all formats)
-                    </div>
-                  </button>
-                </div>
-              </div>
 
               {/* Format options */}
               <div className="p-2 space-y-2">

@@ -6,7 +6,8 @@
   "license": "GPL-2.0-or-later",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build:wasm": "cd js-implementation/layout-engine-rust && PATH=\"$HOME/.cargo/bin:$PATH\" wasm-pack build --target web --out-dir pkg",
+    "build": "npm run build:wasm && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

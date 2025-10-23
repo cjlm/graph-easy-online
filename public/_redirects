@@ -1,0 +1,6 @@
+# Cloudflare Pages SPA redirects
+# Serve assets directly
+/graph-easy/assets/*  /graph-easy/assets/:splat  200
+
+# Fallback to index.html for SPA routing
+/graph-easy/*  /graph-easy/index.html  200

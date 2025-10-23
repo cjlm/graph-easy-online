@@ -1,0 +1,9 @@
+# Cloudflare Pages headers
+/graph-easy/assets/*.css
+  Content-Type: text/css
+
+/graph-easy/assets/*.js
+  Content-Type: application/javascript
+
+/graph-easy/assets/*.wasm
+  Content-Type: application/wasm
