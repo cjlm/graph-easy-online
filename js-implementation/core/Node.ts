@@ -2,9 +2,9 @@
  * Node class - Represents a node/vertex in the graph
  */
 
-import type { Graph } from './Graph'
-import type { Edge } from './Edge'
-import type { Group } from './Group'
+import { Graph } from './Graph'
+import { Edge } from './Edge'
+import { Group } from './Group'
 import { AttributeManager } from './Attributes'
 
 export class Node {

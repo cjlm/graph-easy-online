@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2 } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
+import { graphConversionService, ConversionEngine } from './services/graphConversionService'
 
 // Example graphs
 const EXAMPLES = [
@@ -232,6 +233,11 @@ function App() {
   const [isPanning, setIsPanning] = useState(false)
   const [panStartX, setPanStartX] = useState(0)
   const [panStartY, setPanStartY] = useState(0)
+  const [conversionEngine, setConversionEngine] = useState<ConversionEngine>(
+    () => graphConversionService.getPreferredEngine()
+  )
+  const [conversionTime, setConversionTime] = useState<number>(0)
+  const [engineUsed, setEngineUsed] = useState<ConversionEngine | null>(null)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
@@ -362,6 +368,24 @@ function App() {
     initPerl()
   }, [])
 
+  // Initialize JS/WASM engine
+  useEffect(() => {
+    const initJsWasm = async () => {
+      try {
+        await graphConversionService.initializeJsWasm()
+        console.log('JS/WASM engine initialized successfully')
+      } catch (err) {
+        console.error('Failed to initialize JS/WASM engine:', err)
+        // Silently fallback to WebPerl
+      }
+    }
+
+    // Eagerly initialize if jswasm is preferred
+    if (conversionEngine === 'jswasm') {
+      initJsWasm()
+    }
+  }, [])
+
   // Initialize Viz.js for Graphviz rendering
   useEffect(() => {
     Viz.instance().then(viz => {
@@ -448,7 +472,7 @@ function App() {
     }
   }, [output, outputFormat])
 
-  const convertGraph = (graphInput?: string) => {
+  const convertGraph = async (graphInput?: string) => {
     const textToConvert = graphInput || input
 
     if (!textToConvert.trim()) {
@@ -465,62 +489,24 @@ function App() {
     try {
       setError('')
 
-      const escapedInput = textToConvert
-        .replace(/\\/g, '\\\\')
-        .replace(/\$/g, '\\$')
+      // Use the conversion service with the selected engine
+      const result = await graphConversionService.convert(
+        textToConvert,
+        outputFormat,
+        conversionEngine
+      )
 
-      // Map format to Perl method
-      const formatMethodMap: Record<OutputFormat, string> = {
-        ascii: 'as_ascii()',
-        boxart: 'as_boxart()',
-        html: 'as_html()',
-        svg: 'as_svg()',
-        graphviz: 'as_graphviz()',
-        graphml: 'as_graphml()',
-        vcg: 'as_vcg()',
-        txt: 'as_txt()',
+      // Update performance metrics
+      setConversionTime(result.timeMs)
+      setEngineUsed(result.engine)
+
+      if (result.error) {
+        setError(result.error)
       }
 
-      const perlMethod = formatMethodMap[outputFormat]
-
-      const perlScript = `
-        use strict;
-        use warnings;
-        use lib '/lib';
-        use Graph::Easy;
-
-        my $input = <<'END_INPUT';
-${escapedInput}
-END_INPUT
-
-        my $output;
-
-        eval {
-          my $graph = Graph::Easy->new($input);
-
-          if ($graph->error()) {
-            $output = "Error: " . $graph->error();
-          } else {
-            $output = $graph->${perlMethod};
-          }
-        };
-
-        if ($@) {
-          $output = "Error: $@";
-        }
-
-        $output;
-      `
-
-      const result = window.Perl.eval(perlScript)
-
-      if (result && result.startsWith('Error:')) {
-        setError(result)
-        setIsConverting(false)
-        // Keep previous output visible
-      } else if (result) {
-        setOutput(result)
-        setError('')
+      if (result.output) {
+        setOutput(result.output)
+        setError(result.error || '')
         // For non-graphviz formats, conversion is complete immediately
         // For graphviz, the rendering effect will set isConverting to false
         if (outputFormat !== 'graphviz') {
@@ -529,10 +515,9 @@ END_INPUT
       } else {
         setError('No output generated')
         setIsConverting(false)
-        // Keep previous output visible
       }
     } catch (err: any) {
-      setError(`Conversion error: ${err.message}`)
+      setError(`Conversion error: ${err.message || String(err)}`)
       setIsConverting(false)
       // Keep previous output visible
     }
@@ -545,6 +530,17 @@ END_INPUT
       if (loadingState === 'ready') {
         convertGraph(example.graph)
       }
+    }
+  }
+
+  const handleEngineChange = (engine: ConversionEngine) => {
+    setConversionEngine(engine)
+    graphConversionService.setPreferredEngine(engine)
+
+    // Re-convert with new engine
+    if (loadingState === 'ready' && input.trim()) {
+      setIsConverting(true)
+      convertGraph()
     }
   }
 
@@ -793,6 +789,20 @@ END_INPUT
               {error}
             </div>
           )}
+
+          {/* Performance metrics */}
+          {!error && output && engineUsed && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                <span className="font-medium">
+                  {engineUsed === 'jswasm' ? 'JS/WASM' : 'WebPerl'}
+                </span>
+              </div>
+              <span>•</span>
+              <span>{conversionTime.toFixed(1)}ms</span>
+            </div>
+          )}
         </div>
 
         {/* Resize handles - Desktop only */}
@@ -920,6 +930,50 @@ END_INPUT
                 </div>
                 <ChevronDown className="w-3 h-3" />
               </button>
+
+              {/* Engine selector */}
+              <div className="p-2 border-b border-border">
+                <div className="text-xs font-medium text-muted-foreground mb-2 px-1">Conversion Engine</div>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => handleEngineChange('jswasm')}
+                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                      conversionEngine === 'jswasm'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-3 h-3" />
+                      <div className="text-sm font-medium">JS/WASM</div>
+                    </div>
+                    <div className={`text-xs mt-0.5 ${
+                      conversionEngine === 'jswasm'
+                        ? 'text-primary-foreground/80'
+                        : 'text-muted-foreground'
+                    }`}>
+                      Fast, lightweight (ASCII/Boxart only)
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleEngineChange('webperl')}
+                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                      conversionEngine === 'webperl'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">WebPerl</div>
+                    <div className={`text-xs mt-0.5 ${
+                      conversionEngine === 'webperl'
+                        ? 'text-primary-foreground/80'
+                        : 'text-muted-foreground'
+                    }`}>
+                      Original, all formats supported
+                    </div>
+                  </button>
+                </div>
+              </div>
 
               {/* Format options */}
               <div className="p-2 space-y-1">

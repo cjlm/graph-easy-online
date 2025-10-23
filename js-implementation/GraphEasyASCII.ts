@@ -1,20 +1,27 @@
 /**
  * Main API for Graph::Easy ASCII conversion
  *
- * This is the entry point for using the pure JS/WASM implementation.
+ * Supports both Graph::Easy notation and Graphviz DOT format as input.
  *
  * Usage:
  *   import { GraphEasyASCII } from './GraphEasyASCII'
  *
  *   const converter = await GraphEasyASCII.create()
- *   const ascii = await converter.convert('[Bonn] -> [Berlin]')
- *   console.log(ascii)
+ *
+ *   // Graph::Easy format
+ *   await converter.convert('[Bonn] -> [Berlin]')
+ *
+ *   // DOT format (auto-detected)
+ *   await converter.convert('digraph { A -> B; }')
  */
 
 import { Parser } from './parser/Parser'
+import { DotParser, parseGraphAuto } from './parser/DotParser'
 import { renderAscii, renderBoxart, AsciiRendererOptions } from './renderers/AsciiRenderer'
 import type { Graph } from './core/Graph'
 import type { LayoutResult } from './core/Graph'
+
+export type InputFormat = 'auto' | 'grapheasy' | 'dot'
 
 export interface GraphEasyOptions {
   /**
@@ -33,6 +40,12 @@ export interface GraphEasyOptions {
   debug?: boolean
 
   /**
+   * Input format ('auto', 'grapheasy', or 'dot')
+   * Default: 'auto' (auto-detect)
+   */
+  inputFormat?: InputFormat
+
+  /**
    * Graph flow direction
    */
   flow?: 'east' | 'west' | 'north' | 'south'
@@ -49,7 +62,8 @@ export interface GraphEasyOptions {
 }
 
 export class GraphEasyASCII {
-  private parser: Parser
+  private graphEasyParser: Parser
+  private dotParser: DotParser
   private layoutEngine: any // Will be the WASM layout engine when integrated
   private options: Required<GraphEasyOptions>
   private initialized: boolean = false
@@ -59,12 +73,18 @@ export class GraphEasyASCII {
       boxart: options.boxart ?? false,
       strict: options.strict ?? false,
       debug: options.debug ?? false,
+      inputFormat: options.inputFormat ?? 'auto',
       flow: options.flow ?? 'east',
       nodeSpacing: options.nodeSpacing ?? 3,
       rankSpacing: options.rankSpacing ?? 5,
     }
 
-    this.parser = new Parser({
+    this.graphEasyParser = new Parser({
+      strict: this.options.strict,
+      debug: this.options.debug,
+    })
+
+    this.dotParser = new DotParser({
       strict: this.options.strict,
       debug: this.options.debug,
     })
@@ -101,15 +121,17 @@ export class GraphEasyASCII {
   }
 
   /**
-   * Convert Graph::Easy notation to ASCII art
+   * Convert graph notation to ASCII art
    *
-   * @param input - Graph::Easy text notation
+   * Supports both Graph::Easy and DOT formats (auto-detected by default)
+   *
+   * @param input - Graph::Easy notation or DOT format
    * @returns ASCII art representation
    */
   async convert(input: string): Promise<string> {
     try {
       // 1. Parse the input
-      const graph = this.parser.parse(input)
+      const graph = this.parse(input)
 
       // 2. Apply graph-level options
       if (this.options.flow) {
@@ -132,10 +154,22 @@ export class GraphEasyASCII {
   }
 
   /**
-   * Parse Graph::Easy notation into a Graph object
+   * Parse input into a Graph object
+   *
+   * Automatically detects format or uses specified format
    */
   parse(input: string): Graph {
-    return this.parser.parse(input)
+    switch (this.options.inputFormat) {
+      case 'grapheasy':
+        return this.graphEasyParser.parse(input)
+
+      case 'dot':
+        return this.dotParser.parse(input)
+
+      case 'auto':
+      default:
+        return parseGraphAuto(input)
+    }
   }
 
   /**
@@ -204,9 +238,14 @@ export class GraphEasyASCII {
   setOptions(options: Partial<GraphEasyOptions>): void {
     Object.assign(this.options, options)
 
-    // Update parser if strict option changed
+    // Update parsers if strict/debug options changed
     if ('strict' in options || 'debug' in options) {
-      this.parser = new Parser({
+      this.graphEasyParser = new Parser({
+        strict: this.options.strict,
+        debug: this.options.debug,
+      })
+
+      this.dotParser = new DotParser({
         strict: this.options.strict,
         debug: this.options.debug,
       })
@@ -237,4 +276,24 @@ export async function convertToASCII(
  */
 export async function convertToBoxart(input: string): Promise<string> {
   return convertToASCII(input, { boxart: true })
+}
+
+/**
+ * Convert DOT format specifically
+ */
+export async function convertDotToASCII(
+  dotInput: string,
+  options?: Omit<GraphEasyOptions, 'inputFormat'>
+): Promise<string> {
+  return convertToASCII(dotInput, { ...options, inputFormat: 'dot' })
+}
+
+/**
+ * Convert Graph::Easy format specifically
+ */
+export async function convertGraphEasyToASCII(
+  graphEasyInput: string,
+  options?: Omit<GraphEasyOptions, 'inputFormat'>
+): Promise<string> {
+  return convertToASCII(graphEasyInput, { ...options, inputFormat: 'grapheasy' })
 }

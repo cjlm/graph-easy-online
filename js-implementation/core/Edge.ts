@@ -2,9 +2,9 @@
  * Edge class - Represents an edge/connection between nodes
  */
 
-import type { Graph } from './Graph'
-import type { Node } from './Node'
-import type { Group } from './Group'
+import { Graph } from './Graph'
+import { Node } from './Node'
+import { Group } from './Group'
 import { AttributeManager } from './Attributes'
 
 export type EdgeStyle = 'solid' | 'dashed' | 'dotted' | 'wave' | 'double' | 'bold'

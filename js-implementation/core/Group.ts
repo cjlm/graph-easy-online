@@ -2,9 +2,9 @@
  * Group class - Represents a group/cluster of nodes
  */
 
-import type { Graph } from './Graph'
-import type { Node } from './Node'
-import type { Edge } from './Edge'
+import { Graph } from './Graph'
+import { Node } from './Node'
+import { Edge } from './Edge'
 import { AttributeManager } from './Attributes'
 
 export class Group {

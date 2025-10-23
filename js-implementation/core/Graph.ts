@@ -266,11 +266,6 @@ export class Graph {
     edge.from.removeEdge(edge)
     edge.to.removeEdge(edge)
 
-    // Remove from group if any
-    if (edge.group) {
-      edge.group.removeMember(edge)
-    }
-
     this.edges.delete(edge.id)
     this.markDirty()
 
