@@ -28,3 +28,44 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* SVG dark mode support */
+.dark svg {
+  /* Invert background elements */
+  background: transparent;
+}
+
+.dark svg rect[fill="#ffffff"],
+.dark svg rect[fill="white"] {
+  fill: #1a1a1a !important;
+}
+
+.dark svg rect[fill="#000000"],
+.dark svg rect[fill="black"] {
+  fill: #ffffff !important;
+}
+
+.dark svg text {
+  fill: hsl(var(--foreground)) !important;
+}
+
+.dark svg path,
+.dark svg line,
+.dark svg polyline,
+.dark svg polygon {
+  stroke: hsl(var(--foreground) / 0.8) !important;
+}
+
+/* Keep colored elements vibrant in dark mode */
+.dark svg rect[fill^="#"]:not([fill="#ffffff"]):not([fill="#000000"]),
+.dark svg rect[fill^="light"] {
+  filter: brightness(0.8) saturate(1.2);
+}
+
+/* Stroke colors for edges */
+.dark svg path[stroke="#000000"],
+.dark svg line[stroke="#000000"],
+.dark svg polyline[stroke="#000000"],
+.dark svg polygon[stroke="#000000"] {
+  stroke: hsl(var(--foreground) / 0.8) !important;
+}
