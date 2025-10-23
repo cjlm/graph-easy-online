@@ -203,6 +203,26 @@ function App() {
     initPerl()
   }, [])
 
+  // Auto-convert when input changes (debounced)
+  useEffect(() => {
+    if (loadingState !== 'ready' || !input.trim()) return
+
+    const timeoutId = setTimeout(() => {
+      convertGraph()
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [input, loadingState])
+
+  // Auto-convert when output format changes
+  useEffect(() => {
+    if (loadingState === 'ready' && input.trim() && output) {
+      // Only re-convert if we already have output
+      // (don't convert on initial mount)
+      convertGraph()
+    }
+  }, [outputFormat])
+
   const convertGraph = (graphInput?: string) => {
     const textToConvert = graphInput || input
 
@@ -470,12 +490,7 @@ END_INPUT
                 {OUTPUT_FORMATS.map((format) => (
                   <button
                     key={format.value}
-                    onClick={() => {
-                      setOutputFormat(format.value)
-                      if (input.trim() && loadingState === 'ready') {
-                        convertGraph()
-                      }
-                    }}
+                    onClick={() => setOutputFormat(format.value)}
                     className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
                       outputFormat === format.value
                         ? 'bg-primary text-primary-foreground'
