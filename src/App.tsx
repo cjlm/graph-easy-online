@@ -533,7 +533,7 @@ END_INPUT
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Enter graph notation..."
+            placeholder=""
             className="flex-1 resize-none text-xs"
           />
 
