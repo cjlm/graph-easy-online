@@ -505,16 +505,11 @@ END_INPUT
             {'[ graph ] ~~> [ easy ]'}
           </h1>
           <div className="flex items-center gap-2">
-            {loadingState === 'initializing' || loadingState === 'loading-modules' ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>{loadingMessage}</span>
-              </div>
-            ) : loadingState === 'ready' ? (
+            {loadingState === 'ready' ? (
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Ready" />
-            ) : (
+            ) : loadingState === 'error' ? (
               <div className="w-2 h-2 rounded-full bg-red-500" title="Error" />
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -538,7 +533,7 @@ END_INPUT
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Enter graph notation..."
+            placeholder=""
             className="flex-1 resize-none text-xs"
           />
 
@@ -548,23 +543,6 @@ END_INPUT
               {error}
             </div>
           )}
-
-          {/* Convert button */}
-          <Button
-            onClick={() => convertGraph()}
-            disabled={loadingState !== 'ready' || converting}
-            className="w-full"
-            size="sm"
-          >
-            {converting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Converting...
-              </>
-            ) : (
-              `Convert to ${OUTPUT_FORMATS.find(f => f.value === outputFormat)?.label}`
-            )}
-          </Button>
         </div>
 
         {/* Resize handles - Desktop only */}
@@ -587,7 +565,7 @@ END_INPUT
       </div>
 
       {/* Top Right Controls - Copy and Dark Mode Toggle */}
-      <div className="absolute top-8 right-8 flex gap-2">
+      <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10 flex gap-2">
         <Button
           onClick={handleCopyOutput}
           size="sm"
@@ -602,10 +580,6 @@ END_INPUT
             <Copy className="h-4 w-4" />
           )}
         </Button>
-      </div>
-
-      {/* Dark Mode Toggle - Top Right on desktop, top right on mobile */}
-      <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10">
         <Button
           onClick={() => setIsDarkMode(!isDarkMode)}
           size="sm"
