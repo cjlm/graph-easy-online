@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Settings, ChevronDown, ChevronUp } from 'lucide-react'
 import './App.css'
 
 // Example graphs
@@ -50,6 +50,19 @@ declare global {
 
 type LoadingState = 'initializing' | 'loading-modules' | 'ready' | 'error'
 
+type OutputFormat = 'ascii' | 'boxart' | 'html' | 'svg' | 'graphviz' | 'graphml' | 'vcg' | 'txt'
+
+const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string }[] = [
+  { value: 'ascii', label: 'ASCII Art', description: 'Uses +, -, <, | to render boxes' },
+  { value: 'boxart', label: 'Box Art', description: 'Unicode box drawing characters' },
+  { value: 'html', label: 'HTML', description: 'HTML table output' },
+  { value: 'svg', label: 'SVG', description: 'Scalable Vector Graphics (requires plugin)' },
+  { value: 'graphviz', label: 'Graphviz', description: 'Graphviz DOT format' },
+  { value: 'graphml', label: 'GraphML', description: 'GraphML XML format' },
+  { value: 'vcg', label: 'VCG/GDL', description: 'VCG Graph Description Language' },
+  { value: 'txt', label: 'Text', description: 'Normalized text representation' },
+]
+
 function App() {
   const [input, setInput] = useState(EXAMPLES[0].graph)
   const [output, setOutput] = useState('')
@@ -60,6 +73,8 @@ function App() {
   const [paneWidth, setPaneWidth] = useState(400)
   const [paneHeight, setPaneHeight] = useState(300)
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('ascii')
+  const [formatPanelOpen, setFormatPanelOpen] = useState(false)
   const modulesLoadedRef = useRef(false)
 
   // Initialize Perl modules
@@ -172,6 +187,7 @@ function App() {
           modulesLoadedRef.current = true
           setLoadingState('ready')
           setLoadingMessage('Ready to convert!')
+          setError('') // Clear any loading errors
 
           // Auto-convert the first example
           setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
@@ -209,6 +225,20 @@ function App() {
         .replace(/\\/g, '\\\\')
         .replace(/\$/g, '\\$')
 
+      // Map format to Perl method
+      const formatMethodMap: Record<OutputFormat, string> = {
+        ascii: 'as_ascii()',
+        boxart: 'as_boxart()',
+        html: 'as_html()',
+        svg: 'as_svg()',
+        graphviz: 'as_graphviz()',
+        graphml: 'as_graphml()',
+        vcg: 'as_vcg()',
+        txt: 'as_txt()',
+      }
+
+      const perlMethod = formatMethodMap[outputFormat]
+
       const perlScript = `
         use strict;
         use warnings;
@@ -227,7 +257,7 @@ END_INPUT
           if ($graph->error()) {
             $output = "Error: " . $graph->error();
           } else {
-            $output = $graph->as_ascii();
+            $output = $graph->${perlMethod};
           }
         };
 
@@ -401,6 +431,71 @@ END_INPUT
             setTimeout(() => setIsDragging('height'), 0)
           }}
         />
+      </div>
+
+      {/* Format Selector Panel - Bottom Right */}
+      <div className="absolute bottom-8 right-8">
+        <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden transition-all duration-200">
+          {/* Collapsed header */}
+          {!formatPanelOpen && (
+            <button
+              onClick={() => setFormatPanelOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 hover:bg-muted/50 transition-colors text-sm"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="font-medium">
+                {OUTPUT_FORMATS.find(f => f.value === outputFormat)?.label}
+              </span>
+              <ChevronUp className="w-3 h-3" />
+            </button>
+          )}
+
+          {/* Expanded panel */}
+          {formatPanelOpen && (
+            <div className="w-64">
+              {/* Header */}
+              <button
+                onClick={() => setFormatPanelOpen(false)}
+                className="w-full flex items-center justify-between px-4 py-2 border-b border-border hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm font-medium">Output Format</span>
+                </div>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+
+              {/* Format options */}
+              <div className="p-2 space-y-1">
+                {OUTPUT_FORMATS.map((format) => (
+                  <button
+                    key={format.value}
+                    onClick={() => {
+                      setOutputFormat(format.value)
+                      if (input.trim() && loadingState === 'ready') {
+                        convertGraph()
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                      outputFormat === format.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">{format.label}</div>
+                    <div className={`text-xs mt-0.5 ${
+                      outputFormat === format.value
+                        ? 'text-primary-foreground/80'
+                        : 'text-muted-foreground'
+                    }`}>
+                      {format.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
