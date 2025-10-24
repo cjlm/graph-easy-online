@@ -826,7 +826,7 @@ function App() {
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
                 <span className="font-medium">
-                  {engineUsed === 'wasm' ? 'Rust/WASM' : engineUsed === 'typescript' ? 'TypeScript' : 'WebPerl'}
+                  {engineUsed === 'wasm' ? 'Rust/WASM' : engineUsed === 'typescript' ? 'TypeScript' : engineUsed === 'elk' ? 'ELK' : 'WebPerl'}
                 </span>
               </div>
               <span>•</span>
@@ -922,6 +922,17 @@ function App() {
             title="TypeScript (Pure JS)"
           >
             TS
+          </button>
+          <button
+            onClick={() => handleEngineChange('elk')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'elk'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="ELK (Eclipse Layout Kernel - Best Quality)"
+          >
+            ELK
           </button>
           <button
             onClick={() => handleEngineChange('webperl')}

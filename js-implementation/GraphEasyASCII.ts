@@ -64,6 +64,11 @@ export interface GraphEasyOptions {
    * Disable WASM and use pure TypeScript layout
    */
   disableWasm?: boolean
+
+  /**
+   * Use ELK (Eclipse Layout Kernel) for layout
+   */
+  useELK?: boolean
 }
 
 export class GraphEasyASCII {
@@ -83,6 +88,7 @@ export class GraphEasyASCII {
       nodeSpacing: options.nodeSpacing ?? 3,
       rankSpacing: options.rankSpacing ?? 5,
       disableWasm: options.disableWasm ?? false,
+      useELK: options.useELK ?? false,
     }
 
     this.graphEasyParser = new Parser({
@@ -187,7 +193,11 @@ export class GraphEasyASCII {
    * Perform layout on a graph
    */
   private async layout(graph: Graph): Promise<LayoutResult> {
-    if (this.layoutEngine) {
+    if (this.options.useELK) {
+      // Use ELK layout engine
+      console.log('🦌 Using ELK layout engine')
+      return await this.layoutWithELK(graph)
+    } else if (this.layoutEngine) {
       // Use WASM layout engine when available
       console.log('🦀 Using Rust/WASM layout engine')
       return await this.layoutWithWASM(graph)
@@ -248,6 +258,22 @@ export class GraphEasyASCII {
         engine.free()
       }
 
+      throw error
+    }
+  }
+
+  /**
+   * Layout using ELK engine
+   */
+  private async layoutWithELK(graph: Graph): Promise<LayoutResult> {
+    try {
+      const { layoutWithELK } = await import('./elk-layout')
+      console.log('🦌 ELK input nodes:', graph.getNodes().map(n => ({ id: n.id, name: n.name })))
+      const result = await layoutWithELK(graph)
+      console.log('🦌 ELK layout result:', result)
+      return result
+    } catch (error) {
+      console.error('🦌 ELK layout failed:', error)
       throw error
     }
   }

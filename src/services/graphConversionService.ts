@@ -7,7 +7,7 @@
 
 import type { OutputFormat } from '../App'
 
-export type ConversionEngine = 'webperl' | 'wasm' | 'typescript'
+export type ConversionEngine = 'webperl' | 'wasm' | 'typescript' | 'elk'
 
 export interface ConversionResult {
   output: string
@@ -19,7 +19,9 @@ export interface ConversionResult {
 export class GraphConversionService {
   private wasmConverter: any = null
   private tsConverter: any = null
+  private elkConverter: any = null
   private jsWasmInitialized = false
+  private elkInitialized = false
   private preferredEngine: ConversionEngine = 'wasm'
 
   /**
@@ -71,6 +73,32 @@ export class GraphConversionService {
   }
 
   /**
+   * Initialize the ELK converter
+   */
+  async initializeELK(): Promise<void> {
+    if (this.elkInitialized) return
+
+    try {
+      // Dynamically import ELK-enabled converter
+      const { GraphEasyASCII } = await import('../../js-implementation/GraphEasyASCII')
+
+      // Create ELK converter (with ELK layout engine)
+      this.elkConverter = await GraphEasyASCII.create({
+        strict: false,
+        debug: false,
+        disableWasm: true, // ELK doesn't use Rust WASM
+        useELK: true, // Enable ELK layout
+      })
+
+      this.elkInitialized = true
+      console.log('✅ ELK converter initialized')
+    } catch (error) {
+      console.error('Failed to initialize ELK converter:', error)
+      throw error
+    }
+  }
+
+  /**
    * Convert graph using the preferred engine with automatic fallback
    */
   async convert(
@@ -82,7 +110,55 @@ export class GraphConversionService {
     const startTime = performance.now()
 
     try {
-      if (engine === 'wasm' || engine === 'typescript') {
+      if (engine === 'elk') {
+        // ELK engine
+        if (format !== 'ascii' && format !== 'boxart') {
+          console.warn(`ELK doesn't support ${format} format, using WebPerl`)
+          const output = this.convertWithWebPerl(input, format)
+          const timeMs = performance.now() - startTime
+
+          return {
+            output,
+            engine: 'webperl',
+            timeMs,
+            error: `Format '${format}' requires WebPerl. Only ASCII/Boxart supported in ELK.`,
+          }
+        }
+
+        try {
+          if (!this.elkInitialized) {
+            console.log('🦌 Initializing ELK engine...')
+            await this.initializeELK()
+          }
+
+          console.log(`🦌 Converting with ELK engine...`)
+          const output = await this.convertWithELK(input, format)
+          const timeMs = performance.now() - startTime
+
+          console.log(`✅ ELK conversion succeeded in ${timeMs.toFixed(1)}ms`)
+
+          return {
+            output,
+            engine: 'elk',
+            timeMs,
+          }
+        } catch (elkError) {
+          const errorMessage = elkError instanceof Error ? elkError.message : String(elkError)
+          console.error('❌ ELK conversion failed:', errorMessage)
+          console.warn('⚠️  Falling back to WebPerl...')
+
+          // Fallback to WebPerl
+          const output = this.convertWithWebPerl(input, format)
+          const timeMs = performance.now() - startTime
+
+          return {
+            output,
+            engine: 'webperl',
+            timeMs,
+            error: `ELK engine failed: ${errorMessage}\n\nFell back to WebPerl. Your graph was still converted successfully.`,
+          }
+        }
+      } else if (engine === 'wasm' || engine === 'typescript') {
         // Check if format is supported
         if (format !== 'ascii' && format !== 'boxart') {
           console.warn(`JS/WASM doesn't support ${format} format, using WebPerl`)
@@ -185,6 +261,27 @@ export class GraphConversionService {
   }
 
   /**
+   * Convert using ELK layout engine
+   */
+  private async convertWithELK(input: string, format: OutputFormat): Promise<string> {
+    if (!this.elkInitialized) {
+      await this.initializeELK()
+    }
+
+    // Only ASCII format is supported
+    if (format !== 'ascii' && format !== 'boxart') {
+      throw new Error(`Format '${format}' not yet supported in ELK. Use WebPerl.`)
+    }
+
+    // Set boxart option based on format
+    this.elkConverter.setOptions({ boxart: format === 'boxart' })
+
+    const result = await this.elkConverter.convert(input)
+
+    return result
+  }
+
+  /**
    * Convert using WebPerl (existing implementation)
    */
   private convertWithWebPerl(input: string, format: OutputFormat): string {
@@ -255,6 +352,13 @@ END_INPUT
   }
 
   /**
+   * Check if ELK is available and initialized
+   */
+  isELKAvailable(): boolean {
+    return this.elkInitialized
+  }
+
+  /**
    * Check if WebPerl is available
    */
   isWebPerlAvailable(): boolean {
@@ -269,6 +373,10 @@ END_INPUT
       jswasm: {
         available: this.jsWasmInitialized,
         status: this.jsWasmInitialized ? 'ready' : 'not-initialized',
+      },
+      elk: {
+        available: this.elkInitialized,
+        status: this.elkInitialized ? 'ready' : 'not-initialized',
       },
       webperl: {
         available: this.isWebPerlAvailable(),
