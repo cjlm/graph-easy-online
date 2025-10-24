@@ -8,7 +8,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Use the bundled version of ELK that doesn't need web workers
+      'elkjs': 'elkjs/lib/elk.bundled.js',
     },
   },
   base: process.env.CF_PAGES ? '/' : '/graph-easy/',
+  optimizeDeps: {
+    exclude: ['elkjs'],
+  },
 })
