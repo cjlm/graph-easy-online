@@ -123,7 +123,8 @@ describe('Engine Comparison - Seven Bridges', () => {
       disableWasm: true
     })
 
-    const result = await dot.convert(BRIDGES_EXAMPLE)
+    // Use no-labels version - edge labels cause layout overlaps in all engines
+    const result = await dot.convert(BRIDGES_NO_LABELS)
 
     console.log('\n📊 DOT Output:')
     console.log('='.repeat(80))
