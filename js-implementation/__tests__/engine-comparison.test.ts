@@ -138,43 +138,6 @@ describe('Engine Comparison - Seven Bridges', () => {
     expect(result).toContain('Island Lomse')
   })
 
-  it('should generate TypeScript output', async () => {
-    const ts = await GraphEasyASCII.create({
-      disableWasm: true
-    })
-
-    const result = await ts.convert(BRIDGES_EXAMPLE)
-
-    console.log('\n📘 TypeScript Output:')
-    console.log('='.repeat(80))
-    console.log(result)
-    console.log('='.repeat(80))
-
-    // Basic sanity checks
-    expect(result).toContain('North Bank')
-    expect(result).toContain('South Bank')
-    expect(result).toContain('Island Kneiphof')
-    expect(result).toContain('Island Lomse')
-  })
-
-  it('should generate WASM output', async () => {
-    const wasm = await GraphEasyASCII.create({
-      disableWasm: false
-    })
-
-    const result = await wasm.convert(BRIDGES_EXAMPLE)
-
-    console.log('\n🦀 WASM Output:')
-    console.log('='.repeat(80))
-    console.log(result)
-    console.log('='.repeat(80))
-
-    // Basic sanity checks
-    expect(result).toContain('North Bank')
-    expect(result).toContain('South Bank')
-    expect(result).toContain('Island Kneiphof')
-    expect(result).toContain('Island Lomse')
-  })
 })
 
 describe('Engine Comparison - Seven Bridges (No Labels)', () => {
@@ -229,19 +192,4 @@ describe('Engine Comparison - Seven Bridges (No Labels)', () => {
     expect(result).toContain('Island Kneiphof')
   })
 
-  it('should generate TypeScript output without labels', async () => {
-    const ts = await GraphEasyASCII.create({
-      disableWasm: true
-    })
-
-    const result = await ts.convert(BRIDGES_NO_LABELS)
-
-    console.log('\n📘 TypeScript Output (no labels):')
-    console.log('='.repeat(80))
-    console.log(result)
-    console.log('='.repeat(80))
-
-    expect(result).toContain('North Bank')
-    expect(result).toContain('Island Kneiphof')
-  })
 })

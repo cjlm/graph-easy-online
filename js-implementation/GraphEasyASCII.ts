@@ -133,11 +133,9 @@ export class GraphEasyASCII {
         this.layoutEngine = new LayoutEngine()
         console.log('✅ WASM layout engine initialized')
       } catch (error) {
-        console.warn('⚠️  WASM unavailable, using TypeScript fallback')
-        // Continue without WASM - will use TypeScript layout
+        console.warn('⚠️  WASM unavailable - use ELK or DOT layout engines')
+        // Continue without WASM - must use ELK or DOT
       }
-    } else {
-      console.log('✅ TypeScript-only mode (WASM disabled)')
     }
 
     this.initialized = true
@@ -212,9 +210,7 @@ export class GraphEasyASCII {
       console.log('🦀 Using Rust/WASM layout engine')
       return await this.layoutWithWASM(graph)
     } else {
-      // Fallback to TypeScript layout
-      console.log('📘 Using TypeScript layout engine')
-      return await graph.layout()
+      throw new Error('No layout engine available. Please specify useELK, useDOT, or enable WASM.')
     }
   }
 
