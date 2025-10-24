@@ -33,12 +33,18 @@ interface ELKGraph {
  * Convert Graph to ELK format
  */
 function graphToELK(graph: Graph): ELKGraph {
-  const nodes: ELKNode[] = graph.getNodes().map(node => ({
-    id: node.id,
-    width: Math.max((node.name || '').length * 8 + 16, 80), // Estimate width based on text
-    height: 40, // Fixed height
-    labels: node.name ? [{ text: node.name }] : undefined
-  }))
+  const nodes: ELKNode[] = graph.getNodes().map(node => {
+    // Calculate minimum width to fit label with padding (4 chars = 2 on each side)
+    const labelLength = (node.name || '').length
+    const minWidth = (labelLength + 4) * 8 // 8 pixels per character in grid
+
+    return {
+      id: node.id,
+      width: Math.max(minWidth, 80), // At least 10 grid cells (80px)
+      height: 24, // 3 grid cells
+      labels: node.name ? [{ text: node.name }] : undefined
+    }
+  })
 
   const edges: ELKEdge[] = graph.getEdges().map(edge => ({
     id: edge.id,
