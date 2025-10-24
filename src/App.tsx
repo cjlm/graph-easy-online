@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2 } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
+import { graphConversionService, ConversionEngine } from './services/graphConversionService'
 
 // Example graphs
 const EXAMPLES = [
@@ -153,25 +154,30 @@ graph { flow: east; }
 ]
 
 // Utility functions for URL state serialization
-const getStateFromURL = (): { input?: string; format?: OutputFormat } => {
+const getStateFromURL = (): { input?: string; format?: OutputFormat; engine?: ConversionEngine } => {
   const params = new URLSearchParams(window.location.search)
   const input = params.get('input')
   const format = params.get('format') as OutputFormat | null
+  const engine = params.get('engine') as ConversionEngine | null
 
   return {
     input: input || undefined,
     format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
       ? format
+      : undefined,
+    engine: engine && ['webperl', 'elk', 'dot'].includes(engine)
+      ? engine
       : undefined
   }
 }
 
-const updateURL = (input: string, format: OutputFormat) => {
+const updateURL = (input: string, format: OutputFormat, engine: ConversionEngine) => {
   const params = new URLSearchParams()
   if (input.trim()) {
     params.set('input', input)
   }
   params.set('format', format)
+  params.set('engine', engine)
 
   const newURL = `${window.location.pathname}?${params.toString()}`
   window.history.replaceState({}, '', newURL)
@@ -195,11 +201,14 @@ declare global {
 
 type LoadingState = 'initializing' | 'loading-modules' | 'ready' | 'error'
 
-type OutputFormat = 'ascii' | 'boxart' | 'html' | 'svg' | 'graphviz' | 'graphml' | 'vcg' | 'txt'
+export type OutputFormat = 'ascii' | 'boxart' | 'html' | 'svg' | 'graphviz' | 'graphml' | 'vcg' | 'txt'
 
-const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
+const COMMON_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
   { value: 'ascii', label: 'ASCII Art', description: 'Uses +, -, <, | to render boxes' },
   { value: 'boxart', label: 'Box Art', description: 'Unicode box drawing characters' },
+]
+
+const ADVANCED_FORMATS: { value: OutputFormat; label: string; description: string; disabled?: boolean }[] = [
   { value: 'html', label: 'HTML', description: 'HTML table output' },
   { value: 'svg', label: 'SVG', description: 'Scalable Vector Graphics' },
   { value: 'graphviz', label: 'Graphviz', description: 'Graphviz DOT format' },
@@ -207,6 +216,8 @@ const OUTPUT_FORMATS: { value: OutputFormat; label: string; description: string;
   { value: 'vcg', label: 'VCG/GDL', description: 'VCG Graph Description Language' },
   { value: 'txt', label: 'Text', description: 'Normalized text representation' },
 ]
+
+const OUTPUT_FORMATS = [...COMMON_FORMATS, ...ADVANCED_FORMATS]
 
 function App() {
   // Initialize state from URL or defaults
@@ -220,6 +231,7 @@ function App() {
   const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>(urlState.format || 'ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
+  const [advancedFormatsOpen, setAdvancedFormatsOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [copied, setCopied] = useState(false)
   const [renderedGraphviz, setRenderedGraphviz] = useState<SVGSVGElement | null>(null)
@@ -232,13 +244,34 @@ function App() {
   const [isPanning, setIsPanning] = useState(false)
   const [panStartX, setPanStartX] = useState(0)
   const [panStartY, setPanStartY] = useState(0)
+  const [conversionEngine, setConversionEngine] = useState<ConversionEngine>(
+    () => urlState.engine || graphConversionService.getPreferredEngine()
+  )
+  const [conversionTime, setConversionTime] = useState<number>(0)
+  const [engineUsed, setEngineUsed] = useState<ConversionEngine | null>(null)
+  const [perlReady, setPerlReady] = useState(false)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
   const outputContainerRef = useRef<HTMLDivElement>(null)
   const outputContentRef = useRef<HTMLDivElement>(null)
 
-  // Initialize Perl modules
+  // Initialize app
+  useEffect(() => {
+    setLoadingState('ready')
+  }, [])
+
+  // Auto-convert first example when Perl is ready
+  useEffect(() => {
+    if (perlReady && conversionEngine === 'webperl') {
+      setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
+    } else if (perlReady) {
+      // If using ELK/DOT, convert immediately
+      setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
+    }
+  }, [perlReady])
+
+  // Initialize Perl modules in background (slow, non-blocking)
   // Note: WebPerl is loaded in index.html, not dynamically
   useEffect(() => {
     const initPerl = async () => {
@@ -276,7 +309,7 @@ function App() {
         if (modulesLoadedRef.current) return
 
         try {
-          setLoadingState('loading-modules')
+          console.log('Loading Perl modules in background...')
 
           const moduleFiles = [
             'lib/Graph/Easy/Base.pm',
@@ -330,7 +363,9 @@ function App() {
 
           // Load all modules in parallel for speed
           const modulePromises = moduleFiles.map(async (file) => {
-            const response = await fetch(`/graph-easy/${file}`)
+            // Use correct base path depending on environment
+            const basePath = import.meta.env.BASE_URL || '/'
+            const response = await fetch(`${basePath}${file}`)
             if (!response.ok) {
               throw new Error(`Failed to load ${file}`)
             }
@@ -346,14 +381,11 @@ function App() {
           }
 
           modulesLoadedRef.current = true
-          setLoadingState('ready')
-          setError('') // Clear any loading errors
-
-          // Auto-convert the first example
-          setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
+          setPerlReady(true)
+          console.log('✅ Perl modules loaded')
         } catch (err: any) {
-          setLoadingState('error')
-          setError(err.message)
+          console.error('❌ Failed to load Perl modules:', err)
+          // Don't block the app - WASM/TS still work
         }
       }
     }
@@ -361,6 +393,28 @@ function App() {
     // WebPerl and initialization script are loaded in index.html
     initPerl()
   }, [])
+
+  // Initialize ELK/DOT engines on demand
+  useEffect(() => {
+    const initEngines = async () => {
+      try {
+        if (conversionEngine === 'elk') {
+          await graphConversionService.initializeELK()
+          console.log('ELK engine initialized successfully')
+        } else if (conversionEngine === 'dot') {
+          await graphConversionService.initializeDOT()
+          console.log('DOT engine initialized successfully')
+        }
+      } catch (err) {
+        console.error('Failed to initialize engine:', err)
+        // Silently fallback to WebPerl
+      }
+    }
+
+    if (conversionEngine === 'elk' || conversionEngine === 'dot') {
+      initEngines()
+    }
+  }, [conversionEngine])
 
   // Initialize Viz.js for Graphviz rendering
   useEffect(() => {
@@ -392,10 +446,10 @@ function App() {
     }
   }, [isDarkMode])
 
-  // Update URL when input or output format changes
+  // Update URL when input, output format, or engine changes
   useEffect(() => {
-    updateURL(input, outputFormat)
-  }, [input, outputFormat])
+    updateURL(input, outputFormat, conversionEngine)
+  }, [input, outputFormat, conversionEngine])
   
   // Handle window resize to update isMobile state
   useEffect(() => {
@@ -448,7 +502,7 @@ function App() {
     }
   }, [output, outputFormat])
 
-  const convertGraph = (graphInput?: string) => {
+  const convertGraph = async (graphInput?: string, engineOverride?: ConversionEngine) => {
     const textToConvert = graphInput || input
 
     if (!textToConvert.trim()) {
@@ -465,62 +519,24 @@ function App() {
     try {
       setError('')
 
-      const escapedInput = textToConvert
-        .replace(/\\/g, '\\\\')
-        .replace(/\$/g, '\\$')
+      // Use the conversion service with the selected engine
+      const result = await graphConversionService.convert(
+        textToConvert,
+        outputFormat,
+        engineOverride || conversionEngine
+      )
 
-      // Map format to Perl method
-      const formatMethodMap: Record<OutputFormat, string> = {
-        ascii: 'as_ascii()',
-        boxart: 'as_boxart()',
-        html: 'as_html()',
-        svg: 'as_svg()',
-        graphviz: 'as_graphviz()',
-        graphml: 'as_graphml()',
-        vcg: 'as_vcg()',
-        txt: 'as_txt()',
+      // Update performance metrics
+      setConversionTime(result.timeMs)
+      setEngineUsed(result.engine)
+
+      if (result.error) {
+        setError(result.error)
       }
 
-      const perlMethod = formatMethodMap[outputFormat]
-
-      const perlScript = `
-        use strict;
-        use warnings;
-        use lib '/lib';
-        use Graph::Easy;
-
-        my $input = <<'END_INPUT';
-${escapedInput}
-END_INPUT
-
-        my $output;
-
-        eval {
-          my $graph = Graph::Easy->new($input);
-
-          if ($graph->error()) {
-            $output = "Error: " . $graph->error();
-          } else {
-            $output = $graph->${perlMethod};
-          }
-        };
-
-        if ($@) {
-          $output = "Error: $@";
-        }
-
-        $output;
-      `
-
-      const result = window.Perl.eval(perlScript)
-
-      if (result && result.startsWith('Error:')) {
-        setError(result)
-        setIsConverting(false)
-        // Keep previous output visible
-      } else if (result) {
-        setOutput(result)
-        setError('')
+      if (result.output) {
+        setOutput(result.output)
+        setError(result.error || '')
         // For non-graphviz formats, conversion is complete immediately
         // For graphviz, the rendering effect will set isConverting to false
         if (outputFormat !== 'graphviz') {
@@ -529,10 +545,9 @@ END_INPUT
       } else {
         setError('No output generated')
         setIsConverting(false)
-        // Keep previous output visible
       }
     } catch (err: any) {
-      setError(`Conversion error: ${err.message}`)
+      setError(`Conversion error: ${err.message || String(err)}`)
       setIsConverting(false)
       // Keep previous output visible
     }
@@ -545,6 +560,17 @@ END_INPUT
       if (loadingState === 'ready') {
         convertGraph(example.graph)
       }
+    }
+  }
+
+  const handleEngineChange = (engine: ConversionEngine) => {
+    setConversionEngine(engine)
+    graphConversionService.setPreferredEngine(engine)
+
+    // Re-convert with new engine
+    if (loadingState === 'ready' && input.trim()) {
+      setIsConverting(true)
+      convertGraph(undefined, engine)
     }
   }
 
@@ -793,6 +819,20 @@ END_INPUT
               {error}
             </div>
           )}
+
+          {/* Performance metrics */}
+          {!error && output && engineUsed && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                <span className="font-medium">
+                  {engineUsed === 'elk' ? 'ELK' : engineUsed === 'dot' ? 'DOT' : 'Perl'}
+                </span>
+              </div>
+              <span>•</span>
+              <span>{conversionTime.toFixed(1)}ms</span>
+            </div>
+          )}
         </div>
 
         {/* Resize handles - Desktop only */}
@@ -821,7 +861,7 @@ END_INPUT
         />
       </div>
 
-      {/* Top Right Controls - Zoom, Copy and Dark Mode Toggle */}
+      {/* Top Right Controls - Zoom, Engine, Copy and Dark Mode Toggle */}
       <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10 flex gap-2">
         <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
           <Button
@@ -858,6 +898,47 @@ END_INPUT
             <Minimize2 className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Engine Toggle */}
+        <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden p-1">
+          <button
+            onClick={() => handleEngineChange('webperl')}
+            disabled={!perlReady}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'webperl'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : perlReady
+                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                : 'text-muted-foreground/50 cursor-not-allowed'
+            }`}
+            title={perlReady ? "Perl (Original - All formats)" : "Loading Perl modules..."}
+          >
+            {perlReady ? 'Perl' : 'Perl...'}
+          </button>
+          <button
+            onClick={() => handleEngineChange('elk')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'elk'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="ELK (Eclipse Layout Kernel)"
+          >
+            ELK
+          </button>
+          <button
+            onClick={() => handleEngineChange('dot')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'dot'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="DOT (Graphviz)"
+          >
+            DOT
+          </button>
+        </div>
+
         <Button
           onClick={handleCopyOutput}
           size="sm"
@@ -922,32 +1003,78 @@ END_INPUT
               </button>
 
               {/* Format options */}
-              <div className="p-2 space-y-1">
-                {OUTPUT_FORMATS.map((format) => (
-                  <button
-                    key={format.value}
-                    onClick={() => !format.disabled && setOutputFormat(format.value)}
-                    disabled={format.disabled}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
-                      format.disabled
-                        ? 'opacity-50 cursor-not-allowed'
-                        : outputFormat === format.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="text-sm font-medium">{format.label}</div>
-                    <div className={`text-xs mt-0.5 ${
-                      format.disabled
-                        ? 'text-muted-foreground'
-                        : outputFormat === format.value
-                        ? 'text-primary-foreground/80'
-                        : 'text-muted-foreground'
-                    }`}>
-                      {format.description}
+              <div className="p-2 space-y-2">
+                <div className="text-xs font-medium text-muted-foreground px-1">Output Format</div>
+
+                {/* Common formats */}
+                <div className="space-y-1">
+                  {COMMON_FORMATS.map((format) => (
+                    <button
+                      key={format.value}
+                      onClick={() => !format.disabled && setOutputFormat(format.value)}
+                      disabled={format.disabled}
+                      className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                        format.disabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : outputFormat === format.value
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="text-sm font-medium">{format.label}</div>
+                      <div className={`text-xs mt-0.5 ${
+                        format.disabled
+                          ? 'text-muted-foreground'
+                          : outputFormat === format.value
+                          ? 'text-primary-foreground/80'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {format.description}
                     </div>
                   </button>
                 ))}
+                </div>
+
+                {/* Advanced formats collapsible */}
+                <div className="border-t border-border pt-2">
+                  <button
+                    onClick={() => setAdvancedFormatsOpen(!advancedFormatsOpen)}
+                    className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 transition-all duration-150 flex items-center justify-between"
+                  >
+                    <span className="text-xs font-medium text-muted-foreground">Advanced Formats</span>
+                    <ChevronRight className={`w-3 h-3 text-muted-foreground transition-transform ${advancedFormatsOpen ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {advancedFormatsOpen && (
+                    <div className="space-y-1 mt-1">
+                      {ADVANCED_FORMATS.map((format) => (
+                        <button
+                          key={format.value}
+                          onClick={() => !format.disabled && setOutputFormat(format.value)}
+                          disabled={format.disabled}
+                          className={`w-full text-left px-3 py-2 rounded-md transition-all duration-150 ${
+                            format.disabled
+                              ? 'opacity-50 cursor-not-allowed'
+                              : outputFormat === format.value
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="text-sm font-medium">{format.label}</div>
+                          <div className={`text-xs mt-0.5 ${
+                            format.disabled
+                              ? 'text-muted-foreground'
+                              : outputFormat === format.value
+                              ? 'text-primary-foreground/80'
+                              : 'text-muted-foreground'
+                          }`}>
+                            {format.description}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
