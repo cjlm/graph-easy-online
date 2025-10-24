@@ -36,6 +36,7 @@ interface GraphStructure {
   isTree: boolean
   hasCycles: boolean
   isDense: boolean
+  hasMultiEdges: boolean
   maxFanout: number
   averageDegree: number
 }
@@ -45,12 +46,13 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
   const edges = graph.getEdges()
 
   if (nodes.length === 0) {
-    return { isTree: true, hasCycles: false, isDense: false, maxFanout: 0, averageDegree: 0 }
+    return { isTree: true, hasCycles: false, isDense: false, hasMultiEdges: false, maxFanout: 0, averageDegree: 0 }
   }
 
   // Build adjacency info
   const outDegree = new Map<string, number>()
   const inDegree = new Map<string, number>()
+  const edgePairs = new Map<string, number>()
 
   nodes.forEach(node => {
     outDegree.set(node.id, 0)
@@ -60,12 +62,19 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
   edges.forEach(edge => {
     outDegree.set(edge.from.id, (outDegree.get(edge.from.id) || 0) + 1)
     inDegree.set(edge.to.id, (inDegree.get(edge.to.id) || 0) + 1)
+
+    // Track multi-edges (multiple edges between same node pairs)
+    const pairKey = [edge.from.id, edge.to.id].sort().join('-')
+    edgePairs.set(pairKey, (edgePairs.get(pairKey) || 0) + 1)
   })
 
   // Calculate metrics
   const maxFanout = Math.max(...Array.from(outDegree.values()))
   const totalDegree = edges.length * 2 // Each edge contributes to 2 nodes
   const averageDegree = totalDegree / nodes.length
+
+  // Check for multi-edges (more than one edge between same pair of nodes)
+  const hasMultiEdges = Array.from(edgePairs.values()).some(count => count > 1)
 
   // Check if it's a tree: n-1 edges and no cycles
   const isTree = edges.length === nodes.length - 1 && edges.length > 0
@@ -76,7 +85,7 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
   // Consider dense if average degree > 3
   const isDense = averageDegree > 3
 
-  return { isTree, hasCycles, isDense, maxFanout, averageDegree }
+  return { isTree, hasCycles, isDense, hasMultiEdges, maxFanout, averageDegree }
 }
 
 /**
@@ -125,7 +134,21 @@ function graphToELK(graph: Graph): ELKGraph {
   }
 
   // Apply heuristics based on graph structure
-  if (structure.isTree) {
+  if (structure.hasMultiEdges) {
+    // Graphs with multi-edges (like Seven Bridges): prevent vertical stacking
+    Object.assign(layoutOptions, {
+      'elk.spacing.nodeNode': '40',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '60',
+      'elk.spacing.edgeNode': '25',
+      'elk.spacing.edgeEdge': '20',
+      'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.nodePlacement.strategy': 'LINEAR_SEGMENTS',
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'elk.layered.thoroughness': '10',
+      'elk.layered.compaction.postCompaction.strategy': 'NONE',
+    })
+  } else if (structure.isTree) {
     // Tree structure: prioritize compactness and straight edges
     Object.assign(layoutOptions, {
       'elk.spacing.nodeNode': '15',
