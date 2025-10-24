@@ -69,6 +69,11 @@ export interface GraphEasyOptions {
    * Use ELK (Eclipse Layout Kernel) for layout
    */
   useELK?: boolean
+
+  /**
+   * Use DOT/Graphviz for layout
+   */
+  useDOT?: boolean
 }
 
 export class GraphEasyASCII {
@@ -89,6 +94,7 @@ export class GraphEasyASCII {
       rankSpacing: options.rankSpacing ?? 5,
       disableWasm: options.disableWasm ?? false,
       useELK: options.useELK ?? false,
+      useDOT: options.useDOT ?? false,
     }
 
     this.graphEasyParser = new Parser({
@@ -197,6 +203,10 @@ export class GraphEasyASCII {
       // Use ELK layout engine
       console.log('🦌 Using ELK layout engine')
       return await this.layoutWithELK(graph)
+    } else if (this.options.useDOT) {
+      // Use DOT/Graphviz layout engine
+      console.log('📊 Using DOT/Graphviz layout engine')
+      return await this.layoutWithDOT(graph)
     } else if (this.layoutEngine) {
       // Use WASM layout engine when available
       console.log('🦀 Using Rust/WASM layout engine')
@@ -274,6 +284,22 @@ export class GraphEasyASCII {
       return result
     } catch (error) {
       console.error('🦌 ELK layout failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Layout using DOT/Graphviz engine
+   */
+  private async layoutWithDOT(graph: Graph): Promise<LayoutResult> {
+    try {
+      const { layoutWithDOT } = await import('./dot-layout')
+      console.log('📊 DOT input nodes:', graph.getNodes().map(n => ({ id: n.id, name: n.name })))
+      const result = await layoutWithDOT(graph)
+      console.log('📊 DOT layout result:', result)
+      return result
+    } catch (error) {
+      console.error('📊 DOT layout failed:', error)
       throw error
     }
   }

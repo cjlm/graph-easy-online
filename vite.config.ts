@@ -8,8 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      // Polyfill 'web-worker' with browser's native Worker
-      'web-worker': path.resolve(__dirname, './src/polyfills/web-worker.ts'),
+      // Use the bundled browser version of elkjs (doesn't need web-worker)
+      'elkjs': path.resolve(__dirname, './node_modules/.pnpm/elkjs@0.11.0/node_modules/elkjs/lib/elk.bundled.js'),
     },
   },
   base: process.env.CF_PAGES ? '/' : '/graph-easy/',

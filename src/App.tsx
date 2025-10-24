@@ -165,7 +165,7 @@ const getStateFromURL = (): { input?: string; format?: OutputFormat; engine?: Co
     format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
       ? format
       : undefined,
-    engine: engine && ['webperl', 'wasm', 'typescript'].includes(engine)
+    engine: engine && ['webperl', 'elk', 'dot'].includes(engine)
       ? engine
       : undefined
   }
@@ -826,7 +826,7 @@ function App() {
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
                 <span className="font-medium">
-                  {engineUsed === 'wasm' ? 'Rust/WASM' : engineUsed === 'typescript' ? 'TypeScript' : engineUsed === 'elk' ? 'ELK' : 'WebPerl'}
+                  {engineUsed === 'elk' ? 'ELK' : engineUsed === 'dot' ? 'DOT' : 'Perl'}
                 </span>
               </div>
               <span>•</span>
@@ -902,39 +902,6 @@ function App() {
         {/* Engine Toggle */}
         <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden p-1">
           <button
-            onClick={() => handleEngineChange('wasm')}
-            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-              conversionEngine === 'wasm'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-            title="Rust/WASM (Fastest)"
-          >
-            WASM
-          </button>
-          <button
-            onClick={() => handleEngineChange('typescript')}
-            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-              conversionEngine === 'typescript'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-            title="TypeScript (Pure JS)"
-          >
-            TS
-          </button>
-          <button
-            onClick={() => handleEngineChange('elk')}
-            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-              conversionEngine === 'elk'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-            title="ELK (Eclipse Layout Kernel - Best Quality)"
-          >
-            ELK
-          </button>
-          <button
             onClick={() => handleEngineChange('webperl')}
             disabled={!perlReady}
             className={`px-2 py-1 rounded text-xs font-medium transition-all ${
@@ -944,9 +911,31 @@ function App() {
                 ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 : 'text-muted-foreground/50 cursor-not-allowed'
             }`}
-            title={perlReady ? "WebPerl (All formats)" : "Loading Perl modules..."}
+            title={perlReady ? "Perl (Original - All formats)" : "Loading Perl modules..."}
           >
             {perlReady ? 'Perl' : 'Perl...'}
+          </button>
+          <button
+            onClick={() => handleEngineChange('elk')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'elk'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="ELK (Eclipse Layout Kernel)"
+          >
+            ELK
+          </button>
+          <button
+            onClick={() => handleEngineChange('dot')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'dot'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="DOT (Graphviz)"
+          >
+            DOT
           </button>
         </div>
 

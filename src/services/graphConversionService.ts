@@ -7,7 +7,7 @@
 
 import type { OutputFormat } from '../App'
 
-export type ConversionEngine = 'webperl' | 'wasm' | 'typescript' | 'elk'
+export type ConversionEngine = 'webperl' | 'elk' | 'dot'
 
 export interface ConversionResult {
   output: string
@@ -17,12 +17,11 @@ export interface ConversionResult {
 }
 
 export class GraphConversionService {
-  private wasmConverter: any = null
-  private tsConverter: any = null
   private elkConverter: any = null
-  private jsWasmInitialized = false
+  private dotConverter: any = null
   private elkInitialized = false
-  private preferredEngine: ConversionEngine = 'wasm'
+  private dotInitialized = false
+  private preferredEngine: ConversionEngine = 'webperl'
 
   /**
    * Set the preferred conversion engine
@@ -40,37 +39,6 @@ export class GraphConversionService {
     return saved || this.preferredEngine
   }
 
-  /**
-   * Initialize the JS/WASM converters
-   */
-  async initializeJsWasm(): Promise<void> {
-    if (this.jsWasmInitialized) return
-
-    try {
-      // Dynamically import the new implementation
-      const { GraphEasyASCII } = await import('../../js-implementation/GraphEasyASCII')
-
-      // Create WASM converter (with WASM enabled)
-      this.wasmConverter = await GraphEasyASCII.create({
-        strict: false,
-        debug: false,
-        disableWasm: false,
-      })
-
-      // Create TypeScript converter (with WASM disabled)
-      this.tsConverter = await GraphEasyASCII.create({
-        strict: false,
-        debug: false,
-        disableWasm: true,
-      })
-
-      this.jsWasmInitialized = true
-      console.log('✅ JS/WASM converters initialized')
-    } catch (error) {
-      console.error('Failed to initialize JS/WASM converters:', error)
-      throw error
-    }
-  }
 
   /**
    * Initialize the ELK converter
@@ -94,6 +62,32 @@ export class GraphConversionService {
       console.log('✅ ELK converter initialized')
     } catch (error) {
       console.error('Failed to initialize ELK converter:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Initialize the DOT converter
+   */
+  async initializeDOT(): Promise<void> {
+    if (this.dotInitialized) return
+
+    try {
+      // Dynamically import DOT-enabled converter
+      const { GraphEasyASCII } = await import('../../js-implementation/GraphEasyASCII')
+
+      // Create DOT converter (with Graphviz layout engine)
+      this.dotConverter = await GraphEasyASCII.create({
+        strict: false,
+        debug: false,
+        disableWasm: true, // DOT doesn't use Rust WASM
+        useDOT: true, // Enable DOT/Graphviz layout
+      })
+
+      this.dotInitialized = true
+      console.log('✅ DOT converter initialized')
+    } catch (error) {
+      console.error('Failed to initialize DOT converter:', error)
       throw error
     }
   }
@@ -158,10 +152,10 @@ export class GraphConversionService {
             error: `ELK engine failed: ${errorMessage}\n\nFell back to WebPerl. Your graph was still converted successfully.`,
           }
         }
-      } else if (engine === 'wasm' || engine === 'typescript') {
-        // Check if format is supported
+      } else if (engine === 'dot') {
+        // DOT/Graphviz engine - supports ASCII/Boxart rendering
         if (format !== 'ascii' && format !== 'boxart') {
-          console.warn(`JS/WASM doesn't support ${format} format, using WebPerl`)
+          console.warn(`DOT only supports ASCII/Boxart, using WebPerl for ${format}`)
           const output = this.convertWithWebPerl(input, format)
           const timeMs = performance.now() - startTime
 
@@ -169,32 +163,30 @@ export class GraphConversionService {
             output,
             engine: 'webperl',
             timeMs,
-            error: `Format '${format}' requires WebPerl. Only ASCII/Boxart supported in JS/WASM.`,
+            error: `Format '${format}' requires WebPerl. DOT only supports ASCII/Boxart.`,
           }
         }
 
-        // Try JS/WASM first
         try {
-          if (!this.jsWasmInitialized) {
-            console.log('🔧 Initializing JS/WASM engines...')
-            await this.initializeJsWasm()
+          if (!this.dotInitialized) {
+            console.log('📊 Initializing DOT engine...')
+            await this.initializeDOT()
           }
 
-          const engineName = engine === 'wasm' ? 'WASM' : 'TypeScript'
-          console.log(`🚀 Converting with ${engineName} engine...`)
-          const output = await this.convertWithJsWasm(input, format, engine)
+          console.log(`📊 Converting with DOT/Graphviz engine...`)
+          const output = await this.convertWithDOT(input, format)
           const timeMs = performance.now() - startTime
 
-          console.log(`✅ ${engineName} conversion succeeded in ${timeMs.toFixed(1)}ms`)
+          console.log(`✅ DOT conversion succeeded in ${timeMs.toFixed(1)}ms`)
 
           return {
             output,
-            engine,
+            engine: 'dot',
             timeMs,
           }
-        } catch (jsError) {
-          const errorMessage = jsError instanceof Error ? jsError.message : String(jsError)
-          console.error('❌ JS/WASM conversion failed:', errorMessage)
+        } catch (dotError) {
+          const errorMessage = dotError instanceof Error ? dotError.message : String(dotError)
+          console.error('❌ DOT conversion failed:', errorMessage)
           console.warn('⚠️  Falling back to WebPerl...')
 
           // Fallback to WebPerl
@@ -205,7 +197,7 @@ export class GraphConversionService {
             output,
             engine: 'webperl',
             timeMs,
-            error: `JS/WASM engine failed: ${errorMessage}\n\nFell back to WebPerl. Your graph was still converted successfully.`,
+            error: `DOT engine failed: ${errorMessage}\n\nFell back to WebPerl. Your graph was still converted successfully.`,
           }
         }
       } else {
@@ -236,29 +228,6 @@ export class GraphConversionService {
     }
   }
 
-  /**
-   * Convert using the new JS/WASM implementation
-   */
-  private async convertWithJsWasm(input: string, format: OutputFormat, engine: ConversionEngine): Promise<string> {
-    if (!this.jsWasmInitialized) {
-      await this.initializeJsWasm()
-    }
-
-    // For now, only ASCII format is supported
-    if (format !== 'ascii' && format !== 'boxart') {
-      throw new Error(`Format '${format}' not yet supported in JS/WASM. Use WebPerl.`)
-    }
-
-    // Use the appropriate converter based on engine
-    const converter = engine === 'wasm' ? this.wasmConverter : this.tsConverter
-
-    // Set boxart option based on format
-    converter.setOptions({ boxart: format === 'boxart' })
-
-    const result = await converter.convert(input)
-
-    return result
-  }
 
   /**
    * Convert using ELK layout engine
@@ -277,6 +246,27 @@ export class GraphConversionService {
     this.elkConverter.setOptions({ boxart: format === 'boxart' })
 
     const result = await this.elkConverter.convert(input)
+
+    return result
+  }
+
+  /**
+   * Convert using DOT/Graphviz layout engine
+   */
+  private async convertWithDOT(input: string, format: OutputFormat): Promise<string> {
+    if (!this.dotInitialized) {
+      await this.initializeDOT()
+    }
+
+    // Only ASCII format is supported
+    if (format !== 'ascii' && format !== 'boxart') {
+      throw new Error(`Format '${format}' not yet supported in DOT. Use WebPerl.`)
+    }
+
+    // Set boxart option based on format
+    this.dotConverter.setOptions({ boxart: format === 'boxart' })
+
+    const result = await this.dotConverter.convert(input)
 
     return result
   }
@@ -345,17 +335,17 @@ END_INPUT
   }
 
   /**
-   * Check if JS/WASM is available and initialized
-   */
-  isJsWasmAvailable(): boolean {
-    return this.jsWasmInitialized
-  }
-
-  /**
    * Check if ELK is available and initialized
    */
   isELKAvailable(): boolean {
     return this.elkInitialized
+  }
+
+  /**
+   * Check if DOT is available and initialized
+   */
+  isDOTAvailable(): boolean {
+    return this.dotInitialized
   }
 
   /**
@@ -370,13 +360,13 @@ END_INPUT
    */
   getEngineStatus() {
     return {
-      jswasm: {
-        available: this.jsWasmInitialized,
-        status: this.jsWasmInitialized ? 'ready' : 'not-initialized',
-      },
       elk: {
         available: this.elkInitialized,
         status: this.elkInitialized ? 'ready' : 'not-initialized',
+      },
+      dot: {
+        available: this.dotInitialized,
+        status: this.dotInitialized ? 'ready' : 'not-initialized',
       },
       webperl: {
         available: this.isWebPerlAvailable(),
