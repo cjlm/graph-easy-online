@@ -84,13 +84,13 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
  */
 function graphToELK(graph: Graph): ELKGraph {
   const nodes: ELKNode[] = graph.getNodes().map(node => {
-    // Calculate minimum width to fit label with minimal padding (2 chars = 1 on each side)
+    // Calculate width: label + 4 chars padding (2 on each side) like other engines
     const labelLength = (node.name || '').length
-    const minWidth = (labelLength + 2) * 8 // 8 pixels per character in grid
+    const width = (labelLength + 4) * 8 // 8 pixels per character in grid
 
     return {
       id: node.id,
-      width: Math.max(minWidth, 40), // At least 5 grid cells (40px)
+      width: width,
       height: 24, // 3 grid cells
       labels: node.name ? [{ text: node.name }] : undefined
     }
@@ -128,10 +128,10 @@ function graphToELK(graph: Graph): ELKGraph {
   if (structure.isTree) {
     // Tree structure: prioritize compactness and straight edges
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '20',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '35',
-      'elk.spacing.edgeNode': '15',
-      'elk.spacing.edgeEdge': '10',
+      'elk.spacing.nodeNode': '15',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '30',
+      'elk.spacing.edgeNode': '10',
+      'elk.spacing.edgeEdge': '8',
       'elk.layered.layering.strategy': 'LONGEST_PATH',
       'elk.layered.nodePlacement.strategy': 'SIMPLE',
       'elk.layered.nodePlacement.favorStraightEdges': 'true',
