@@ -74,11 +74,11 @@ function graphToELK(graph: Graph): ELKGraph {
       // Flow direction
       'elk.direction': direction,
 
-      // Spacing (tuned for ASCII grid)
-      'elk.spacing.nodeNode': '40',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '80',
-      'elk.spacing.edgeNode': '20',
-      'elk.spacing.edgeEdge': '20',
+      // Tighter spacing for more compact layouts
+      'elk.spacing.nodeNode': '20',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '40',
+      'elk.spacing.edgeNode': '15',
+      'elk.spacing.edgeEdge': '10',
 
       // Edge routing (orthogonal = Manhattan-style, perfect for ASCII!)
       'elk.edgeRouting': 'ORTHOGONAL',
@@ -89,8 +89,11 @@ function graphToELK(graph: Graph): ELKGraph {
       // Use LONGEST_PATH layering - more robust than NETWORK_SIMPLEX
       'elk.layered.layering.strategy': 'LONGEST_PATH',
 
-      // Node placement - use BRANDES_KOEPF for better stability
-      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+      // Use SIMPLE node placement - better for tree structures
+      'elk.layered.nodePlacement.strategy': 'SIMPLE',
+
+      // Prefer straight edges when possible
+      'elk.layered.nodePlacement.favorStraightEdges': 'true',
 
       // Cycle breaking
       'elk.layered.cycleBreaking.strategy': 'GREEDY',
@@ -98,11 +101,18 @@ function graphToELK(graph: Graph): ELKGraph {
       // Crossing minimization
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
 
-      // Reduce thoroughness to avoid constraint conflicts
+      // Consider all crossings
+      'elk.layered.crossingMinimization.semiInteractive': 'false',
+
+      // Balance node distribution
+      'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+
+      // Moderate thoroughness
       'elk.layered.thoroughness': '7',
 
-      // Disable unnecessary compaction that can cause hitbox issues
-      'elk.layered.compaction.postCompaction.strategy': 'NONE'
+      // Enable edge length-based compaction for tighter layouts
+      'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
+      'elk.layered.compaction.postCompaction.constraints': 'NONE'
     }
   }
 }
