@@ -231,11 +231,26 @@ function elkToGridLayout(elkResult: any): LayoutResult {
     const endPoint = section?.endPoint || { x: 0, y: 0 }
 
     // Snap all points to grid
-    const points = [
+    let points = [
       snapToGrid(startPoint.x, startPoint.y),
       ...bendPoints.map((p: any) => snapToGrid(p.x, p.y)),
       snapToGrid(endPoint.x, endPoint.y)
     ]
+
+    // Pull back the arrow endpoint by 1 cell to avoid overlap with node box
+    if (points.length >= 2) {
+      const lastPoint = points[points.length - 1]
+      const prevPoint = points[points.length - 2]
+
+      const dx = Math.sign(lastPoint.x - prevPoint.x)
+      const dy = Math.sign(lastPoint.y - prevPoint.y)
+
+      // Move arrow back one cell in the direction it came from
+      points[points.length - 1] = {
+        x: lastPoint.x - dx,
+        y: lastPoint.y - dy
+      }
+    }
 
     return {
       id: edge.id,
