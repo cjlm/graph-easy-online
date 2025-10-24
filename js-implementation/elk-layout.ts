@@ -30,7 +30,57 @@ interface ELKGraph {
 }
 
 /**
- * Convert Graph to ELK format
+ * Analyze graph structure to determine optimal layout strategy
+ */
+interface GraphStructure {
+  isTree: boolean
+  hasCycles: boolean
+  isDense: boolean
+  maxFanout: number
+  averageDegree: number
+}
+
+function analyzeGraphStructure(graph: Graph): GraphStructure {
+  const nodes = graph.getNodes()
+  const edges = graph.getEdges()
+
+  if (nodes.length === 0) {
+    return { isTree: true, hasCycles: false, isDense: false, maxFanout: 0, averageDegree: 0 }
+  }
+
+  // Build adjacency info
+  const outDegree = new Map<string, number>()
+  const inDegree = new Map<string, number>()
+
+  nodes.forEach(node => {
+    outDegree.set(node.id, 0)
+    inDegree.set(node.id, 0)
+  })
+
+  edges.forEach(edge => {
+    outDegree.set(edge.from.id, (outDegree.get(edge.from.id) || 0) + 1)
+    inDegree.set(edge.to.id, (inDegree.get(edge.to.id) || 0) + 1)
+  })
+
+  // Calculate metrics
+  const maxFanout = Math.max(...Array.from(outDegree.values()))
+  const totalDegree = edges.length * 2 // Each edge contributes to 2 nodes
+  const averageDegree = totalDegree / nodes.length
+
+  // Check if it's a tree: n-1 edges and no cycles
+  const isTree = edges.length === nodes.length - 1 && edges.length > 0
+
+  // Simple cycle detection: back edges indicate cycles
+  const hasCycles = !isTree && edges.length >= nodes.length
+
+  // Consider dense if average degree > 3
+  const isDense = averageDegree > 3
+
+  return { isTree, hasCycles, isDense, maxFanout, averageDegree }
+}
+
+/**
+ * Convert Graph to ELK format with structure-aware options
  */
 function graphToELK(graph: Graph): ELKGraph {
   const nodes: ELKNode[] = graph.getNodes().map(node => {
@@ -53,6 +103,9 @@ function graphToELK(graph: Graph): ELKGraph {
     labels: edge.label ? [{ text: edge.label }] : undefined
   }))
 
+  // Analyze graph structure
+  const structure = analyzeGraphStructure(graph)
+
   // Get flow direction
   const flow = graph.getAttribute('flow') || 'east'
   const directionMap: Record<string, string> = {
@@ -63,57 +116,81 @@ function graphToELK(graph: Graph): ELKGraph {
   }
   const direction = directionMap[flow] || 'RIGHT'
 
-  return {
-    id: 'root',
-    children: nodes,
-    edges: edges,
-    layoutOptions: {
-      // Use ELK Layered algorithm (Sugiyama-style, similar to Graph::Easy)
-      'elk.algorithm': 'layered',
+  // Base layout options
+  const layoutOptions: Record<string, string> = {
+    'elk.algorithm': 'layered',
+    'elk.direction': direction,
+    'elk.edgeRouting': 'ORTHOGONAL',
+    'elk.portConstraints': 'FREE',
+  }
 
-      // Flow direction
-      'elk.direction': direction,
-
-      // Tighter spacing for more compact layouts
+  // Apply heuristics based on graph structure
+  if (structure.isTree) {
+    // Tree structure: prioritize compactness and straight edges
+    Object.assign(layoutOptions, {
+      'elk.spacing.nodeNode': '20',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '35',
+      'elk.spacing.edgeNode': '15',
+      'elk.spacing.edgeEdge': '10',
+      'elk.layered.layering.strategy': 'LONGEST_PATH',
+      'elk.layered.nodePlacement.strategy': 'SIMPLE',
+      'elk.layered.nodePlacement.favorStraightEdges': 'true',
+      'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'elk.layered.thoroughness': '5',
+      'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
+    })
+  } else if (structure.hasCycles) {
+    // Cyclic graph: prioritize stability and avoid hitbox issues
+    Object.assign(layoutOptions, {
+      'elk.spacing.nodeNode': '25',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '45',
+      'elk.spacing.edgeNode': '20',
+      'elk.spacing.edgeEdge': '15',
+      'elk.layered.layering.strategy': 'LONGEST_PATH',
+      'elk.layered.nodePlacement.strategy': 'SIMPLE',
+      'elk.layered.cycleBreaking.strategy': 'GREEDY',
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'elk.layered.thoroughness': '7',
+      'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
+      'elk.layered.compaction.postCompaction.constraints': 'NONE',
+    })
+  } else if (structure.isDense) {
+    // Dense graph: prioritize crossing minimization and readability
+    Object.assign(layoutOptions, {
+      'elk.spacing.nodeNode': '30',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '50',
+      'elk.spacing.edgeNode': '20',
+      'elk.spacing.edgeEdge': '15',
+      'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'elk.layered.crossingMinimization.greedySwitch': 'TWO_SIDED',
+      'elk.layered.thoroughness': '10',
+      'elk.layered.compaction.postCompaction.strategy': 'NONE',
+    })
+  } else {
+    // Default: balanced settings for general graphs
+    Object.assign(layoutOptions, {
       'elk.spacing.nodeNode': '20',
       'elk.layered.spacing.nodeNodeBetweenLayers': '40',
       'elk.spacing.edgeNode': '15',
       'elk.spacing.edgeEdge': '10',
-
-      // Edge routing (orthogonal = Manhattan-style, perfect for ASCII!)
-      'elk.edgeRouting': 'ORTHOGONAL',
-
-      // Use FREE port constraints instead of FIXED_SIDE to avoid hitbox issues
-      'elk.portConstraints': 'FREE',
-
-      // Use LONGEST_PATH layering - more robust than NETWORK_SIMPLEX
       'elk.layered.layering.strategy': 'LONGEST_PATH',
-
-      // Use SIMPLE node placement - better for tree structures
       'elk.layered.nodePlacement.strategy': 'SIMPLE',
-
-      // Prefer straight edges when possible
       'elk.layered.nodePlacement.favorStraightEdges': 'true',
-
-      // Cycle breaking
-      'elk.layered.cycleBreaking.strategy': 'GREEDY',
-
-      // Crossing minimization
-      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-
-      // Consider all crossings
-      'elk.layered.crossingMinimization.semiInteractive': 'false',
-
-      // Balance node distribution
       'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
-
-      // Moderate thoroughness
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
       'elk.layered.thoroughness': '7',
-
-      // Enable edge length-based compaction for tighter layouts
       'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-      'elk.layered.compaction.postCompaction.constraints': 'NONE'
-    }
+    })
+  }
+
+  return {
+    id: 'root',
+    children: nodes,
+    edges: edges,
+    layoutOptions
   }
 }
 
