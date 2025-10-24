@@ -83,33 +83,26 @@ function graphToELK(graph: Graph): ELKGraph {
       // Edge routing (orthogonal = Manhattan-style, perfect for ASCII!)
       'elk.edgeRouting': 'ORTHOGONAL',
 
-      // Port constraints (where edges connect)
-      'elk.portConstraints': 'FIXED_SIDE',
+      // Use FREE port constraints instead of FIXED_SIDE to avoid hitbox issues
+      'elk.portConstraints': 'FREE',
 
-      // Layer assignment strategy (network simplex gives best quality)
-      'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+      // Use LONGEST_PATH layering - more robust than NETWORK_SIMPLEX
+      'elk.layered.layering.strategy': 'LONGEST_PATH',
 
-      // Node placement
-      'elk.layered.nodePlacement.strategy': 'SIMPLE',
-      'elk.layered.nodePlacement.favorStraightEdges': 'true',
+      // Node placement - use BRANDES_KOEPF for better stability
+      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
 
-      // Cycle breaking (for graphs with cycles)
+      // Cycle breaking
       'elk.layered.cycleBreaking.strategy': 'GREEDY',
 
       // Crossing minimization
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
 
-      // Self-loops
-      'elk.layered.selfLoopPlacement': 'NORTH_STACKED',
+      // Reduce thoroughness to avoid constraint conflicts
+      'elk.layered.thoroughness': '7',
 
-      // Thoroughness (higher = better quality, slower)
-      'elk.layered.thoroughness': '10',
-
-      // Edge straightening
-      'elk.layered.edgeRouting.splines.mode': 'CONSERVATIVE',
-
-      // Compaction
-      'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH'
+      // Disable unnecessary compaction that can cause hitbox issues
+      'elk.layered.compaction.postCompaction.strategy': 'NONE'
     }
   }
 }
