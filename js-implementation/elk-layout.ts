@@ -84,13 +84,13 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
  */
 function graphToELK(graph: Graph): ELKGraph {
   const nodes: ELKNode[] = graph.getNodes().map(node => {
-    // Calculate minimum width to fit label with padding (4 chars = 2 on each side)
+    // Calculate minimum width to fit label with minimal padding (2 chars = 1 on each side)
     const labelLength = (node.name || '').length
-    const minWidth = (labelLength + 4) * 8 // 8 pixels per character in grid
+    const minWidth = (labelLength + 2) * 8 // 8 pixels per character in grid
 
     return {
       id: node.id,
-      width: Math.max(minWidth, 80), // At least 10 grid cells (80px)
+      width: Math.max(minWidth, 40), // At least 5 grid cells (40px)
       height: 24, // 3 grid cells
       labels: node.name ? [{ text: node.name }] : undefined
     }
