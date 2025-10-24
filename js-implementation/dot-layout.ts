@@ -16,8 +16,8 @@ function graphToDOT(graph: Graph): string {
   const nodes = graph.getNodes()
   const edges = graph.getEdges()
 
-  // Check if graph is directed
-  const hasDirectedEdges = edges.some(e => e.type === 'directed')
+  // Check if graph is directed (has any edges with arrows)
+  const hasDirectedEdges = edges.some(e => !e.isUndirected())
   const graphType = hasDirectedEdges ? 'digraph' : 'graph'
   const edgeOp = hasDirectedEdges ? '->' : '--'
 
@@ -127,22 +127,27 @@ function parseDOTLayout(dotOutput: string, graph: Graph): LayoutResult {
 
     if (!pos) {
       // Fallback position
+      const labelLength = (node.name || '').length
       return {
         id: node.id,
         x: 0,
         y: 0,
-        width: Math.ceil(((node.name || '').length + 4) / gridSize),
+        width: Math.max(labelLength + 4, 10),
         height: 3,
         label: node.name || ''
       }
     }
 
+    // Calculate width based on label length (in characters)
+    const labelLength = (node.name || '').length
+    const width = Math.max(labelLength + 4, 10)  // Label + padding, min 10 chars
+
     return {
       id: node.id,
       x: Math.round(pos.x / gridSize),
       y: Math.round(pos.y / gridSize),
-      width: Math.ceil(pos.width / gridSize),
-      height: Math.ceil(pos.height / gridSize),
+      width: width,
+      height: 3,  // Fixed height like other engines
       label: node.name || ''
     }
   })
@@ -152,7 +157,7 @@ function parseDOTLayout(dotOutput: string, graph: Graph): LayoutResult {
     const toId = edge.to.id.replace(/[^a-zA-Z0-9_]/g, '_')
     const path = edgePaths.get(`${fromId}-${toId}`)
 
-    let points = []
+    let points: Array<{ x: number; y: number }> = []
     if (path && path.length > 0) {
       points = path.map(p => ({
         x: Math.round(p.x / gridSize),

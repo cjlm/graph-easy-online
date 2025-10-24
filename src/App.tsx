@@ -256,23 +256,12 @@ function App() {
   const outputContainerRef = useRef<HTMLDivElement>(null)
   const outputContentRef = useRef<HTMLDivElement>(null)
 
-  // Initialize JS/WASM engines first (fast)
+  // Initialize app
   useEffect(() => {
-    const initJsWasm = async () => {
-      try {
-        await graphConversionService.initializeJsWasm()
-        setLoadingState('ready')
+    setLoadingState('ready')
 
-        // Auto-convert the first example
-        setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
-      } catch (err: any) {
-        console.error('Failed to initialize JS/WASM:', err)
-        // Continue anyway - Perl might still work
-        setLoadingState('ready')
-      }
-    }
-
-    initJsWasm()
+    // Auto-convert the first example
+    setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
   }, [])
 
   // Initialize Perl modules in background (slow, non-blocking)
@@ -398,23 +387,27 @@ function App() {
     initPerl()
   }, [])
 
-  // Initialize JS/WASM engine
+  // Initialize ELK/DOT engines on demand
   useEffect(() => {
-    const initJsWasm = async () => {
+    const initEngines = async () => {
       try {
-        await graphConversionService.initializeJsWasm()
-        console.log('JS/WASM engine initialized successfully')
+        if (conversionEngine === 'elk') {
+          await graphConversionService.initializeELK()
+          console.log('ELK engine initialized successfully')
+        } else if (conversionEngine === 'dot') {
+          await graphConversionService.initializeDOT()
+          console.log('DOT engine initialized successfully')
+        }
       } catch (err) {
-        console.error('Failed to initialize JS/WASM engine:', err)
+        console.error('Failed to initialize engine:', err)
         // Silently fallback to WebPerl
       }
     }
 
-    // Eagerly initialize if wasm/typescript is preferred
-    if (conversionEngine === 'wasm' || conversionEngine === 'typescript') {
-      initJsWasm()
+    if (conversionEngine === 'elk' || conversionEngine === 'dot') {
+      initEngines()
     }
-  }, [])
+  }, [conversionEngine])
 
   // Initialize Viz.js for Graphviz rendering
   useEffect(() => {
