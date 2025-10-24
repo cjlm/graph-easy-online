@@ -76,7 +76,8 @@ function parseDOTLayout(dotOutput: string, graph: Graph): LayoutResult {
   const edgePaths = new Map<string, Array<{ x: number, y: number }>>()
 
   // Extract node positions from DOT  (format: id_12 [height=0.5, label="...", pos="40.864,138", width=1.134];)
-  const nodeRegex = /(\w+)\s+\[([^\]]+)\]/g
+  // Note: Node definitions can span multiple lines, so use [\s\S] to match including newlines
+  const nodeRegex = /(\w+)\s+\[([\s\S]+?)\];/g
   let match
 
   while ((match = nodeRegex.exec(dotOutput)) !== null) {
@@ -98,7 +99,8 @@ function parseDOTLayout(dotOutput: string, graph: Graph): LayoutResult {
   }
 
   // Extract edge paths (format: id_12 -- id_14 [label="Bridge 1", pos="e,195.91,138 81.89,138 ...");)
-  const edgeRegex = /(\w+)\s+--\s+(\w+)\s+\[([^\]]+)\]/g
+  // Note: Edge definitions can span multiple lines
+  const edgeRegex = /(\w+)\s+--\s+(\w+)\s+\[([\s\S]+?)\];/g
 
   while ((match = edgeRegex.exec(dotOutput)) !== null) {
     const [, from, to, attrs] = match

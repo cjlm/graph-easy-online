@@ -259,10 +259,17 @@ function App() {
   // Initialize app
   useEffect(() => {
     setLoadingState('ready')
-
-    // Auto-convert the first example
-    setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
   }, [])
+
+  // Auto-convert first example when Perl is ready
+  useEffect(() => {
+    if (perlReady && conversionEngine === 'webperl') {
+      setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
+    } else if (perlReady) {
+      // If using ELK/DOT, convert immediately
+      setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
+    }
+  }, [perlReady])
 
   // Initialize Perl modules in background (slow, non-blocking)
   // Note: WebPerl is loaded in index.html, not dynamically
