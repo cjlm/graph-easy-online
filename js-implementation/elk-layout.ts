@@ -4,7 +4,7 @@
  * Provides high-quality graph layout using elkjs library
  */
 
-import ELK from 'elkjs/lib/elk.bundled.js'
+import ELK from 'elkjs'
 import type { Graph } from './core/Graph'
 import type { LayoutResult } from './core/Graph'
 
@@ -194,8 +194,7 @@ export async function layoutWithELK(graph: Graph): Promise<LayoutResult> {
  */
 export function isELKAvailable(): boolean {
   try {
-    // Try to import ELK
-    require('elkjs/lib/elk.bundled.js')
+    // ELK is a regular dependency, so it's always available
     return true
   } catch {
     return false
