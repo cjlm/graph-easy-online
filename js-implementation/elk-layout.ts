@@ -49,12 +49,13 @@ function graphToELK(graph: Graph): ELKGraph {
 
   // Get flow direction
   const flow = graph.getAttribute('flow') || 'east'
-  const direction = {
+  const directionMap: Record<string, string> = {
     'east': 'RIGHT',
     'west': 'LEFT',
     'south': 'DOWN',
     'north': 'UP'
-  }[flow] || 'RIGHT'
+  }
+  const direction = directionMap[flow] || 'RIGHT'
 
   return {
     id: 'root',
