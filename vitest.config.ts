@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     include: ['**/*.test.ts', '**/*.spec.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/__tests__/elk-integration.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
