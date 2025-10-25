@@ -191,15 +191,19 @@ export class GraphConversionService {
       throw new Error(`WebPerl not ready (state: ${window.Perl.state})`)
     }
 
-    // Wait for any previous Perl evaluation to complete
-    // This prevents concurrent window.Perl.eval() calls that corrupt interpreter state
-    await this.perlMutex
-
-    // Create a new mutex for this evaluation
+    // Create a new mutex for this evaluation FIRST
     let releaseMutex!: () => void
-    this.perlMutex = new Promise(resolve => {
+    const myMutex = new Promise<void>(resolve => {
       releaseMutex = resolve
     })
+
+    // Atomically swap in the new mutex and get the previous one
+    const previousMutex = this.perlMutex
+    this.perlMutex = myMutex
+
+    // NOW wait for the previous evaluation to complete
+    // This prevents concurrent window.Perl.eval() calls that corrupt interpreter state
+    await previousMutex
 
     try {
       const escapedInput = input
