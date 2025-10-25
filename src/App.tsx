@@ -462,23 +462,30 @@ function App() {
   useEffect(() => {
     if (loadingState !== 'ready' || !input.trim()) return
 
+    // Don't auto-convert with WebPerl until modules are loaded
+    if (conversionEngine === 'webperl' && !perlReady) return
+
     const timeoutId = setTimeout(() => {
       setIsConverting(true)
       convertGraph()
     }, 500) // 500ms debounce
 
     return () => clearTimeout(timeoutId)
-  }, [input, loadingState])
+  }, [input, loadingState, conversionEngine, perlReady])
 
   // Auto-convert when output format changes
   useEffect(() => {
     if (loadingState === 'ready' && input.trim() && output) {
       // Only re-convert if we already have output
       // (don't convert on initial mount)
+
+      // Don't auto-convert with WebPerl until modules are loaded
+      if (conversionEngine === 'webperl' && !perlReady) return
+
       setIsConverting(true)
       convertGraph()
     }
-  }, [outputFormat])
+  }, [outputFormat, conversionEngine, perlReady])
 
   // Render Graphviz DOT output when format is 'graphviz'
   useEffect(() => {
@@ -544,7 +551,9 @@ function App() {
         setIsConverting(false)
       }
     } catch (err: any) {
-      setError(`Conversion error: ${err.message || String(err)}`)
+      // Handle both Error objects and ConversionResult objects
+      const errorMessage = err.error || err.message || String(err)
+      setError(`Conversion error: ${errorMessage}`)
       setIsConverting(false)
       // Keep previous output visible
     }
