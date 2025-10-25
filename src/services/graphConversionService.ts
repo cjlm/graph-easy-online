@@ -231,6 +231,12 @@ export class GraphConversionService {
       const perlScript = `
         use strict;
         use warnings;
+
+        # Force reload of Layout module to get sorted hash iteration fix
+        BEGIN {
+          delete $INC{'Graph/Easy/Layout.pm'} if $INC{'Graph/Easy/Layout.pm'};
+        }
+
         use lib '/lib';
         use Graph::Easy;
 
