@@ -159,10 +159,18 @@ export class GraphEasyASCII {
         graph.setAttribute('flow', this.options.flow)
       }
 
-      // 3. Perform layout
-      const layout = await this.layout(graph)
+      // 3. ELK uses new integrated renderer (bypasses old renderer)
+      if (this.options.useELK) {
+        console.log('🦌 Using ELK layout engine with new orthogonal ASCII renderer')
+        const { layoutAndRenderWithELK } = await import('./elk-layout')
+        console.log('🦌 ELK input nodes:', graph.getNodes().map(n => ({ id: n.id, name: n.name })))
+        const ascii = await layoutAndRenderWithELK(graph, this.options.boxart)
+        console.log('🦌 ELK rendering completed')
+        return ascii
+      }
 
-      // 4. Render as ASCII
+      // 4. For other engines, use old rendering flow
+      const layout = await this.layout(graph)
       const ascii = this.render(layout)
 
       return ascii

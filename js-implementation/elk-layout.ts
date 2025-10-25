@@ -296,7 +296,7 @@ function elkToGridLayout(elkResult: any): LayoutResult {
 }
 
 /**
- * Layout Graph using ELK
+ * Layout Graph using ELK (returns simplified LayoutResult)
  */
 export async function layoutWithELK(graph: Graph): Promise<LayoutResult> {
   const elk = new ELK()
@@ -311,6 +311,44 @@ export async function layoutWithELK(graph: Graph): Promise<LayoutResult> {
   const gridLayout = elkToGridLayout(layouted)
 
   return gridLayout
+}
+
+/**
+ * Layout and render Graph using ELK with the new orthogonal ASCII renderer
+ *
+ * This uses the elk-ascii-renderer which produces higher quality output
+ * with proper orthogonal routing, smart junctions, and better edge rendering.
+ */
+export async function layoutAndRenderWithELK(graph: Graph, boxart: boolean = false): Promise<string> {
+  const elk = new ELK()
+
+  // Convert to ELK format
+  const elkGraph = graphToELK(graph)
+
+  // Run layout
+  const layouted = await elk.layout(elkGraph)
+
+  // Use the new elk-ascii-renderer for better quality output
+  const { renderASCII } = await import('./renderers/elk-ascii-renderer')
+  const { ascii, metadata } = renderASCII(layouted, {
+    scale: 0.3,
+    unicode: boxart,
+    arrows: true,
+    renderLabels: true,
+    renderPorts: false,
+    margin: 5,
+  })
+
+  if (!ascii) {
+    throw new Error(metadata.error || 'Failed to render ASCII')
+  }
+
+  // Log metadata for debugging
+  if (metadata.warnings && metadata.warnings.length > 0) {
+    console.warn('ELK ASCII Renderer warnings:', metadata.warnings)
+  }
+
+  return ascii
 }
 
 /**
