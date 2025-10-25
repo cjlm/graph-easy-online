@@ -165,18 +165,18 @@ function graphToELK(graph: Graph): ELKGraph {
     })
   } else if (structure.hasCycles) {
     // Cyclic graph: prioritize stability and avoid hitbox issues
+    // Disable post-compaction to prevent constraint conflicts
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '25',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '45',
+      'elk.spacing.nodeNode': '30',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '50',
       'elk.spacing.edgeNode': '20',
       'elk.spacing.edgeEdge': '15',
-      'elk.layered.layering.strategy': 'LONGEST_PATH',
-      'elk.layered.nodePlacement.strategy': 'SIMPLE',
+      'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.cycleBreaking.strategy': 'GREEDY',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      'elk.layered.thoroughness': '7',
-      'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-      'elk.layered.compaction.postCompaction.constraints': 'NONE',
+      'elk.layered.thoroughness': '5',
+      'elk.layered.compaction.postCompaction.strategy': 'NONE',
     })
   } else if (structure.isDense) {
     // Dense graph: prioritize crossing minimization and readability
