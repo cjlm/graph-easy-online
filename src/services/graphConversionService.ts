@@ -141,10 +141,10 @@ export class GraphConversionService {
       }
     } catch (error) {
       const timeMs = performance.now() - startTime
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('💥 Conversion failed completely:', errorMessage)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error('💥 Conversion failed completely:', error)
 
-      throw {
+      return {
         output: '',
         engine,
         timeMs,
@@ -180,7 +180,13 @@ export class GraphConversionService {
    */
   private async convertWithWebPerl(input: string, format: OutputFormat): Promise<string> {
     if (typeof window.Perl === 'undefined') {
+      console.error('❌ WebPerl is not defined')
       throw new Error('WebPerl not initialized')
+    }
+
+    if (window.Perl.state !== 'Ready') {
+      console.error('❌ WebPerl state:', window.Perl.state)
+      throw new Error(`WebPerl not ready (state: ${window.Perl.state})`)
     }
 
     // Wait for any previous Perl evaluation to complete
