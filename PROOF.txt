@@ -1,6 +1,0 @@
-This is proof that you're connected to the right server!
-
-Timestamp: 2025-10-22 20:33 UTC
-Session ID: 011CUNrGx3LbhUyqKtyh5pgp
-
-If you can see this file, the tunnel is working correctly.
