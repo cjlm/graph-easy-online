@@ -20,6 +20,7 @@ export class GraphConversionService {
   private elkConverter: any = null
   private elkInitialized = false
   private preferredEngine: ConversionEngine = 'webperl'
+  private perlMutex: Promise<void> = Promise.resolve()
 
   /**
    * Set the preferred conversion engine
@@ -80,7 +81,7 @@ export class GraphConversionService {
         // ELK engine
         if (format !== 'ascii' && format !== 'boxart') {
           console.warn(`ELK doesn't support ${format} format, using WebPerl`)
-          const output = this.convertWithWebPerl(input, format)
+          const output = await this.convertWithWebPerl(input, format)
           const timeMs = performance.now() - startTime
 
           return {
@@ -114,7 +115,7 @@ export class GraphConversionService {
           console.warn('⚠️  Falling back to WebPerl...')
 
           // Fallback to WebPerl
-          const output = this.convertWithWebPerl(input, format)
+          const output = await this.convertWithWebPerl(input, format)
           const timeMs = performance.now() - startTime
 
           return {
@@ -127,7 +128,7 @@ export class GraphConversionService {
       } else {
         // Use WebPerl directly
         console.log('🐪 Converting with WebPerl engine...')
-        const output = this.convertWithWebPerl(input, format)
+        const output = await this.convertWithWebPerl(input, format)
         const timeMs = performance.now() - startTime
 
         console.log(`✅ WebPerl conversion succeeded in ${timeMs.toFixed(1)}ms`)
@@ -177,64 +178,79 @@ export class GraphConversionService {
   /**
    * Convert using WebPerl (existing implementation)
    */
-  private convertWithWebPerl(input: string, format: OutputFormat): string {
+  private async convertWithWebPerl(input: string, format: OutputFormat): Promise<string> {
     if (typeof window.Perl === 'undefined') {
       throw new Error('WebPerl not initialized')
     }
 
-    const escapedInput = input
-      .replace(/\\/g, '\\\\')
-      .replace(/\$/g, '\\$')
+    // Wait for any previous Perl evaluation to complete
+    // This prevents concurrent window.Perl.eval() calls that corrupt interpreter state
+    await this.perlMutex
 
-    const formatMethodMap: Record<OutputFormat, string> = {
-      ascii: 'as_ascii()',
-      boxart: 'as_boxart()',
-      html: 'as_html()',
-      svg: 'as_svg()',
-      graphviz: 'as_graphviz()',
-      graphml: 'as_graphml()',
-      vcg: 'as_vcg()',
-      txt: 'as_txt()',
-    }
+    // Create a new mutex for this evaluation
+    let releaseMutex!: () => void
+    this.perlMutex = new Promise(resolve => {
+      releaseMutex = resolve
+    })
 
-    const perlMethod = formatMethodMap[format]
+    try {
+      const escapedInput = input
+        .replace(/\\/g, '\\\\')
+        .replace(/\$/g, '\\$')
 
-    const perlScript = `
-      use strict;
-      use warnings;
-      use lib '/lib';
-      use Graph::Easy;
+      const formatMethodMap: Record<OutputFormat, string> = {
+        ascii: 'as_ascii()',
+        boxart: 'as_boxart()',
+        html: 'as_html()',
+        svg: 'as_svg()',
+        graphviz: 'as_graphviz()',
+        graphml: 'as_graphml()',
+        vcg: 'as_vcg()',
+        txt: 'as_txt()',
+      }
 
-      my $input = <<'END_INPUT';
+      const perlMethod = formatMethodMap[format]
+
+      const perlScript = `
+        use strict;
+        use warnings;
+        use lib '/lib';
+        use Graph::Easy;
+
+        my $input = <<'END_INPUT';
 ${escapedInput}
 END_INPUT
 
-      my $output;
+        my $output;
 
-      eval {
-        my $graph = Graph::Easy->new($input);
+        eval {
+          my $graph = Graph::Easy->new($input);
 
-        if ($graph->error()) {
-          $output = "Error: " . $graph->error();
-        } else {
-          $output = $graph->${perlMethod};
+          if ($graph->error()) {
+            $output = "Error: " . $graph->error();
+          } else {
+            $output = $graph->${perlMethod};
+          }
+        };
+
+        if ($@) {
+          $output = "Error: $@";
         }
-      };
 
-      if ($@) {
-        $output = "Error: $@";
+        $output;
+      `
+
+      const result = window.Perl.eval(perlScript)
+
+      if (result && result.startsWith('Error:')) {
+        throw new Error(result)
       }
 
-      $output;
-    `
-
-    const result = window.Perl.eval(perlScript)
-
-    if (result && result.startsWith('Error:')) {
-      throw new Error(result)
+      return result
+    } finally {
+      // Always release the mutex
+      releaseMutex()
     }
-
-    return result
   }
 
   /**
