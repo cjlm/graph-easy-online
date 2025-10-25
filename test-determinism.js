@@ -26,6 +26,11 @@ const TEST_GRAPH = `digraph {
     b3 -> end;
 }`;
 
+// Mimic PHP preprocessing: remove comments, then newlines
+const TEST_GRAPH_PREPROCESSED = TEST_GRAPH
+  .replace(/\/\*[\s\S]*?\*\/|\/\/.*|#.*/g, '')  // remove comments
+  .replace(/\r|\n/g, ' ');  // remove newlines like PHP does
+
 async function testDeterminism() {
   console.log('🧪 Testing Graph::Easy determinism...\n');
 
@@ -93,20 +98,27 @@ END_INPUT
         my $output;
         my $debug = "";
 
+        # Set Perl's random seed BEFORE creating graph
+        # This must happen before Graph::Easy->new() which calls randomize()
+        srand(12345);
+
         eval {
-          # Create empty graph first, set seed, THEN parse
-          my $graph = Graph::Easy->new();
-          my $seed_before = $graph->seed();
+          my $graph = Graph::Easy->new($input);
           $graph->seed(12345);
-          my $seed_after = $graph->seed();
 
-          # Now parse with consistent seed
-          require Graph::Easy::Parser;
-          my $parser = Graph::Easy::Parser->new();
-          $graph = $parser->from_text($input);
-          $graph->seed(12345); # Set again after parsing
+          # Check state
+          use Hash::Util qw(hash_seed);
+          my $perl_hash_seed = unpack("H*", hash_seed());
+          my $grapheasy_seed = $graph->seed();
 
-          $debug = "Seed before: $seed_before, after: $seed_after\\n";
+          # Test if hash iteration is consistent in WebPerl
+          my %test_hash = (a => 1, b => 2, c => 3, d => 4, e => 5);
+          my @keys_order = keys %test_hash;
+          my $keys_str = join(",", @keys_order);
+
+          $debug = "Perl hash_seed: $perl_hash_seed\\n";
+          $debug .= "Graph::Easy seed: $grapheasy_seed\\n";
+          $debug .= "Hash keys order: $keys_str\\n";
 
           # Check if Layout.pm was loaded/reloaded BEFORE layout
           if (exists $INC{'Graph/Easy/Layout.pm'}) {
@@ -154,7 +166,7 @@ END_INPUT
         debug: parts[0] || '',
         output: parts[1] || output
       };
-    }, TEST_GRAPH);
+    }, TEST_GRAPH_PREPROCESSED); // Use preprocessed version
 
     outputs.push(result.output);
     if (i === 0) {

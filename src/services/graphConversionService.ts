@@ -232,14 +232,12 @@ export class GraphConversionService {
         use strict;
         use warnings;
         use lib '/lib';
-
-        # Set PERL_HASH_SEED and PERL_PERTURB_KEYS for determinism
-        BEGIN {
-          $ENV{PERL_HASH_SEED} = 0;
-          $ENV{PERL_PERTURB_KEYS} = 0;
-        }
-
         use Graph::Easy;
+
+        # Set Perl's random seed BEFORE Graph::Easy->new() to avoid randomize()
+        # Graph::Easy->new() calls randomize() which calls srand() with no args,
+        # reseeding from system. We need to control this from the start.
+        srand(12345);
 
         my $input = <<'END_INPUT';
 ${escapedInput}
@@ -250,7 +248,7 @@ END_INPUT
         eval {
           my $graph = Graph::Easy->new($input);
 
-          # Set consistent seed for deterministic layout
+          # Set Graph::Easy's internal seed as well
           $graph->seed(12345);
 
           if ($graph->error()) {
