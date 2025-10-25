@@ -596,6 +596,10 @@ function App() {
     const content = outputContentRef.current
     if (!container || !content) return
 
+    // Reset scroll position first
+    container.scrollTop = 0
+    container.scrollLeft = 0
+
     // Get container dimensions (viewport)
     const containerRect = container.getBoundingClientRect()
     const containerWidth = containerRect.width - 64 // Account for padding
@@ -713,6 +717,16 @@ function App() {
       container.removeEventListener('wheel', handleWheel)
     }
   }, [])
+
+  // Reset scroll position when output changes
+  useEffect(() => {
+    const container = outputContainerRef.current
+    if (!container || !output) return
+
+    // Scroll to top-left to ensure the graph is visible from the start
+    container.scrollTop = 0
+    container.scrollLeft = 0
+  }, [output])
 
 
   return (
