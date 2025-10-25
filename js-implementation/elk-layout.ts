@@ -93,14 +93,14 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
  */
 function graphToELK(graph: Graph): ELKGraph {
   const nodes: ELKNode[] = graph.getNodes().map(node => {
-    // Calculate width: label + 4 chars padding (2 on each side) like other engines
+    // Calculate width: label + 2 chars padding (1 on each side) for compact nodes
     const labelLength = (node.name || '').length
-    const width = (labelLength + 4) * 8 // 8 pixels per character in grid
+    const width = (labelLength + 2) * 6 // 6 pixels per character for compact display
 
     return {
       id: node.id,
       width: width,
-      height: 24, // 3 grid cells
+      height: 10, // Exactly 3 lines high (with scale 0.3: 10*0.3=3)
       labels: node.name ? [{ text: node.name }] : undefined
     }
   })
@@ -137,10 +137,10 @@ function graphToELK(graph: Graph): ELKGraph {
   if (structure.hasMultiEdges) {
     // Graphs with multi-edges (like Seven Bridges): prevent vertical stacking
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '40',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '60',
-      'elk.spacing.edgeNode': '25',
-      'elk.spacing.edgeEdge': '20',
+      'elk.spacing.nodeNode': '25',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '40',
+      'elk.spacing.edgeNode': '20',
+      'elk.spacing.edgeEdge': '15',
       'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.nodePlacement.strategy': 'LINEAR_SEGMENTS',
       'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
@@ -151,10 +151,10 @@ function graphToELK(graph: Graph): ELKGraph {
   } else if (structure.isTree) {
     // Tree structure: prioritize compactness and straight edges
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '15',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '30',
-      'elk.spacing.edgeNode': '10',
-      'elk.spacing.edgeEdge': '8',
+      'elk.spacing.nodeNode': '10',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '20',
+      'elk.spacing.edgeNode': '8',
+      'elk.spacing.edgeEdge': '6',
       'elk.layered.layering.strategy': 'LONGEST_PATH',
       'elk.layered.nodePlacement.strategy': 'SIMPLE',
       'elk.layered.nodePlacement.favorStraightEdges': 'true',
@@ -165,26 +165,26 @@ function graphToELK(graph: Graph): ELKGraph {
     })
   } else if (structure.hasCycles) {
     // Cyclic graph: prioritize stability and avoid hitbox issues
+    // Disable post-compaction to prevent constraint conflicts
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '25',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '45',
-      'elk.spacing.edgeNode': '20',
-      'elk.spacing.edgeEdge': '15',
-      'elk.layered.layering.strategy': 'LONGEST_PATH',
-      'elk.layered.nodePlacement.strategy': 'SIMPLE',
+      'elk.spacing.nodeNode': '20',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '35',
+      'elk.spacing.edgeNode': '15',
+      'elk.spacing.edgeEdge': '12',
+      'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.cycleBreaking.strategy': 'GREEDY',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      'elk.layered.thoroughness': '7',
-      'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-      'elk.layered.compaction.postCompaction.constraints': 'NONE',
+      'elk.layered.thoroughness': '5',
+      'elk.layered.compaction.postCompaction.strategy': 'NONE',
     })
   } else if (structure.isDense) {
     // Dense graph: prioritize crossing minimization and readability
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '30',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '50',
-      'elk.spacing.edgeNode': '20',
-      'elk.spacing.edgeEdge': '15',
+      'elk.spacing.nodeNode': '20',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '35',
+      'elk.spacing.edgeNode': '15',
+      'elk.spacing.edgeEdge': '12',
       'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -195,10 +195,10 @@ function graphToELK(graph: Graph): ELKGraph {
   } else {
     // Default: balanced settings for general graphs
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '20',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '40',
-      'elk.spacing.edgeNode': '15',
-      'elk.spacing.edgeEdge': '10',
+      'elk.spacing.nodeNode': '15',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '25',
+      'elk.spacing.edgeNode': '12',
+      'elk.spacing.edgeEdge': '8',
       'elk.layered.layering.strategy': 'LONGEST_PATH',
       'elk.layered.nodePlacement.strategy': 'SIMPLE',
       'elk.layered.nodePlacement.favorStraightEdges': 'true',
@@ -296,7 +296,7 @@ function elkToGridLayout(elkResult: any): LayoutResult {
 }
 
 /**
- * Layout Graph using ELK
+ * Layout Graph using ELK (returns simplified LayoutResult)
  */
 export async function layoutWithELK(graph: Graph): Promise<LayoutResult> {
   const elk = new ELK()
@@ -311,6 +311,46 @@ export async function layoutWithELK(graph: Graph): Promise<LayoutResult> {
   const gridLayout = elkToGridLayout(layouted)
 
   return gridLayout
+}
+
+/**
+ * Layout and render Graph using ELK with the new orthogonal ASCII renderer
+ *
+ * This uses the elk-ascii-renderer which produces higher quality output
+ * with proper orthogonal routing, smart junctions, and better edge rendering.
+ */
+export async function layoutAndRenderWithELK(graph: Graph, boxart: boolean = false): Promise<string> {
+  const elk = new ELK()
+
+  // Convert to ELK format
+  const elkGraph = graphToELK(graph)
+
+  // Run layout
+  const layouted = await elk.layout(elkGraph)
+
+  // Use the new elk-ascii-renderer for better quality output
+  const { renderASCII } = await import('./renderers/elk-ascii-renderer')
+  // Cast to any to avoid type mismatch between elkjs types and our simplified types
+  // The renderer handles the conversion internally
+  const { ascii, metadata } = renderASCII(layouted as any, {
+    scale: 0.3,
+    unicode: boxart,
+    arrows: true,
+    renderLabels: true,
+    renderPorts: false,
+    margin: 5,
+  })
+
+  if (!ascii) {
+    throw new Error(metadata.error || 'Failed to render ASCII')
+  }
+
+  // Log metadata for debugging
+  if (metadata.warnings && metadata.warnings.length > 0) {
+    console.warn('ELK ASCII Renderer warnings:', metadata.warnings)
+  }
+
+  return ascii
 }
 
 /**

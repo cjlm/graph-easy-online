@@ -266,7 +266,7 @@ function App() {
     if (perlReady && conversionEngine === 'webperl') {
       setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
     } else if (perlReady) {
-      // If using ELK/DOT, convert immediately
+      // If using ELK, convert immediately
       setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
     }
   }, [perlReady])
@@ -394,16 +394,13 @@ function App() {
     initPerl()
   }, [])
 
-  // Initialize ELK/DOT engines on demand
+  // Initialize ELK engine on demand
   useEffect(() => {
     const initEngines = async () => {
       try {
         if (conversionEngine === 'elk') {
           await graphConversionService.initializeELK()
           console.log('ELK engine initialized successfully')
-        } else if (conversionEngine === 'dot') {
-          await graphConversionService.initializeDOT()
-          console.log('DOT engine initialized successfully')
         }
       } catch (err) {
         console.error('Failed to initialize engine:', err)
@@ -411,7 +408,7 @@ function App() {
       }
     }
 
-    if (conversionEngine === 'elk' || conversionEngine === 'dot') {
+    if (conversionEngine === 'elk') {
       initEngines()
     }
   }, [conversionEngine])
@@ -826,7 +823,7 @@ function App() {
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
                 <span className="font-medium">
-                  {engineUsed === 'elk' ? 'ELK' : engineUsed === 'dot' ? 'DOT' : 'Perl'}
+                  {engineUsed === 'elk' ? 'ELK' : 'Perl'}
                 </span>
               </div>
               <span>•</span>
@@ -925,17 +922,6 @@ function App() {
             title="ELK (Eclipse Layout Kernel)"
           >
             ELK
-          </button>
-          <button
-            onClick={() => handleEngineChange('dot')}
-            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-              conversionEngine === 'dot'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-            title="DOT (Graphviz)"
-          >
-            DOT
           </button>
         </div>
 

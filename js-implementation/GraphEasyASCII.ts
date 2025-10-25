@@ -69,11 +69,6 @@ export interface GraphEasyOptions {
    * Use ELK (Eclipse Layout Kernel) for layout
    */
   useELK?: boolean
-
-  /**
-   * Use DOT/Graphviz for layout
-   */
-  useDOT?: boolean
 }
 
 export class GraphEasyASCII {
@@ -94,7 +89,6 @@ export class GraphEasyASCII {
       rankSpacing: options.rankSpacing ?? 5,
       disableWasm: options.disableWasm ?? false,
       useELK: options.useELK ?? false,
-      useDOT: options.useDOT ?? false,
     }
 
     this.graphEasyParser = new Parser({
@@ -159,10 +153,18 @@ export class GraphEasyASCII {
         graph.setAttribute('flow', this.options.flow)
       }
 
-      // 3. Perform layout
-      const layout = await this.layout(graph)
+      // 3. ELK uses new integrated renderer (bypasses old renderer)
+      if (this.options.useELK) {
+        console.log('🦌 Using ELK layout engine with new orthogonal ASCII renderer')
+        const { layoutAndRenderWithELK } = await import('./elk-layout')
+        console.log('🦌 ELK input nodes:', graph.getNodes().map(n => ({ id: n.id, name: n.name })))
+        const ascii = await layoutAndRenderWithELK(graph, this.options.boxart)
+        console.log('🦌 ELK rendering completed')
+        return ascii
+      }
 
-      // 4. Render as ASCII
+      // 4. For other engines, use old rendering flow
+      const layout = await this.layout(graph)
       const ascii = this.render(layout)
 
       return ascii
@@ -201,16 +203,12 @@ export class GraphEasyASCII {
       // Use ELK layout engine
       console.log('🦌 Using ELK layout engine')
       return await this.layoutWithELK(graph)
-    } else if (this.options.useDOT) {
-      // Use DOT/Graphviz layout engine
-      console.log('📊 Using DOT/Graphviz layout engine')
-      return await this.layoutWithDOT(graph)
     } else if (this.layoutEngine) {
       // Use WASM layout engine when available
       console.log('🦀 Using Rust/WASM layout engine')
       return await this.layoutWithWASM(graph)
     } else {
-      throw new Error('No layout engine available. Please specify useELK, useDOT, or enable WASM.')
+      throw new Error('No layout engine available. Please specify useELK or enable WASM.')
     }
   }
 
@@ -284,21 +282,6 @@ export class GraphEasyASCII {
     }
   }
 
-  /**
-   * Layout using DOT/Graphviz engine
-   */
-  private async layoutWithDOT(graph: Graph): Promise<LayoutResult> {
-    try {
-      const { layoutWithDOT } = await import('./dot-layout')
-      console.log('📊 DOT input nodes:', graph.getNodes().map(n => ({ id: n.id, name: n.name })))
-      const result = await layoutWithDOT(graph)
-      console.log('📊 DOT layout result:', result)
-      return result
-    } catch (error) {
-      console.error('📊 DOT layout failed:', error)
-      throw error
-    }
-  }
 
   /**
    * Render a layout result as ASCII
