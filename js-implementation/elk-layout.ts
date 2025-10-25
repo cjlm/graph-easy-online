@@ -100,7 +100,7 @@ function graphToELK(graph: Graph): ELKGraph {
     return {
       id: node.id,
       width: width,
-      height: 12, // Very compact height (~3-4 chars with scale 0.3)
+      height: 10, // Exactly 3 lines high (with scale 0.3: 10*0.3=3)
       labels: node.name ? [{ text: node.name }] : undefined
     }
   })
