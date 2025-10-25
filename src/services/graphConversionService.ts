@@ -231,13 +231,14 @@ export class GraphConversionService {
       const perlScript = `
         use strict;
         use warnings;
+        use lib '/lib';
 
-        # Force reload of Layout module to get sorted hash iteration fix
+        # Set PERL_HASH_SEED and PERL_PERTURB_KEYS for determinism
         BEGIN {
-          delete $INC{'Graph/Easy/Layout.pm'} if $INC{'Graph/Easy/Layout.pm'};
+          $ENV{PERL_HASH_SEED} = 0;
+          $ENV{PERL_PERTURB_KEYS} = 0;
         }
 
-        use lib '/lib';
         use Graph::Easy;
 
         my $input = <<'END_INPUT';
@@ -250,7 +251,6 @@ END_INPUT
           my $graph = Graph::Easy->new($input);
 
           # Set consistent seed for deterministic layout
-          # Graph::Easy randomizes seed on init, causing non-deterministic output
           $graph->seed(12345);
 
           if ($graph->error()) {
