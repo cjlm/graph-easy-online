@@ -184,7 +184,9 @@ export class GraphConversionService {
       throw new Error('WebPerl not initialized')
     }
 
-    if (window.Perl.state !== 'Ready') {
+    // Accept Ready, Running, and Ended states (consistent with App.tsx module loading logic)
+    const validStates = ['Ready', 'Running', 'Ended']
+    if (!validStates.includes(window.Perl.state)) {
       console.error('❌ WebPerl state:', window.Perl.state)
       throw new Error(`WebPerl not ready (state: ${window.Perl.state})`)
     }
