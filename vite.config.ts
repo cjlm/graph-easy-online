@@ -9,7 +9,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       // Use the bundled browser version of elkjs (doesn't need web-worker)
-      'elkjs': path.resolve(__dirname, './node_modules/.pnpm/elkjs@0.11.0/node_modules/elkjs/lib/elk.bundled.js'),
+      'elkjs': path.resolve(__dirname, './node_modules/elkjs/lib/elk.bundled.js'),
     },
   },
   base: process.env.CF_PAGES ? '/' : '/graph-easy/',
