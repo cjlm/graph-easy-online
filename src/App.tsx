@@ -802,7 +802,11 @@ function App() {
           </h1>
           <div className="flex items-center gap-2">
             {loadingState === 'ready' ? (
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Ready" />
+              !perlReady && conversionEngine === 'webperl' ? (
+                <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" title="Loading Perl modules..." />
+              ) : (
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Ready" />
+              )
             ) : loadingState === 'error' ? (
               <div className="w-2 h-2 rounded-full bg-red-500" title="Error" />
             ) : null}
