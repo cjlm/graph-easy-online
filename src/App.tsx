@@ -241,6 +241,7 @@ function App() {
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
   const [isConverting, setIsConverting] = useState(false)
+  const isConvertingRef = useRef(false)
   const [isPanning, setIsPanning] = useState(false)
   const [panStartX, setPanStartX] = useState(0)
   const [panStartY, setPanStartY] = useState(0)
@@ -513,7 +514,14 @@ function App() {
       return
     }
 
+    // Prevent concurrent conversions to avoid Perl interpreter state pollution
+    if (isConvertingRef.current) {
+      console.log('Conversion already in progress, skipping...')
+      return
+    }
+
     try {
+      isConvertingRef.current = true
       setError('')
 
       // Use the conversion service with the selected engine
@@ -547,6 +555,8 @@ function App() {
       setError(`Conversion error: ${err.message || String(err)}`)
       setIsConverting(false)
       // Keep previous output visible
+    } finally {
+      isConvertingRef.current = false
     }
   }
 
