@@ -528,15 +528,17 @@ function getCornerChar(
 ): string | null {
   if (!fromDir || !toDir) return null
 
+  // Map direction pairs to correct corners
+  // fromDir is where we came from, toDir is where we're going
   const corners: Record<string, string> = {
-    rd: chars.cornerTL,
-    ru: chars.cornerBL,
-    ld: chars.cornerTR,
-    lu: chars.cornerBR,
-    dr: chars.cornerTL,
-    dl: chars.cornerTR,
-    ur: chars.cornerBL,
-    ul: chars.cornerBR,
+    rd: chars.cornerTR, // right then down: ┐
+    ru: chars.cornerBR, // right then up: ┘
+    ld: chars.cornerTL, // left then down: ┌
+    lu: chars.cornerBL, // left then up: └
+    dr: chars.cornerBL, // down then right: └
+    dl: chars.cornerBR, // down then left: ┘
+    ur: chars.cornerTL, // up then right: ┌
+    ul: chars.cornerTR, // up then left: ┐
   }
   return corners[fromDir + toDir] || null
 }
