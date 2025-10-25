@@ -338,7 +338,7 @@ describe('ELK ASCII Renderer', () => {
   })
 
   it('should validate invalid ELK result', () => {
-    const invalidResult = {} as ELKResult
+    const invalidResult = null as any
     const { ascii, metadata } = renderASCII(invalidResult)
 
     expect(ascii).toBeNull()
