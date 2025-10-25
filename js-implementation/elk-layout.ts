@@ -93,14 +93,14 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
  */
 function graphToELK(graph: Graph): ELKGraph {
   const nodes: ELKNode[] = graph.getNodes().map(node => {
-    // Calculate width: label + 4 chars padding (2 on each side) like other engines
+    // Calculate width: label + 2 chars padding (1 on each side) for compact nodes
     const labelLength = (node.name || '').length
-    const width = (labelLength + 4) * 8 // 8 pixels per character in grid
+    const width = (labelLength + 2) * 6 // 6 pixels per character for compact display
 
     return {
       id: node.id,
       width: width,
-      height: 24, // 3 grid cells
+      height: 16, // Compact height (~5 chars with scale 0.3)
       labels: node.name ? [{ text: node.name }] : undefined
     }
   })
