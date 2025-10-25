@@ -241,7 +241,8 @@ function App() {
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
   const [isConverting, setIsConverting] = useState(false)
-  const isConvertingRef = useRef(false)
+  const conversionRequestIdRef = useRef(0)
+  const conversionPromiseRef = useRef<Promise<void> | null>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [panStartX, setPanStartX] = useState(0)
   const [panStartY, setPanStartY] = useState(0)
@@ -514,50 +515,81 @@ function App() {
       return
     }
 
-    // Prevent concurrent conversions to avoid Perl interpreter state pollution
-    if (isConvertingRef.current) {
-      console.log('Conversion already in progress, skipping...')
+    // Increment request ID and capture it for this conversion
+    // This allows us to ignore stale results from earlier requests
+    conversionRequestIdRef.current += 1
+    const thisRequestId = conversionRequestIdRef.current
+
+    console.log(`[Conversion ${thisRequestId}] Starting...`)
+
+    // Wait for any previous conversion to complete to prevent Perl interpreter corruption
+    if (conversionPromiseRef.current) {
+      console.log(`[Conversion ${thisRequestId}] Waiting for previous conversion...`)
+      try {
+        await conversionPromiseRef.current
+      } catch (e) {
+        // Ignore errors from previous conversion
+      }
+    }
+
+    // Check if we've been superseded while waiting
+    if (thisRequestId !== conversionRequestIdRef.current) {
+      console.log(`[Conversion ${thisRequestId}] Superseded while waiting (current: ${conversionRequestIdRef.current})`)
       return
     }
 
-    try {
-      isConvertingRef.current = true
-      setError('')
+    // Create promise for this conversion
+    const conversionPromise = (async () => {
+      try {
+        setError('')
 
-      // Use the conversion service with the selected engine
-      const result = await graphConversionService.convert(
-        textToConvert,
-        outputFormat,
-        engineOverride || conversionEngine
-      )
+        // Use the conversion service with the selected engine
+        const result = await graphConversionService.convert(
+          textToConvert,
+          outputFormat,
+          engineOverride || conversionEngine
+        )
 
-      // Update performance metrics
-      setConversionTime(result.timeMs)
-      setEngineUsed(result.engine)
+        // Check if this request is still the latest one
+        if (thisRequestId !== conversionRequestIdRef.current) {
+          console.log(`[Conversion ${thisRequestId}] Ignoring stale result (current: ${conversionRequestIdRef.current})`)
+          return
+        }
 
-      if (result.error) {
-        setError(result.error)
-      }
+        console.log(`[Conversion ${thisRequestId}] Applying result`)
 
-      if (result.output) {
-        setOutput(result.output)
-        setError(result.error || '')
-        // For non-graphviz formats, conversion is complete immediately
-        // For graphviz, the rendering effect will set isConverting to false
-        if (outputFormat !== 'graphviz') {
+        // Update performance metrics
+        setConversionTime(result.timeMs)
+        setEngineUsed(result.engine)
+
+        if (result.error) {
+          setError(result.error)
+        }
+
+        if (result.output) {
+          setOutput(result.output)
+          setError(result.error || '')
+          // For non-graphviz formats, conversion is complete immediately
+          // For graphviz, the rendering effect will set isConverting to false
+          if (outputFormat !== 'graphviz') {
+            setIsConverting(false)
+          }
+        } else {
+          setError('No output generated')
           setIsConverting(false)
         }
-      } else {
-        setError('No output generated')
-        setIsConverting(false)
+      } catch (err: any) {
+        // Only show error if this is still the latest request
+        if (thisRequestId === conversionRequestIdRef.current) {
+          setError(`Conversion error: ${err.message || String(err)}`)
+          setIsConverting(false)
+        }
+        // Keep previous output visible
       }
-    } catch (err: any) {
-      setError(`Conversion error: ${err.message || String(err)}`)
-      setIsConverting(false)
-      // Keep previous output visible
-    } finally {
-      isConvertingRef.current = false
-    }
+    })()
+
+    conversionPromiseRef.current = conversionPromise
+    await conversionPromise
   }
 
   const handleExampleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
