@@ -243,6 +243,10 @@ END_INPUT
         eval {
           my $graph = Graph::Easy->new($input);
 
+          # Set consistent seed for deterministic layout
+          # Graph::Easy randomizes seed on init, causing non-deterministic output
+          $graph->seed(12345);
+
           if ($graph->error()) {
             $output = "Error: " . $graph->error();
           } else {
