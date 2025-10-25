@@ -330,7 +330,9 @@ export async function layoutAndRenderWithELK(graph: Graph, boxart: boolean = fal
 
   // Use the new elk-ascii-renderer for better quality output
   const { renderASCII } = await import('./renderers/elk-ascii-renderer')
-  const { ascii, metadata } = renderASCII(layouted, {
+  // Cast to any to avoid type mismatch between elkjs types and our simplified types
+  // The renderer handles the conversion internally
+  const { ascii, metadata } = renderASCII(layouted as any, {
     scale: 0.3,
     unicode: boxart,
     arrows: true,

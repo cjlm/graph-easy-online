@@ -213,8 +213,8 @@ export interface ELKEdge {
 }
 
 export interface ELKResult {
-  children: ELKNode[]
-  edges: ELKEdge[]
+  children?: ELKNode[]
+  edges?: ELKEdge[]
 }
 
 /**
@@ -222,7 +222,7 @@ export interface ELKResult {
  *
  * Converts floating-point ELK coordinates to grid coordinates
  */
-function quantize(elkResult: ELKResult, scale: number): QuantizedGraph {
+function quantize(elkResult: Required<ELKResult>, scale: number): QuantizedGraph {
   const quantizePoint = (p: { x: number; y: number }): GridPoint => ({
     x: Math.round(p.x * scale),
     y: Math.round(p.y * scale),
@@ -863,12 +863,18 @@ export function renderASCII(elkResult: ELKResult, options: RenderOptions = {}): 
 
   try {
     // Validate input
-    if (!elkResult || !elkResult.children || !elkResult.edges) {
-      throw new Error('Invalid ELK result: missing children or edges')
+    if (!elkResult) {
+      throw new Error('Invalid ELK result: result is null or undefined')
+    }
+
+    // Handle optional children and edges (default to empty arrays)
+    const normalizedResult: Required<ELKResult> = {
+      children: elkResult.children || [],
+      edges: elkResult.edges || [],
     }
 
     // Phase 1: Quantize coordinates
-    const { nodes, edges } = quantize(elkResult, opts.scale)
+    const { nodes, edges } = quantize(normalizedResult, opts.scale)
 
     // Phase 2: Allocate canvas
     const { canvas, offset, width, height } = allocateCanvas(nodes, edges, opts.margin)
