@@ -554,9 +554,7 @@ function App() {
     const example = EXAMPLES.find(ex => ex.name === e.target.value)
     if (example) {
       setInput(example.graph)
-      if (loadingState === 'ready') {
-        convertGraph(example.graph)
-      }
+      // Let the auto-convert useEffect handle the conversion to avoid race conditions
     }
   }
 
