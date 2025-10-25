@@ -100,7 +100,7 @@ function graphToELK(graph: Graph): ELKGraph {
     return {
       id: node.id,
       width: width,
-      height: 16, // Compact height (~5 chars with scale 0.3)
+      height: 12, // Very compact height (~3-4 chars with scale 0.3)
       labels: node.name ? [{ text: node.name }] : undefined
     }
   })
@@ -137,10 +137,10 @@ function graphToELK(graph: Graph): ELKGraph {
   if (structure.hasMultiEdges) {
     // Graphs with multi-edges (like Seven Bridges): prevent vertical stacking
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '40',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '60',
-      'elk.spacing.edgeNode': '25',
-      'elk.spacing.edgeEdge': '20',
+      'elk.spacing.nodeNode': '25',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '40',
+      'elk.spacing.edgeNode': '20',
+      'elk.spacing.edgeEdge': '15',
       'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.nodePlacement.strategy': 'LINEAR_SEGMENTS',
       'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
@@ -151,10 +151,10 @@ function graphToELK(graph: Graph): ELKGraph {
   } else if (structure.isTree) {
     // Tree structure: prioritize compactness and straight edges
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '15',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '30',
-      'elk.spacing.edgeNode': '10',
-      'elk.spacing.edgeEdge': '8',
+      'elk.spacing.nodeNode': '10',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '20',
+      'elk.spacing.edgeNode': '8',
+      'elk.spacing.edgeEdge': '6',
       'elk.layered.layering.strategy': 'LONGEST_PATH',
       'elk.layered.nodePlacement.strategy': 'SIMPLE',
       'elk.layered.nodePlacement.favorStraightEdges': 'true',
@@ -167,10 +167,10 @@ function graphToELK(graph: Graph): ELKGraph {
     // Cyclic graph: prioritize stability and avoid hitbox issues
     // Disable post-compaction to prevent constraint conflicts
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '30',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '50',
-      'elk.spacing.edgeNode': '20',
-      'elk.spacing.edgeEdge': '15',
+      'elk.spacing.nodeNode': '20',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '35',
+      'elk.spacing.edgeNode': '15',
+      'elk.spacing.edgeEdge': '12',
       'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.cycleBreaking.strategy': 'GREEDY',
@@ -181,10 +181,10 @@ function graphToELK(graph: Graph): ELKGraph {
   } else if (structure.isDense) {
     // Dense graph: prioritize crossing minimization and readability
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '30',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '50',
-      'elk.spacing.edgeNode': '20',
-      'elk.spacing.edgeEdge': '15',
+      'elk.spacing.nodeNode': '20',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '35',
+      'elk.spacing.edgeNode': '15',
+      'elk.spacing.edgeEdge': '12',
       'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -195,10 +195,10 @@ function graphToELK(graph: Graph): ELKGraph {
   } else {
     // Default: balanced settings for general graphs
     Object.assign(layoutOptions, {
-      'elk.spacing.nodeNode': '20',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '40',
-      'elk.spacing.edgeNode': '15',
-      'elk.spacing.edgeEdge': '10',
+      'elk.spacing.nodeNode': '15',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '25',
+      'elk.spacing.edgeNode': '12',
+      'elk.spacing.edgeEdge': '8',
       'elk.layered.layering.strategy': 'LONGEST_PATH',
       'elk.layered.nodePlacement.strategy': 'SIMPLE',
       'elk.layered.nodePlacement.favorStraightEdges': 'true',
