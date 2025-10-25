@@ -815,7 +815,7 @@ sub _get_joints
  
   my @R;
   # convert hash to array
-  for my $s (values %{$cells})
+  for my $s (sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] } values %{$cells})
     {
     push @R, @$s;
     }

@@ -193,7 +193,7 @@ sub _follow_chain
 
     my %suc;
 
-    for my $e (values %{$node->{edges}})
+    for my $e (sort { ($a->{to}->{name} || '') cmp ($b->{to}->{name} || '') || $a->{id} <=> $b->{id} } values %{$node->{edges}})
       {
       my $to = $e->{to};
 
@@ -345,7 +345,7 @@ sub _find_chains
   # compute predecessors for all nodes: O(1)
   my $p;
   my $has_origin = 0;
-  foreach my $n (values %{$self->{nodes}}, values %{$self->{groups}})
+  foreach my $n (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } (values %{$self->{nodes}}, values %{$self->{groups}}))
 #  for my $n (values %{$self->{nodes}})
     {
     $n->{_chain} = undef;				# reset chain info
@@ -507,7 +507,7 @@ sub layout
 
   # cleanup
   $self->{chains} = undef;		# drop chain info
-  foreach my $n (values %{$self->{nodes}}, values %{$self->{groups}})
+  foreach my $n (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } (values %{$self->{nodes}}, values %{$self->{groups}}))
     {
     # drop old chain info
     $n->{_next} = undef;
@@ -525,7 +525,7 @@ sub _drop_caches
   # before the layout phase, we drop cached information from the last run
   my $self = shift;
 
-  for my $n (values %{$self->{nodes}})
+  for my $n (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } values %{$self->{nodes}})
     {
     # XXX after we laid out the individual groups:    
     # skip nodes that are not part of the current group
@@ -538,7 +538,7 @@ sub _drop_caches
     $n->{w} = undef;			# force size recalculation
     $n->{_todo} = undef;		# mark as todo
     }
-  for my $g (values %{$self->{groups}})
+  for my $g (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } values %{$self->{groups}})
     {
     $g->{x} = undef; $g->{y} = undef;	# mark every group as not placed yet
     $g->{_todo} = undef;		# mark as todo
@@ -579,7 +579,7 @@ sub _layout
 
   $self->_drop_caches();
 
-  local $_; $_->_grow() for values %{$self->{nodes}};
+  local $_; $_->_grow() for sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } values %{$self->{nodes}};
 
   $self->_assign_ranks();
 
@@ -604,7 +604,7 @@ sub _layout
     }
 
   # mark all edges as unprocessed, so that we do not process them twice
-  for my $edge (values %{$self->{edges}})
+  for my $edge (sort { ($a->{from}->{name} || '') cmp ($b->{from}->{name} || '') || ($a->{to}->{name} || '') cmp ($b->{to}->{name} || '') || $a->{id} <=> $b->{id} } values %{$self->{edges}})
     { 
     $edge->_clear_cells();
     $edge->{_todo} = undef;		# mark as todo
@@ -645,8 +645,8 @@ sub _layout
   # After laying out all chained nodes and their links, we need to resolve
   # left-over edges and links. We do this for each node, and then for each of
   # its edges, but do the edges shortest-first.
- 
-  for my $n (values %{$self->{nodes}})
+
+  for my $n (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } values %{$self->{nodes}})
     {
     push @todo, $self->_action( ACTION_NODE, $n, 0 ); # if exists $n->{_todo};
 
@@ -687,7 +687,7 @@ sub _layout
     push @todo, [ ACTION_SPLICE ] if scalar $self->groups();
 
     # now do all group-to-group and node-to-group and group-to-node links:
-    for my $n (values %{$self->{groups}})
+    for my $n (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } values %{$self->{groups}})
       {
       }
     }
@@ -860,14 +860,14 @@ sub _count_done_things
   # count placed nodes
   my $nodes = 0;
   my $i = 1;
-  for my $n (values %{$self->{nodes}})
+  for my $n (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } values %{$self->{nodes}})
     {
     $nodes++ if defined $n->{x};
     }
   my $edges = 0;
   $i = 1;
   # count fully routed edges
-  for my $e (values %{$self->{edges}})
+  for my $e (sort { ($a->{from}->{name} || '') cmp ($b->{from}->{name} || '') || ($a->{to}->{name} || '') cmp ($b->{to}->{name} || '') || $a->{id} <=> $b->{id} } values %{$self->{edges}})
     {
     $edges++ if scalar @{$e->{cells}} > 0 && !exists $e->{_todo};
     }
@@ -891,7 +891,7 @@ sub _optimize_layout
 
   ###########################################################################
   # for each edge, compact HOR and VER stretches of cells
-  for my $e (values %{$self->{edges}})
+  for my $e (sort { ($a->{from}->{name} || '') cmp ($b->{from}->{name} || '') || ($a->{to}->{name} || '') cmp ($b->{to}->{name} || '') || $a->{id} <=> $b->{id} } values %{$self->{edges}})
     {
     my $cells = $e->{cells};
 

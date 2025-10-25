@@ -40,7 +40,7 @@ async function testDeterminism() {
 
   // Navigate to the app (use preview server)
   console.log('Loading app...');
-  await page.goto('http://localhost:4173/graph-easy/', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:4174/graph-easy/', { waitUntil: 'networkidle' });
 
   // Wait for Perl to be ready
   console.log('Waiting for Perl to initialize...');
@@ -176,7 +176,7 @@ END_INPUT
       `);
 
       // Split debug and output
-      const parts = output.split('---OUTPUT---\\n');
+      const parts = output.split('---OUTPUT---\n');
       return {
         debug: parts[0] || '',
         output: parts[1] || output
