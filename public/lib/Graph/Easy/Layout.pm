@@ -270,8 +270,8 @@ sub _follow_chain
     my @rc;
 
     # for all successors
-    #for my $s (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} }  values %suc)
-    for my $s (values %suc)
+    # Enable sorted iteration for deterministic output (hash order is randomized in Perl)
+    for my $s (sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} }  values %suc)
       {
       print STDERR "# suc $s->{name} chain ", $s->{_chain} || 'undef',"\n" if $self->{debug};
 
