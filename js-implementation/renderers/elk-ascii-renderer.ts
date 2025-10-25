@@ -622,17 +622,15 @@ function drawHorizontalSegment(
 
   // Place arrow if last segment and arrows enabled
   if (isLastSegment && options.arrows) {
-    const arrowX = to.x
+    const arrowX = to.x - dir // Place arrow one cell before target
     const arrowY = to.y
     const key = `${arrowX},${arrowY}`
 
     // Check bounds
     if (arrowY >= 0 && arrowY < canvas.length && arrowX >= 0 && arrowX < canvas[0].length) {
-      // Check if arrow lands on node boundary
-      if (occupancy.has(key)) {
-        // Adjust node boundary character
-        canvas[arrowY][arrowX] = chars.tJunctionL // right arrow into node
-      } else {
+      // Don't overwrite if occupied by a node
+      if (!occupancy.has(key)) {
+        // Replace the line segment with an arrow
         canvas[arrowY][arrowX] = dir > 0 ? chars.arrowR : chars.arrowL
       }
     }
@@ -673,14 +671,14 @@ function drawVerticalSegment(
 
   if (isLastSegment && options.arrows) {
     const arrowX = to.x
-    const arrowY = to.y
+    const arrowY = to.y - dir // Place arrow one cell before target
     const key = `${arrowX},${arrowY}`
 
     // Check bounds
     if (arrowY >= 0 && arrowY < canvas.length && arrowX >= 0 && arrowX < canvas[0].length) {
-      if (occupancy.has(key)) {
-        canvas[arrowY][arrowX] = chars.tJunctionU // down arrow into node
-      } else {
+      // Don't overwrite if occupied by a node
+      if (!occupancy.has(key)) {
+        // Replace the line segment with an arrow
         canvas[arrowY][arrowX] = dir > 0 ? chars.arrowD : chars.arrowU
       }
     }
