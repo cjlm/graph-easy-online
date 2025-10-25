@@ -228,6 +228,12 @@ export class GraphConversionService {
       const perlScript = `
         use strict;
         use warnings;
+
+        # Force module reload to clear any package-level state
+        delete $INC{'Graph/Easy.pm'};
+        delete $INC{'Graph/Easy/Parser.pm'};
+        delete $INC{'Graph/Easy/Layout.pm'};
+
         use lib '/lib';
         use Graph::Easy;
 
