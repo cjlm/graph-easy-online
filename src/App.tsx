@@ -464,23 +464,30 @@ function App() {
   useEffect(() => {
     if (loadingState !== 'ready' || !input.trim()) return
 
+    // Don't auto-convert with WebPerl until modules are loaded
+    if (conversionEngine === 'webperl' && !perlReady) return
+
     const timeoutId = setTimeout(() => {
       setIsConverting(true)
       convertGraph()
     }, 500) // 500ms debounce
 
     return () => clearTimeout(timeoutId)
-  }, [input, loadingState])
+  }, [input, loadingState, conversionEngine, perlReady])
 
   // Auto-convert when output format changes
   useEffect(() => {
     if (loadingState === 'ready' && input.trim() && output) {
       // Only re-convert if we already have output
       // (don't convert on initial mount)
+
+      // Don't auto-convert with WebPerl until modules are loaded
+      if (conversionEngine === 'webperl' && !perlReady) return
+
       setIsConverting(true)
       convertGraph()
     }
-  }, [outputFormat])
+  }, [outputFormat, conversionEngine, perlReady])
 
   // Render Graphviz DOT output when format is 'graphviz'
   useEffect(() => {
@@ -833,7 +840,11 @@ function App() {
           </h1>
           <div className="flex items-center gap-2">
             {loadingState === 'ready' ? (
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Ready" />
+              !perlReady && conversionEngine === 'webperl' ? (
+                <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" title="Loading Perl modules..." />
+              ) : (
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Ready" />
+              )
             ) : loadingState === 'error' ? (
               <div className="w-2 h-2 rounded-full bg-red-500" title="Error" />
             ) : null}
