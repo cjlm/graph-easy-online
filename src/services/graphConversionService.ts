@@ -7,7 +7,7 @@
 
 import type { OutputFormat } from '../App'
 
-export type ConversionEngine = 'webperl' | 'elk' | 'dot'
+export type ConversionEngine = 'webperl' | 'elk'
 
 export interface ConversionResult {
   output: string
@@ -18,9 +18,7 @@ export interface ConversionResult {
 
 export class GraphConversionService {
   private elkConverter: any = null
-  private dotConverter: any = null
   private elkInitialized = false
-  private dotInitialized = false
   private preferredEngine: ConversionEngine = 'webperl'
 
   /**
@@ -62,32 +60,6 @@ export class GraphConversionService {
       console.log('✅ ELK converter initialized')
     } catch (error) {
       console.error('Failed to initialize ELK converter:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Initialize the DOT converter
-   */
-  async initializeDOT(): Promise<void> {
-    if (this.dotInitialized) return
-
-    try {
-      // Dynamically import DOT-enabled converter
-      const { GraphEasyASCII } = await import('../../js-implementation/GraphEasyASCII')
-
-      // Create DOT converter (with Graphviz layout engine)
-      this.dotConverter = await GraphEasyASCII.create({
-        strict: false,
-        debug: false,
-        disableWasm: true, // DOT doesn't use Rust WASM
-        useDOT: true, // Enable DOT/Graphviz layout
-      })
-
-      this.dotInitialized = true
-      console.log('✅ DOT converter initialized')
-    } catch (error) {
-      console.error('Failed to initialize DOT converter:', error)
       throw error
     }
   }
@@ -152,54 +124,6 @@ export class GraphConversionService {
             error: `ELK engine failed: ${errorMessage}\n\nFell back to WebPerl. Your graph was still converted successfully.`,
           }
         }
-      } else if (engine === 'dot') {
-        // DOT/Graphviz engine - supports ASCII/Boxart rendering
-        if (format !== 'ascii' && format !== 'boxart') {
-          console.warn(`DOT only supports ASCII/Boxart, using WebPerl for ${format}`)
-          const output = this.convertWithWebPerl(input, format)
-          const timeMs = performance.now() - startTime
-
-          return {
-            output,
-            engine: 'webperl',
-            timeMs,
-            error: `Format '${format}' requires WebPerl. DOT only supports ASCII/Boxart.`,
-          }
-        }
-
-        try {
-          if (!this.dotInitialized) {
-            console.log('📊 Initializing DOT engine...')
-            await this.initializeDOT()
-          }
-
-          console.log(`📊 Converting with DOT/Graphviz engine...`)
-          const output = await this.convertWithDOT(input, format)
-          const timeMs = performance.now() - startTime
-
-          console.log(`✅ DOT conversion succeeded in ${timeMs.toFixed(1)}ms`)
-
-          return {
-            output,
-            engine: 'dot',
-            timeMs,
-          }
-        } catch (dotError) {
-          const errorMessage = dotError instanceof Error ? dotError.message : String(dotError)
-          console.error('❌ DOT conversion failed:', errorMessage)
-          console.warn('⚠️  Falling back to WebPerl...')
-
-          // Fallback to WebPerl
-          const output = this.convertWithWebPerl(input, format)
-          const timeMs = performance.now() - startTime
-
-          return {
-            output,
-            engine: 'webperl',
-            timeMs,
-            error: `DOT engine failed: ${errorMessage}\n\nFell back to WebPerl. Your graph was still converted successfully.`,
-          }
-        }
       } else {
         // Use WebPerl directly
         console.log('🐪 Converting with WebPerl engine...')
@@ -246,27 +170,6 @@ export class GraphConversionService {
     this.elkConverter.setOptions({ boxart: format === 'boxart' })
 
     const result = await this.elkConverter.convert(input)
-
-    return result
-  }
-
-  /**
-   * Convert using DOT/Graphviz layout engine
-   */
-  private async convertWithDOT(input: string, format: OutputFormat): Promise<string> {
-    if (!this.dotInitialized) {
-      await this.initializeDOT()
-    }
-
-    // Only ASCII format is supported
-    if (format !== 'ascii' && format !== 'boxart') {
-      throw new Error(`Format '${format}' not yet supported in DOT. Use WebPerl.`)
-    }
-
-    // Set boxart option based on format
-    this.dotConverter.setOptions({ boxart: format === 'boxart' })
-
-    const result = await this.dotConverter.convert(input)
 
     return result
   }
@@ -342,13 +245,6 @@ END_INPUT
   }
 
   /**
-   * Check if DOT is available and initialized
-   */
-  isDOTAvailable(): boolean {
-    return this.dotInitialized
-  }
-
-  /**
    * Check if WebPerl is available
    */
   isWebPerlAvailable(): boolean {
@@ -363,10 +259,6 @@ END_INPUT
       elk: {
         available: this.elkInitialized,
         status: this.elkInitialized ? 'ready' : 'not-initialized',
-      },
-      dot: {
-        available: this.dotInitialized,
-        status: this.dotInitialized ? 'ready' : 'not-initialized',
       },
       webperl: {
         available: this.isWebPerlAvailable(),

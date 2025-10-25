@@ -117,27 +117,6 @@ describe('Engine Comparison - Seven Bridges', () => {
     expect(result).toContain('Island Lomse')
   })
 
-  it('should generate DOT output', async () => {
-    const dot = await GraphEasyASCII.create({
-      useDOT: true,
-      disableWasm: true
-    })
-
-    // Use no-labels version - edge labels cause layout overlaps in all engines
-    const result = await dot.convert(BRIDGES_NO_LABELS)
-
-    console.log('\n📊 DOT Output:')
-    console.log('='.repeat(80))
-    console.log(result)
-    console.log('='.repeat(80))
-
-    // Basic sanity checks
-    expect(result).toContain('North Bank')
-    expect(result).toContain('South Bank')
-    expect(result).toContain('Island Kneiphof')
-    expect(result).toContain('Island Lomse')
-  })
-
 })
 
 describe('Engine Comparison - Seven Bridges (No Labels)', () => {
@@ -167,23 +146,6 @@ describe('Engine Comparison - Seven Bridges (No Labels)', () => {
     const result = await elk.convert(BRIDGES_NO_LABELS)
 
     console.log('\n🦌 ELK Output (no labels):')
-    console.log('='.repeat(80))
-    console.log(result)
-    console.log('='.repeat(80))
-
-    expect(result).toContain('North Bank')
-    expect(result).toContain('Island Kneiphof')
-  })
-
-  it('should generate DOT output without labels', async () => {
-    const dot = await GraphEasyASCII.create({
-      useDOT: true,
-      disableWasm: true
-    })
-
-    const result = await dot.convert(BRIDGES_NO_LABELS)
-
-    console.log('\n📊 DOT Output (no labels):')
     console.log('='.repeat(80))
     console.log(result)
     console.log('='.repeat(80))
