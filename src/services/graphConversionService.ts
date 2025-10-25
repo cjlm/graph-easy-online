@@ -206,6 +206,8 @@ export class GraphConversionService {
     await previousMutex
 
     try {
+      console.log(`[Perl] Input (${input.length} chars):`, input.substring(0, 100))
+
       const escapedInput = input
         .replace(/\\/g, '\\\\')
         .replace(/\$/g, '\\$')
@@ -252,7 +254,9 @@ END_INPUT
         $output;
       `
 
+      console.log(`[Perl] Executing script...`)
       const result = window.Perl.eval(perlScript)
+      console.log(`[Perl] Result (${result?.length || 0} chars):`, result?.substring(0, 100))
 
       if (result && result.startsWith('Error:')) {
         throw new Error(result)
