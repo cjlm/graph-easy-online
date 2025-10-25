@@ -98,6 +98,12 @@ END_INPUT
         my $output;
         my $debug = "";
 
+        # Try to disable hash randomization like old Perl
+        BEGIN {
+          $ENV{PERL_HASH_SEED} = 0;
+          $ENV{PERL_PERTURB_KEYS} = 0;
+        }
+
         # Set Perl's random seed BEFORE creating graph
         # This must happen before Graph::Easy->new() which calls randomize()
         srand(12345);
@@ -106,19 +112,28 @@ END_INPUT
           my $graph = Graph::Easy->new($input);
           $graph->seed(12345);
 
+          # Check Perl version
+          my $perl_version = $];
+
           # Check state
           use Hash::Util qw(hash_seed);
           my $perl_hash_seed = unpack("H*", hash_seed());
           my $grapheasy_seed = $graph->seed();
 
-          # Test if hash iteration is consistent in WebPerl
+          # Test if hash iteration changes WITHIN same eval
           my %test_hash = (a => 1, b => 2, c => 3, d => 4, e => 5);
-          my @keys_order = keys %test_hash;
-          my $keys_str = join(",", @keys_order);
+          my $keys1 = join(",", keys %test_hash);
+          my $keys2 = join(",", keys %test_hash);
+          my $keys3 = join(",", keys %test_hash);
+          my $same_within_call = ($keys1 eq $keys2 && $keys2 eq $keys3) ? "YES" : "NO";
 
-          $debug = "Perl hash_seed: $perl_hash_seed\\n";
+          $debug = "Perl version: $perl_version\\n";
+          $debug .= "Perl hash_seed: $perl_hash_seed\\n";
           $debug .= "Graph::Easy seed: $grapheasy_seed\\n";
-          $debug .= "Hash keys order: $keys_str\\n";
+          $debug .= "Hash keys (1st call): $keys1\\n";
+          $debug .= "Hash keys (2nd call): $keys2\\n";
+          $debug .= "Hash keys (3rd call): $keys3\\n";
+          $debug .= "Same within call: $same_within_call\\n";
 
           # Check if Layout.pm was loaded/reloaded BEFORE layout
           if (exists $INC{'Graph/Easy/Layout.pm'}) {
