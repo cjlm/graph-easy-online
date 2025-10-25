@@ -1,0 +1,76 @@
+name: PR Test Results Comment
+
+on:
+  workflow_run:
+    workflows: ["Test Suite"]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request'
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
+
+      - name: Comment PR with test results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+
+            // Find the PR number
+            const pulls = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${context.payload.workflow_run.head_branch}`
+            });
+
+            if (pulls.data.length === 0) {
+              console.log('No open PR found for this branch');
+              return;
+            }
+
+            const pr = pulls.data[0];
+            const conclusion = context.payload.workflow_run.conclusion;
+            const status = conclusion === 'success' ? '✅' : '❌';
+
+            let comment = `## ${status} Test Results\n\n`;
+            comment += `Workflow: [${context.payload.workflow_run.name}](${context.payload.workflow_run.html_url})\n`;
+            comment += `Status: **${conclusion}**\n\n`;
+
+            // Try to read coverage summary if available
+            try {
+              if (fs.existsSync('coverage/coverage-summary.json')) {
+                const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+                const total = coverage.total;
+                comment += `### Coverage Summary\n\n`;
+                comment += `| Metric | Coverage |\n`;
+                comment += `|--------|----------|\n`;
+                comment += `| Lines | ${total.lines.pct}% |\n`;
+                comment += `| Statements | ${total.statements.pct}% |\n`;
+                comment += `| Functions | ${total.functions.pct}% |\n`;
+                comment += `| Branches | ${total.branches.pct}% |\n`;
+              }
+            } catch (error) {
+              console.log('Could not read coverage summary:', error.message);
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pr.number,
+              body: comment
+            });
