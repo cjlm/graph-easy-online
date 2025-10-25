@@ -182,6 +182,11 @@ export class GraphConversionService {
       throw new Error('WebPerl not initialized')
     }
 
+    // Check if Graph::Easy modules are loaded in the virtual filesystem
+    if (!this.areModulesLoaded()) {
+      throw new Error('Graph::Easy modules are still loading. Please wait a moment and try again.')
+    }
+
     const escapedInput = input
       .replace(/\\/g, '\\\\')
       .replace(/\$/g, '\\$')
@@ -245,10 +250,27 @@ END_INPUT
   }
 
   /**
+   * Check if Graph::Easy modules are loaded in the virtual filesystem
+   */
+  private areModulesLoaded(): boolean {
+    if (typeof window.FS === 'undefined') {
+      return false
+    }
+
+    try {
+      // Check if the main Graph::Easy.pm module exists
+      window.FS.readFile('/lib/Graph/Easy.pm', { encoding: 'utf8' })
+      return true
+    } catch (e) {
+      return false
+    }
+  }
+
+  /**
    * Check if WebPerl is available
    */
   isWebPerlAvailable(): boolean {
-    return typeof window.Perl !== 'undefined' && window.Perl.state === 'Ready'
+    return typeof window.Perl !== 'undefined' && window.Perl.state === 'Ready' && this.areModulesLoaded()
   }
 
   /**
