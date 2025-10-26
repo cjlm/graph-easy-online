@@ -77,21 +77,17 @@ export class Scout {
       throw new Error(`Nodes not placed: ${src.name} or ${dst.name}`)
     }
 
-    console.log(`🔍 Scout.findPath: ${src.name}(${src.x},${src.y}) -> ${dst.name}(${dst.x},${dst.y})`)
+    if (this.debug) console.log(`🔍 Scout.findPath: ${src.name}(${src.x},${src.y}) -> ${dst.name}(${dst.x},${dst.y})`)
 
     // Tier 1: Try straight path
-    console.log('  Trying straight path...')
     const straight = this.tryStraightPath(src, dst, edge)
-    console.log(`  Straight path result: ${straight.length} cells`)
     if (straight.length > 0) {
       if (this.debug) console.log(`# Found straight path with ${straight.length} cells`)
       return straight
     }
 
     // Tier 2: Try single-bend path
-    console.log('  Trying bend path...')
     const bend = this.tryBendPath(src, dst, edge)
-    console.log(`  Bend path result: ${bend.length} cells`)
     if (bend.length > 0) {
       if (this.debug) console.log(`# Found bend path with ${bend.length} cells`)
       return bend
@@ -115,15 +111,8 @@ export class Scout {
     const dx = Math.sign(x1 - x0)
     const dy = Math.sign(y1 - y0)
 
-    console.log(`    dx=${dx}, dy=${dy}`)
-
     // Not straight
-    if (dx !== 0 && dy !== 0) {
-      console.log('    Not straight, returning []')
-      return []
-    }
-
-    console.log('    Is straight, continuing...')
+    if (dx !== 0 && dy !== 0) return []
 
     const srcCx = src.cx || 1
     const srcCy = src.cy || 1
@@ -210,19 +199,22 @@ export class Scout {
     const x1 = dst.x!
     const y1 = dst.y!
 
-    const dx = Math.sign(x1 - x0)
-    const dy = Math.sign(y1 - y0)
+    const srcCx = src.cx || 1
+    const srcCy = src.cy || 1
+    const dstCy = dst.cy || 1
+
+    // Calculate exit and enter points
+    const exitX = x0 + srcCx  // Right of source
+    const exitY = y0 + Math.floor(srcCy / 2)  // Middle row
+    const enterX = x1 - 1  // Left of dest
+    const enterY = y1 + Math.floor(dstCy / 2)  // Middle row
+
+    // Calculate direction based on exit/enter points, not node positions
+    const dx = Math.sign(enterX - exitX)
+    const dy = Math.sign(enterY - exitY)
 
     // Need both dx and dy for a bend
     if (dx === 0 || dy === 0) return []
-
-    const srcCx = src.cx || 1
-    const srcCy = src.cy || 1
-
-    const exitX = x0 + srcCx
-    const exitY = y0 + Math.floor(srcCy / 2)
-    const enterX = x1 - 1
-    const enterY = y1 + Math.floor((dst.cy || 1) / 2)
 
     // Try horizontal then vertical
     let path: PathCell[] = []
@@ -230,7 +222,9 @@ export class Scout {
 
     // Horizontal segment
     let x = exitX
-    while (x !== enterX) {
+    let safetyCounter = 0
+    const maxSteps = 100
+    while (x !== enterX && safetyCounter++ < maxSteps) {
       if (this.isBlocked(x, exitY, src, dst)) {
         blocked = true
         break
@@ -238,6 +232,11 @@ export class Scout {
       const type = path.length === 0 ? EDGE_HOR + EDGE_LABEL_CELL : EDGE_HOR
       path.push({ x, y: exitY, type })
       x += dx
+    }
+
+    if (safetyCounter >= maxSteps) {
+      console.warn(`tryBendPath: horizontal loop exceeded ${maxSteps} steps`)
+      return []
     }
 
     if (!blocked) {
@@ -253,13 +252,19 @@ export class Scout {
 
         // Vertical segment
         let y = exitY + dy
-        while (y !== enterY) {
+        safetyCounter = 0
+        while (y !== enterY && safetyCounter++ < maxSteps) {
           if (this.isBlocked(x, y, src, dst)) {
             blocked = true
             break
           }
           path.push({ x, y, type: EDGE_VER })
           y += dy
+        }
+
+        if (safetyCounter >= maxSteps) {
+          console.warn(`tryBendPath: vertical loop (try 1) exceeded ${maxSteps} steps`)
+          blocked = true
         }
       }
     }
@@ -271,13 +276,19 @@ export class Scout {
     blocked = false
 
     let y = exitY + dy
-    while (y !== enterY) {
+    safetyCounter = 0
+    while (y !== enterY && safetyCounter++ < maxSteps) {
       if (this.isBlocked(exitX, y, src, dst)) {
         blocked = true
         break
       }
       path.push({ x: exitX, y, type: EDGE_VER })
       y += dy
+    }
+
+    if (safetyCounter >= maxSteps) {
+      console.warn(`tryBendPath: vertical loop (try 2) exceeded ${maxSteps} steps`)
+      return []
     }
 
     if (!blocked) {
@@ -290,7 +301,8 @@ export class Scout {
         path.push({ x: exitX, y, type: bendType })
 
         x = exitX + dx
-        while (x !== enterX) {
+        safetyCounter = 0
+        while (x !== enterX && safetyCounter++ < maxSteps) {
           if (this.isBlocked(x, y, src, dst)) {
             blocked = true
             break
@@ -298,6 +310,11 @@ export class Scout {
           const type = path.length === 0 ? EDGE_HOR + EDGE_LABEL_CELL : EDGE_HOR
           path.push({ x, y, type })
           x += dx
+        }
+
+        if (safetyCounter >= maxSteps) {
+          console.warn(`tryBendPath: horizontal loop (try 2) exceeded ${maxSteps} steps`)
+          blocked = true
         }
       }
     }
