@@ -66,10 +66,8 @@ export class ActionStackBuilder {
     // Add any remaining nodes not in chains
     for (const node of this.graph.getNodes()) {
       if (!node._chain) {
-        console.log(`  Adding NODE action for ${node.name} (not in chain)`)
         actions.push(createNodeAction(node))
       } else {
-        console.log(`  Skipping ${node.name} (in chain ${node._chain.id})`)
       }
     }
 

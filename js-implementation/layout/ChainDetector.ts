@@ -48,23 +48,15 @@ export class ChainDetector {
     for (const node of nodes) {
       // Skip if already in a chain
       if (node._chain) {
-        console.log(`  Skipping ${node.name} (already in chain ${node._chain.id})`)
         continue
       }
 
       // Start a new chain from this node (top-level only)
-      console.log(`  Starting chain from ${node.name}`)
-      const chain = this.followChain(node, true)  // Pass isTopLevel=true
-      console.log(`    Chain: ${chain.toString()}`)
-      console.log(`    Total chains: ${this.allChains.length}`)
+      this.followChain(node, true)  // Pass isTopLevel=true
     }
 
-    console.log(`  Total chains before sorting: ${this.allChains.length}`)
-
     // Sort chains by priority
-    const sorted = this.sortChains(this.allChains)
-    console.log(`  Total chains after sorting: ${sorted.length}`)
-    return sorted
+    return this.sortChains(this.allChains)
   }
 
   /**
