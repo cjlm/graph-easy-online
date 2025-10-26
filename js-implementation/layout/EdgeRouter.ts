@@ -43,6 +43,7 @@ interface AStarNode {
 
 export class EdgeRouter {
   private graph: Graph
+  private multiEdgeOffsets: Map<string, number> = new Map()
 
   constructor(graph: Graph) {
     this.graph = graph
@@ -65,31 +66,44 @@ export class EdgeRouter {
       throw new Error(`Destination node ${dst.name} not placed`)
     }
 
+    // Track multi-edges for offsetting
+    const edgeKey = this.getEdgeKey(src, dst)
+    const offset = this.multiEdgeOffsets.get(edgeKey) || 0
+    this.multiEdgeOffsets.set(edgeKey, offset + 1)
+
     // Handle self-loops specially
     if (src === dst) {
       return this.findPathLoop(src, edge)
     }
 
     // Try fast paths first
-    const fastPath = this.tryFastPath(src, dst, edge)
+    const fastPath = this.tryFastPath(src, dst, edge, offset)
     if (fastPath.length > 0) {
       return fastPath
     }
 
     // Fall back to A*
-    return this.findPathAStar(src, dst, edge)
+    return this.findPathAStar(src, dst, edge, offset)
+  }
+
+  /**
+   * Get unique key for edge pair (undirected)
+   */
+  private getEdgeKey(src: Node, dst: Node): string {
+    const ids = [src.id, dst.id].sort()
+    return `${ids[0]}-${ids[1]}`
   }
 
   /**
    * Try fast path (straight line or single bend)
    */
-  private tryFastPath(src: Node, dst: Node, edge: Edge): PathCell[] {
+  private tryFastPath(src: Node, dst: Node, edge: Edge, offset: number): PathCell[] {
     const dx = dst.x! - src.x!
     const dy = dst.y! - src.y!
 
     // Straight horizontal or vertical
     if (dx === 0 || dy === 0) {
-      const path = this.tryStraightPath(src, dst, edge)
+      const path = this.tryStraightPath(src, dst, edge, offset)
       if (path.length > 0) return path
     }
 
@@ -108,9 +122,9 @@ export class EdgeRouter {
   }
 
   /**
-   * Try straight path
+   * Try straight path with multi-edge offset
    */
-  private tryStraightPath(src: Node, dst: Node, _edge: Edge): PathCell[] {
+  private tryStraightPath(src: Node, dst: Node, _edge: Edge, offset: number): PathCell[] {
     const path: PathCell[] = []
     const dx = dst.x! - src.x!
     const dy = dst.y! - src.y!
@@ -139,11 +153,21 @@ export class EdgeRouter {
         })
       }
     } else if (dy === 0) {
-      // Horizontal path
+      // Horizontal path with multi-edge offset
       const step = dx > 0 ? 1 : -1
       const srcCx = src.cx || 1
       const srcCy = src.cy || 1
       const centerY = src.y! + Math.floor(srcCy / 2)
+
+      // Apply vertical offset for multi-edges
+      // Offset alternates: 0, -1, +1, -2, +2, -3, +3, ...
+      let yOffset = 0
+      if (offset > 0) {
+        const n = Math.ceil(offset / 2)
+        yOffset = (offset % 2 === 0) ? -n : n
+      }
+      const routeY = centerY + yOffset
+
       // Add 1-cell margin after source node
       const startX = step > 0 ? src.x! + srcCx + 1 : src.x! - 2
       // Leave 1-cell margin before destination node
@@ -151,7 +175,7 @@ export class EdgeRouter {
 
       // Check if path is clear
       for (let x = startX; step > 0 ? x < endX : x > endX; x += step) {
-        const key = gridKey(x, centerY)
+        const key = gridKey(x, routeY)
         const cell = this.graph.cells.get(key)
         if (cell && cell.node) {
           return [] // Blocked by node
@@ -162,7 +186,7 @@ export class EdgeRouter {
       for (let x = startX; step > 0 ? x < endX : x > endX; x += step) {
         path.push({
           x,
-          y: centerY,
+          y: routeY,
           type: EDGE_HOR,
         })
       }
@@ -267,7 +291,7 @@ export class EdgeRouter {
   /**
    * A* pathfinding
    */
-  private findPathAStar(src: Node, dst: Node, edge: Edge): PathCell[] {
+  private findPathAStar(src: Node, dst: Node, edge: Edge, offset: number): PathCell[] {
     // Initialize open list (priority queue)
     const open = new MinPriorityQueue<AStarNode>((node: AStarNode) => node.f)
 
@@ -278,7 +302,7 @@ export class EdgeRouter {
     const parents = new Map<string, { x: number; y: number }>()
 
     // Start position (just outside source node)
-    const startPositions = this.getStartPositions(src, dst)
+    const startPositions = this.getStartPositions(src, dst, offset)
 
     for (const pos of startPositions) {
       const h = this.manhattanDistance(pos.x, pos.y, dst.x!, dst.y!)
@@ -293,7 +317,7 @@ export class EdgeRouter {
     }
 
     // Goal positions (just outside destination node)
-    const goalPositions = this.getGoalPositions(src, dst)
+    const goalPositions = this.getGoalPositions(src, dst, offset)
     const goalSet = new Set(goalPositions.map(p => gridKey(p.x, p.y)))
 
     // A* main loop
@@ -364,9 +388,9 @@ export class EdgeRouter {
   }
 
   /**
-   * Get start positions (positions just outside source node)
+   * Get start positions (positions just outside source node) with multi-edge offset
    */
-  private getStartPositions(src: Node, _dst: Node): Array<{ x: number; y: number }> {
+  private getStartPositions(src: Node, _dst: Node, offset: number): Array<{ x: number; y: number }> {
     const positions: Array<{ x: number; y: number }> = []
     const x = src.x!
     const y = src.y!
@@ -376,19 +400,26 @@ export class EdgeRouter {
     // Calculate center of node
     const centerY = y + Math.floor(cy / 2)
 
-    // Add positions in all 4 directions from center
-    positions.push({ x: x + cx, y: centerY })  // right (east)
-    positions.push({ x: x - 1, y: centerY })    // left (west)
-    positions.push({ x, y: y + cy })            // bottom (south)
-    positions.push({ x, y: y - 1 })             // top (north)
+    // Apply vertical offset for multi-edges
+    let yOffset = 0
+    if (offset > 0) {
+      const n = Math.ceil(offset / 2)
+      yOffset = (offset % 2 === 0) ? -n : n
+    }
+
+    // Add positions in all 4 directions from center (with offset)
+    positions.push({ x: x + cx, y: centerY + yOffset })  // right (east)
+    positions.push({ x: x - 1, y: centerY + yOffset })    // left (west)
+    positions.push({ x, y: y + cy + yOffset })            // bottom (south)
+    positions.push({ x, y: y - 1 + yOffset })             // top (north)
 
     return positions
   }
 
   /**
-   * Get goal positions (positions just outside destination node)
+   * Get goal positions (positions just outside destination node) with multi-edge offset
    */
-  private getGoalPositions(_src: Node, dst: Node): Array<{ x: number; y: number }> {
+  private getGoalPositions(_src: Node, dst: Node, offset: number): Array<{ x: number; y: number }> {
     const positions: Array<{ x: number; y: number }> = []
     const x = dst.x!
     const y = dst.y!
@@ -398,11 +429,18 @@ export class EdgeRouter {
     // Calculate center of node
     const centerY = y + Math.floor(cy / 2)
 
-    // Add positions in all 4 directions from center
-    positions.push({ x: x + cx, y: centerY })  // right (east)
-    positions.push({ x: x - 1, y: centerY })    // left (west)
-    positions.push({ x, y: y + cy })            // bottom (south)
-    positions.push({ x, y: y - 1 })             // top (north)
+    // Apply vertical offset for multi-edges
+    let yOffset = 0
+    if (offset > 0) {
+      const n = Math.ceil(offset / 2)
+      yOffset = (offset % 2 === 0) ? -n : n
+    }
+
+    // Add positions in all 4 directions from center (with offset)
+    positions.push({ x: x + cx, y: centerY + yOffset })  // right (east)
+    positions.push({ x: x - 1, y: centerY + yOffset })    // left (west)
+    positions.push({ x, y: y + cy + yOffset })            // bottom (south)
+    positions.push({ x, y: y - 1 + yOffset })             // top (north)
 
     return positions
   }
