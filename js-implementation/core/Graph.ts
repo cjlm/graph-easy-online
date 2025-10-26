@@ -4,10 +4,10 @@
  * This is a modern TypeScript reimplementation of Graph::Easy's graph structure
  */
 
-import { Node } from './Node'
-import { Edge } from './Edge'
-import { Group } from './Group'
-import { AttributeManager, GraphAttributes } from './Attributes'
+import { Node } from './Node.ts'
+import { Edge } from './Edge.ts'
+import { Group } from './Group.ts'
+import { AttributeManager, GraphAttributes } from './Attributes.ts'
 
 export interface GraphConfig {
   debug?: boolean

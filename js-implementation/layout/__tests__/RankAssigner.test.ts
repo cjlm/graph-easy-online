@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { Graph } from '../../core/Graph'
-import { RankAssigner } from '../RankAssigner'
+import { Graph } from '../../core/Graph.ts'
+import { RankAssigner } from '../RankAssigner.ts'
 
 describe('RankAssigner', () => {
   it('assigns ranks to simple linear graph', () => {

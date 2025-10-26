@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { renderASCII, type ELKResult, type RenderOptions } from './elk-ascii-renderer'
+import { renderASCII, type ELKResult, type RenderOptions } from './elk-ascii-renderer.ts'
 import ELK from 'elkjs'
 
 describe('ELK ASCII Renderer', () => {

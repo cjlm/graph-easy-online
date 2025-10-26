@@ -11,9 +11,9 @@
  */
 
 import { MinPriorityQueue } from '@datastructures-js/priority-queue'
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
+import { Edge } from '../core/Edge.ts'
 import {
   gridKey,
   EDGE_HOR,
@@ -23,7 +23,7 @@ import {
   EDGE_N_W,
   EDGE_S_E,
   EDGE_S_W,
-} from '../core/Cell'
+} from '../core/Cell.ts'
 
 interface PathCell {
   x: number

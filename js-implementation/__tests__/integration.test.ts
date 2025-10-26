@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { PerlLayoutEngine } from '../PerlLayoutEngine'
+import { PerlLayoutEngine } from '../PerlLayoutEngine.ts'
 
 describe('PerlLayoutEngine Integration', () => {
   it('converts simple linear graph', async () => {

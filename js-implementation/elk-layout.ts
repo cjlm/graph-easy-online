@@ -5,8 +5,8 @@
  */
 
 import ELK from 'elkjs'
-import type { Graph } from './core/Graph'
-import type { LayoutResult } from './core/Graph'
+import type { Graph } from './core/Graph.ts'
+import type { LayoutResult } from './core/Graph.ts'
 
 interface ELKNode {
   id: string

@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { Graph } from './Graph'
-import { Node } from './Node'
+import { Graph } from './Graph.ts'
+import { Node } from './Node.ts'
 
 describe('Graph - Node Operations', () => {
   it('should create empty graph', () => {

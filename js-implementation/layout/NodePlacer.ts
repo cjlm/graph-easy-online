@@ -11,10 +11,10 @@
  * 5. Fallback: Find first free position in grid
  */
 
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
-import { Cell, gridKey } from '../core/Cell'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
+import { Edge } from '../core/Edge.ts'
+import { Cell, gridKey } from '../core/Cell.ts'
 
 /**
  * Extend Graph to store cells grid
@@ -128,7 +128,7 @@ export class NodePlacer {
     // Get or create position for this rank
     if (!rankPos.has(rank)) {
       // Use wider spacing between ranks for better layout
-      const rankSpacing = 25  // Increased from 15 for complex graphs
+      const rankSpacing = 35  // Increased for multi-edge routing clearance
       rankPos.set(rank, { x: rank * rankSpacing, y: 0 })
     }
 
@@ -173,7 +173,7 @@ export class NodePlacer {
 
       // Ensure rank position exists
       if (!rankPos.has(rank)) {
-        const rankSpacing = 25  // Increased from 15 for complex graphs
+        const rankSpacing = 35  // Increased for multi-edge routing clearance
         rankPos.set(rank, { x: rank * rankSpacing, y: 0 })
       }
 

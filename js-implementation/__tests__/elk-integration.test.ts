@@ -2,7 +2,7 @@
  * Integration test for new ELK ASCII renderer in GraphEasyASCII
  */
 
-import { GraphEasyASCII } from '../GraphEasyASCII'
+import { GraphEasyASCII } from '../GraphEasyASCII.ts'
 
 async function testELKIntegration() {
   console.log('=== Testing ELK ASCII Renderer Integration ===\n')

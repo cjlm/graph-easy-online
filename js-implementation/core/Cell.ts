@@ -4,8 +4,8 @@
  * Based on Graph::Easy::Node::Cell and Graph::Easy::Edge::Cell
  */
 
-import { Node } from './Node'
-import { Edge } from './Edge'
+import { Node } from './Node.ts'
+import { Edge } from './Edge.ts'
 
 // Edge cell type constants (from Perl)
 export const EDGE_HOR = 1 // Horizontal line: -

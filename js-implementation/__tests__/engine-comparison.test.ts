@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { GraphEasyASCII } from '../GraphEasyASCII'
+import { GraphEasyASCII } from '../GraphEasyASCII.ts'
 import { execSync } from 'child_process'
 
 /**

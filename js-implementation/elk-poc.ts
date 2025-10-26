@@ -5,7 +5,7 @@
  */
 
 import ELK from 'elkjs/lib/elk.bundled.js'
-import type { Graph } from './core/Graph'
+import type { Graph } from './core/Graph.ts'
 
 interface ELKNode {
   id: string
@@ -174,8 +174,8 @@ export async function layoutGraphWithELK(graph: Graph) {
 /**
  * Example usage:
  *
- * import { layoutGraphWithELK } from './elk-poc'
- * import { renderAscii } from './renderers/AsciiRenderer'
+ * import { layoutGraphWithELK } from './elk-poc.ts'
+ * import { renderAscii } from './renderers/AsciiRenderer.ts'
  *
  * const graph = parser.parse('[A] -> [B] -> [C]')
  * const layout = await layoutGraphWithELK(graph)

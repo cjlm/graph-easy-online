@@ -4,7 +4,7 @@
  * Supports both Graph::Easy notation and Graphviz DOT format as input.
  *
  * Usage:
- *   import { GraphEasyASCII } from './GraphEasyASCII'
+ *   import { GraphEasyASCII } from './GraphEasyASCII.ts'
  *
  *   const converter = await GraphEasyASCII.create()
  *
@@ -15,11 +15,11 @@
  *   await converter.convert('digraph { A -> B; }')
  */
 
-import { Parser } from './parser/Parser'
-import { DotParser, parseGraphAuto } from './parser/DotParser'
-import { renderAscii, renderBoxart, AsciiRendererOptions } from './renderers/AsciiRenderer'
-import type { Graph } from './core/Graph'
-import type { LayoutResult } from './core/Graph'
+import { Parser } from './parser/Parser.ts'
+import { DotParser, parseGraphAuto } from './parser/DotParser.ts'
+import { renderAscii, renderBoxart, AsciiRendererOptions } from './renderers/AsciiRenderer.ts'
+import type { Graph } from './core/Graph.ts'
+import type { LayoutResult } from './core/Graph.ts'
 
 export type InputFormat = 'auto' | 'grapheasy' | 'dot'
 

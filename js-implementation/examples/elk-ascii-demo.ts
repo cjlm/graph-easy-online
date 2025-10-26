@@ -5,7 +5,7 @@
  */
 
 import ELK from 'elkjs'
-import { renderASCII, type ELKResult, type RenderOptions } from '../renderers/elk-ascii-renderer'
+import { renderASCII, type ELKResult, type RenderOptions } from '../renderers/elk-ascii-renderer.ts'
 
 /**
  * Example 1: Simple linear graph

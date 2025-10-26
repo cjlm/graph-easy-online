@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { DotParser } from './DotParser'
+import { DotParser } from './DotParser.ts'
 
 describe('DotParser - Basic Graphs', () => {
   it('should parse simple digraph', () => {

@@ -14,13 +14,13 @@
  * 5. Terminate on cycles (node already in this chain)
  */
 
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
-import { Chain } from './Chain'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
+import { Chain } from './Chain.ts'
 
 // Edge import kept for edge iteration
 // @ts-ignore - used in edge iteration
-import { Edge } from '../core/Edge'
+import { Edge } from '../core/Edge.ts'
 
 export class ChainDetector {
   private graph: Graph

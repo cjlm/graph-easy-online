@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { Parser } from './Parser'
+import { Parser } from './Parser.ts'
 
 describe('Parser - Basic Nodes', () => {
   it('should parse a single node', () => {

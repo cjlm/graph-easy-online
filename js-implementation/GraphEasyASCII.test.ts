@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { GraphEasyASCII } from './GraphEasyASCII'
+import { GraphEasyASCII } from './GraphEasyASCII.ts'
 
 describe('GraphEasyASCII - Initialization', () => {
   it('should create instance', async () => {

@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { Graph } from '../../core/Graph'
-import { ChainDetector } from '../ChainDetector'
+import { Graph } from '../../core/Graph.ts'
+import { ChainDetector } from '../ChainDetector.ts'
 
 describe('ChainDetector', () => {
   it('detects single chain in linear graph', () => {

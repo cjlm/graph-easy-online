@@ -14,9 +14,9 @@
  *   # This is a comment
  */
 
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
+import { Edge } from '../core/Edge.ts'
 
 export interface ParseOptions {
   strict?: boolean

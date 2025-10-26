@@ -2,10 +2,10 @@
  * Edge class - Represents an edge/connection between nodes
  */
 
-import { Graph } from './Graph'
-import { Node } from './Node'
-import { Group } from './Group'
-import { AttributeManager } from './Attributes'
+import { Graph } from './Graph.ts'
+import { Node } from './Node.ts'
+import { Group } from './Group.ts'
+import { AttributeManager } from './Attributes.ts'
 
 export type EdgeStyle = 'solid' | 'dashed' | 'dotted' | 'wave' | 'double' | 'bold'
 export type ArrowType = 'forward' | 'back' | 'both' | 'none'

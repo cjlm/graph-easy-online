@@ -19,11 +19,11 @@
  *   }
  */
 
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
-// import { Edge } from '../core/Edge'  // Future use
-// import { Group } from '../core/Group'  // Future use
-import { Parser } from './Parser'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
+// import { Edge } from '../core/Edge.ts'  // Future use
+// import { Group } from '../core/Group.ts'  // Future use
+import { Parser } from './Parser.ts'
 
 export interface DotParseOptions {
   strict?: boolean

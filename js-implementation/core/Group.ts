@@ -2,10 +2,10 @@
  * Group class - Represents a group/cluster of nodes
  */
 
-import { Graph } from './Graph'
-import { Node } from './Node'
-import { Edge } from './Edge'
-import { AttributeManager } from './Attributes'
+import { Graph } from './Graph.ts'
+import { Node } from './Node.ts'
+import { Edge } from './Edge.ts'
+import { AttributeManager } from './Attributes.ts'
 
 export class Group {
   readonly id: string

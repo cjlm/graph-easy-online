@@ -4,8 +4,8 @@
  * Based on Graph::Easy::Layout action constants
  */
 
-import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
+import { Node } from '../core/Node.ts'
+import { Edge } from '../core/Edge.ts'
 
 /**
  * Action types (from Perl constants)

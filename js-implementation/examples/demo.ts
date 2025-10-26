@@ -5,8 +5,8 @@
  * Or compile first: tsc && node dist/demo.js
  */
 
-import { GraphEasyASCII, convertToASCII, convertToBoxart } from '../GraphEasyASCII'
-import { Parser } from '../parser/Parser'
+import { GraphEasyASCII, convertToASCII, convertToBoxart } from '../GraphEasyASCII.ts'
+import { Parser } from '../parser/Parser.ts'
 
 console.log('='.repeat(70))
 console.log('Graph::Easy Pure JS/WASM Implementation - Demo')

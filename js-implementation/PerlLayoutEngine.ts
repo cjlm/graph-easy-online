@@ -5,10 +5,10 @@
  * that uses our TypeScript reimplementation of the Perl layout algorithm
  */
 
-import { Parser } from './parser/Parser'
-import { DotParser } from './parser/DotParser'
-import { LayoutEngine } from './layout/LayoutEngine'
-import { AsciiRendererNew } from './renderers/AsciiRendererNew'
+import { Parser } from './parser/Parser.ts'
+import { DotParser } from './parser/DotParser.ts'
+import { LayoutEngine } from './layout/LayoutEngine.ts'
+import { AsciiRendererNew } from './renderers/AsciiRendererNew.ts'
 
 export interface PerlLayoutOptions {
   boxart?: boolean

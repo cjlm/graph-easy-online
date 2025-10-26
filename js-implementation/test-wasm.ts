@@ -2,7 +2,7 @@
  * Simple test to verify WASM actually works
  */
 
-import { GraphEasyASCII } from './GraphEasyASCII'
+import { GraphEasyASCII } from './GraphEasyASCII.ts'
 
 async function testWasmActuallyWorks() {
   console.log('🧪 Testing if WASM actually loads and works...\n')

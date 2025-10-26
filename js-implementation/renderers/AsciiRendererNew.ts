@@ -7,7 +7,7 @@
  * (not dependent on ELK)
  */
 
-import { Graph } from '../core/Graph'
+import { Graph } from '../core/Graph.ts'
 import { Cell,
   EDGE_HOR,
   EDGE_VER,
@@ -17,7 +17,7 @@ import { Cell,
   EDGE_S_E,
   EDGE_S_W,
   EDGE_TYPE_MASK,
-} from '../core/Cell'
+} from '../core/Cell.ts'
 
 export interface AsciiRendererOptions {
   boxart?: boolean  // Use Unicode box drawing characters

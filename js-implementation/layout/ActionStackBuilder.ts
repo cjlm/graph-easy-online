@@ -16,16 +16,16 @@
  * 6. Remaining nodes and edges
  */
 
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
-import { Chain } from './Chain'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
+import { Edge } from '../core/Edge.ts'
+import { Chain } from './Chain.ts'
 import {
   Action,
   createNodeAction,
   createChainAction,
   createTraceAction,
-} from './Action'
+} from './Action.ts'
 
 /**
  * Extend Edge to track if it's been added to action stack

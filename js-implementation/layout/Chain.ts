@@ -7,12 +7,12 @@
  * the layout algorithm to place them efficiently without branches.
  */
 
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
 
 // Edge import kept for module augmentation declarations
 // @ts-ignore - used in module augmentation
-import { Edge } from '../core/Edge'
+import { Edge } from '../core/Edge.ts'
 
 /**
  * Extend Node to add chain-related properties

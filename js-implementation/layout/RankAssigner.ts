@@ -12,8 +12,8 @@
  */
 
 import { MinPriorityQueue } from '@datastructures-js/priority-queue'
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
 
 /**
  * Extend Node to add rank-related properties

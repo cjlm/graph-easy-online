@@ -2,10 +2,10 @@
  * Node class - Represents a node/vertex in the graph
  */
 
-import { Graph } from './Graph'
-import { Edge } from './Edge'
-import { Group } from './Group'
-import { AttributeManager } from './Attributes'
+import { Graph } from './Graph.ts'
+import { Edge } from './Edge.ts'
+import { Group } from './Group.ts'
+import { AttributeManager } from './Attributes.ts'
 
 export class Node {
   readonly id: string

@@ -11,14 +11,14 @@
  * 5. Optimize layout
  */
 
-import { Graph } from '../core/Graph'
-import { Cell } from '../core/Cell'
-import { RankAssigner } from './RankAssigner'
-import { ChainDetector } from './ChainDetector'
-import { ActionStackBuilder } from './ActionStackBuilder'
-import { NodePlacer } from './NodePlacer'
-import { OrthogonalRouter } from './OrthogonalRouter'
-import { Action, ActionType } from './Action'
+import { Graph } from '../core/Graph.ts'
+import { Cell } from '../core/Cell.ts'
+import { RankAssigner } from './RankAssigner.ts'
+import { ChainDetector } from './ChainDetector.ts'
+import { ActionStackBuilder } from './ActionStackBuilder.ts'
+import { NodePlacer } from './NodePlacer.ts'
+import { OrthogonalRouter } from './OrthogonalRouter.ts'
+import { Action, ActionType } from './Action.ts'
 
 export class LayoutEngine {
   private graph: Graph

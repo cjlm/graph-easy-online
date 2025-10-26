@@ -4,7 +4,7 @@
  * Renders graphs as ASCII art using characters like +, -, |, <, >, etc.
  */
 
-import type { LayoutResult, NodeLayout, EdgeLayout } from '../core/Graph'
+import type { LayoutResult, NodeLayout, EdgeLayout } from '../core/Graph.ts'
 
 export interface AsciiRendererOptions {
   style?: 'ascii' | 'boxart'

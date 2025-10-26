@@ -2,10 +2,10 @@
  * Basic usage example of the Graph::Easy JavaScript reimplementation
  */
 
-import { Graph } from '../core/Graph'
-import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
-import { renderAscii, renderBoxart } from '../renderers/AsciiRenderer'
+import { Graph } from '../core/Graph.ts'
+import { Node } from '../core/Node.ts'
+import { Edge } from '../core/Edge.ts'
+import { renderAscii, renderBoxart } from '../renderers/AsciiRenderer.ts'
 
 // Example 1: Simple graph creation
 async function example1() {
@@ -166,7 +166,7 @@ async function example6() {
 
   // This would be the actual usage once WASM is compiled:
   /*
-  import init, { LayoutEngine } from './wasm/graph_easy_layout'
+  import init, { LayoutEngine } from './wasm/graph_easy_layout.ts'
 
   await init() // Initialize WASM
 
