@@ -117,6 +117,14 @@ export class Parser {
       return
     }
 
+    // Check for edge attributes BEFORE second node
+    // Syntax: [ A ] -- { label: "test"; } [ B ]
+    this.skipWhitespace()
+    let edgeAttrs: Record<string, any> | null = null
+    if (this.peekChar() === '{') {
+      edgeAttrs = this.parseAttributes()
+    }
+
     // Parse second node (don't parse its attributes yet)
     this.skipWhitespace()
     const secondNode = this.parseNode(false)
@@ -127,7 +135,12 @@ export class Parser {
     // Set edge style based on type
     this.applyEdgeStyle(edge, edgeType)
 
-    // Parse attributes - these belong to the edge
+    // Apply edge attributes if we found them before the second node
+    if (edgeAttrs) {
+      edge.setAttributes(edgeAttrs)
+    }
+
+    // Parse attributes after second node - these also belong to the edge
     // (In Graph::Easy, attributes after an edge go to that edge)
     this.skipWhitespace()
     if (this.peekChar() === '{') {
@@ -153,13 +166,26 @@ export class Parser {
   }
 
   private continueEdgeChain(fromNode: Node, edgeType: string): void {
+    // Check for edge attributes BEFORE second node
+    this.skipWhitespace()
+    let edgeAttrs: Record<string, any> | null = null
+    if (this.peekChar() === '{') {
+      edgeAttrs = this.parseAttributes()
+    }
+
+    // Parse second node
     this.skipWhitespace()
     const toNode = this.parseNode(false)
 
     const edge = this.graph.addEdge(fromNode, toNode)
     this.applyEdgeStyle(edge, edgeType)
 
-    // Parse edge attributes
+    // Apply edge attributes if found before node
+    if (edgeAttrs) {
+      edge.setAttributes(edgeAttrs)
+    }
+
+    // Parse edge attributes after node (also allowed)
     this.skipWhitespace()
     if (this.peekChar() === '{') {
       const attrs = this.parseAttributes()

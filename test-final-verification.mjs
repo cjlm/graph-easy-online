@@ -27,8 +27,8 @@ const tests = [
   },
   {
     name: 'Edge with label',
-    input: '[ Start ] -> [ Process ] -> [ End ] { label: "done"; }',
-    expected: 'Label on edge between Process and End'
+    input: '[ Start ] -> [ Process ] -> { label: "done"; } [ End ]',
+    expected: 'Label "done" on edge between Process and End'
   }
 ]
 
