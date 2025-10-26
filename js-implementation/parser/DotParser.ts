@@ -50,13 +50,31 @@ export class DotParser {
 
   /**
    * Check if input is in DOT format
+   *
+   * DOT format: graph { A -- B }
+   * Graph::Easy format: graph { [ A ] -- [ B ] }
+   *
+   * Key difference: Graph::Easy uses [ ] brackets around node names
    */
   static isDot(input: string): boolean {
     const trimmed = input.trim()
-    return trimmed.startsWith('graph ') ||
+
+    // Check if it starts with DOT keywords
+    const hasDotKeyword = trimmed.startsWith('graph ') ||
            trimmed.startsWith('digraph ') ||
            trimmed.startsWith('strict graph ') ||
            trimmed.startsWith('strict digraph ')
+
+    if (!hasDotKeyword) {
+      return false
+    }
+
+    // If it has [ ] brackets, it's Graph::Easy, not DOT
+    if (trimmed.includes('[') && trimmed.includes(']')) {
+      return false
+    }
+
+    return true
   }
 
   /**

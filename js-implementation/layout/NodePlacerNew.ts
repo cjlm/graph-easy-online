@@ -147,6 +147,34 @@ export class NodePlacer {
         const minDist = parentEdge ? this.getMinDistance(parentEdge) : 2
         tries.push(...this.getNearPositions(pred, minDist))
       }
+    } else if (predecessors.length >= 3) {
+      // Multiple predecessors: try to find optimal position
+      // For 3+ predecessors, try all pairwise crossing points
+      // This handles cases like: A-B-C arranged in L or U shape, where D should be at the fourth corner
+
+      if (this.debug) console.log(`# Placing ${node.name} with ${predecessors.length} predecessors`)
+
+      // Try crossing points for all pairs of predecessors
+      for (let i = 0; i < predecessors.length; i++) {
+        for (let j = i + 1; j < predecessors.length; j++) {
+          const p0 = predecessors[i]
+          const p1 = predecessors[j]
+          const dx = p0.x! - p1.x!
+          const dy = p0.y! - p1.y!
+
+          if (dx !== 0 && dy !== 0) {
+            // Try the two crossing points
+            tries.push({ x: p0.x!, y: p1.y! })
+            tries.push({ x: p1.x!, y: p0.y! })
+          }
+        }
+      }
+
+      // Also try positions near each predecessor
+      for (const pred of predecessors) {
+        const minDist = 2
+        tries.push(...this.getNearPositions(pred, minDist))
+      }
     }
 
     // Strategy 4: Successor-based placement
@@ -305,13 +333,13 @@ export class NodePlacer {
       const px = node.x
       const py = node.y
 
-      // Right side
+      // Right side: node occupies [px, px+cx-1], so next position is px+cx+distance
       for (let dy = 0; dy < cy; dy++) {
-        positions.push({ x: px + cx - 1 + distance, y: py + dy })
+        positions.push({ x: px + cx + distance, y: py + dy })
       }
-      // Bottom side
+      // Bottom side: node occupies [py, py+cy-1], so next position is py+cy+distance
       for (let dx = 0; dx < cx; dx++) {
-        positions.push({ x: px + dx, y: py + cy - 1 + distance })
+        positions.push({ x: px + dx, y: py + cy + distance })
       }
       // Left side
       for (let dy = 0; dy < cy; dy++) {
@@ -384,10 +412,19 @@ export class NodePlacer {
 
   /**
    * Calculate node dimensions based on label
+   *
+   * Each grid cell renders as 5 characters wide.
+   * Node box width = label.length + 2 (for padding/borders)
+   * Grid cells needed = ceil(box_width / 5)
    */
   private calculateNodeDimensions(node: Node): void {
     const label = node.label || node.name
-    node.cx = 1  // Single cell width
-    node.cy = 1  // Single cell height
+
+    // Calculate character width needed (label + 2 for borders, min 5)
+    const charWidth = Math.max(label.length + 2, 5)
+
+    // Calculate grid cells needed (each cell is 5 chars wide)
+    node.cx = Math.ceil(charWidth / 5)
+    node.cy = 1  // Height is always 1 grid cell (3 char rows)
   }
 }

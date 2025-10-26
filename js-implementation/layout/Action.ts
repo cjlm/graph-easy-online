@@ -10,13 +10,15 @@ import { Edge } from '../core/Edge.ts'
 /**
  * Action types (from Perl constants)
  */
-export enum ActionType {
-  NODE = 0,    // Place a node somewhere
-  TRACE = 1,   // Trace path from source to destination
-  CHAIN = 2,   // Place node in chain (with parent)
-  EDGES = 3,   // Trace all edges (shortest connection first)
-  SPLICE = 4,  // Splice in group fillers
-}
+export const ActionType = {
+  NODE: 0,    // Place a node somewhere
+  TRACE: 1,   // Trace path from source to destination
+  CHAIN: 2,   // Place node in chain (with parent)
+  EDGES: 3,   // Trace all edges (shortest connection first)
+  SPLICE: 4,  // Splice in group fillers
+} as const
+
+export type ActionType = typeof ActionType[keyof typeof ActionType]
 
 /**
  * Action interface

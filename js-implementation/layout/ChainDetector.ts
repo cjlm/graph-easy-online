@@ -96,6 +96,13 @@ export class ChainDetector {
           break
         }
 
+        // CRITICAL: Don't chain nodes with multiple predecessors
+        // A node should only be in a chain if it has exactly one predecessor
+        const predCount = this.predecessorCount(successor)
+        if (predCount > 1) {
+          break  // Don't chain nodes with multiple incoming edges
+        }
+
         chain.addNode(successor)
         currentNode = successor
         continue
