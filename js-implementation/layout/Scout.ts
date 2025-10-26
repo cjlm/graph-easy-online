@@ -23,21 +23,12 @@ import {
   EDGE_HOR,
   EDGE_VER,
   EDGE_N_E,
-  EDGE_N_W,
   EDGE_S_E,
   EDGE_S_W,
   EDGE_SHORT_E,
   EDGE_SHORT_W,
   EDGE_SHORT_N,
   EDGE_SHORT_S,
-  EDGE_START_E,
-  EDGE_START_W,
-  EDGE_START_N,
-  EDGE_START_S,
-  EDGE_END_E,
-  EDGE_END_W,
-  EDGE_END_N,
-  EDGE_END_S,
   EDGE_LABEL_CELL,
 } from '../core/Cell.ts'
 
@@ -109,7 +100,7 @@ export class Scout {
   /**
    * Tier 1: Try straight horizontal or vertical path
    */
-  private tryStraightPath(src: Node, dst: Node, edge: Edge): PathCell[] {
+  private tryStraightPath(src: Node, dst: Node, _edge: Edge): PathCell[] {
     const x0 = src.x!
     const y0 = src.y!
     const x1 = dst.x!
@@ -123,7 +114,6 @@ export class Scout {
 
     const srcCx = src.cx || 1
     const srcCy = src.cy || 1
-    const dstCx = dst.cx || 1
 
     // Exit from source, enter to destination
     const exitX = x0 + srcCx
@@ -192,7 +182,7 @@ export class Scout {
   /**
    * Tier 2: Try L-shaped path with one bend
    */
-  private tryBendPath(src: Node, dst: Node, edge: Edge): PathCell[] {
+  private tryBendPath(src: Node, dst: Node, _edge: Edge): PathCell[] {
     const x0 = src.x!
     const y0 = src.y!
     const x1 = dst.x!
@@ -296,12 +286,11 @@ export class Scout {
   /**
    * Tier 3: Full A* pathfinding with Manhattan heuristic
    */
-  private findPathAStar(src: Node, dst: Node, edge: Edge): PathCell[] {
+  private findPathAStar(src: Node, dst: Node, _edge: Edge): PathCell[] {
     if (this.debug) console.log(`# A* from ${src.x},${src.y} to ${dst.x},${dst.y}`)
 
     const srcCx = src.cx || 1
     const srcCy = src.cy || 1
-    const dstCx = dst.cx || 1
     const dstCy = dst.cy || 1
 
     // Start positions (all cells around source node)
@@ -391,8 +380,8 @@ export class Scout {
   private reconstructPath(
     cameFrom: Map<string, { x: number; y: number; px: number; py: number; type: number }>,
     goal: AStarNode,
-    src: Node,
-    dst: Node
+    _src: Node,
+    _dst: Node
   ): PathCell[] {
     const path: PathCell[] = []
     let current = { x: goal.x, y: goal.y }
@@ -415,7 +404,7 @@ export class Scout {
   /**
    * Get neighbors of a cell for A* expansion
    */
-  private getNeighbors(x: number, y: number, src: Node, dst: Node): [number, number][] {
+  private getNeighbors(x: number, y: number, _src: Node, _dst: Node): [number, number][] {
     return [
       [x + 1, y],  // East
       [x, y + 1],  // South

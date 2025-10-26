@@ -68,7 +68,7 @@ export class AsciiRendererSimple {
     }
 
     // Render edges
-    for (const [key, cell] of this.graph.cells) {
+    for (const [, cell] of this.graph.cells) {
       if (!cell.edge) continue
 
       const charX = (cell.x - minX + 1) * CELL_WIDTH + Math.floor(CELL_WIDTH / 2)
@@ -146,7 +146,7 @@ export class AsciiRendererSimple {
     let minDist = Infinity
     let closestCell = null
 
-    for (const [key, c] of this.graph.cells) {
+    for (const [, c] of this.graph.cells) {
       if (c.edge !== edge) continue
       const dist = Math.abs(c.x - edge.to.x) + Math.abs(c.y - edge.to.y)
       if (dist < minDist) {
