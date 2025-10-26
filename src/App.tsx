@@ -626,6 +626,8 @@ function App() {
     if (example) {
       setInput(example.graph)
       // Let the auto-convert useEffect handle the conversion to avoid race conditions
+      // Fit to view after a short delay to ensure conversion completes
+      setTimeout(() => handleFitToView(), 700)
     }
   }
 
@@ -636,7 +638,10 @@ function App() {
     // Re-convert with new engine
     if (loadingState === 'ready' && input.trim()) {
       setIsConverting(true)
-      convertGraph(undefined, engine)
+      convertGraph(undefined, engine).then(() => {
+        // Fit to view after conversion completes
+        setTimeout(() => handleFitToView(), 100)
+      })
     }
   }
 
