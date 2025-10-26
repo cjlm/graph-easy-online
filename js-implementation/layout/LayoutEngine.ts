@@ -17,7 +17,7 @@ import { RankAssigner } from './RankAssigner.ts'
 import { ChainDetector } from './ChainDetector.ts'
 import { ActionStackBuilder } from './ActionStackBuilder.ts'
 import { NodePlacer } from './NodePlacer.ts'
-import { OrthogonalRouter } from './OrthogonalRouter.ts'
+import { Scout } from './Scout.ts'
 import { Action, ActionType } from './Action.ts'
 
 export class LayoutEngine {
@@ -83,7 +83,7 @@ export class LayoutEngine {
     let score = 0
 
     const nodePlacer = new NodePlacer(this.graph)
-    const edgeRouter = new OrthogonalRouter(this.graph)
+    const scout = new Scout(this.graph, false)  // A* pathfinding scout
 
     while (todo.length > 0 && tries > 0) {
       const action = todo.shift()!
@@ -103,7 +103,7 @@ export class LayoutEngine {
             if (result !== null && action.parentEdge) {
               const edgeResult = this.executeTraceAction(
                 { type: ActionType.TRACE, edge: action.parentEdge, tryCount: 0 },
-                edgeRouter
+                scout
               )
               if (edgeResult !== null) {
                 result += edgeResult
@@ -112,7 +112,7 @@ export class LayoutEngine {
             break
 
           case ActionType.TRACE:
-            result = this.executeTraceAction(action, edgeRouter)
+            result = this.executeTraceAction(action, scout)
             break
 
           default:
@@ -175,13 +175,13 @@ export class LayoutEngine {
   /**
    * Execute edge routing action
    */
-  private executeTraceAction(action: Action, router: OrthogonalRouter): number | null {
+  private executeTraceAction(action: Action, scout: Scout): number | null {
     if (!action.edge) {
       throw new Error('Trace action missing edge')
     }
 
     try {
-      const path = router.routeEdge(action.edge)
+      const path = scout.findPath(action.edge)
 
       if (path.length === 0) {
         return null // No path found

@@ -22,6 +22,12 @@ export const EDGE_N_W_S = 9 // North, West, South: ┤
 export const EDGE_E_N_S = 10 // East, North, South: ├
 export const EDGE_S_E_W = 11 // South, East, West: ┬
 
+// Short edges (for 2-cell distance between nodes)
+export const EDGE_SHORT_E = 12  // Short edge going east ->
+export const EDGE_SHORT_W = 13  // Short edge going west <-
+export const EDGE_SHORT_N = 14  // Short edge going north ^
+export const EDGE_SHORT_S = 15  // Short edge going south v
+
 // Self-loops
 export const EDGE_LOOP_NORTH = 32
 export const EDGE_LOOP_SOUTH = 33
