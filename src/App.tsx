@@ -150,6 +150,28 @@ graph { flow: east; }
 [ at ] -> [au]
 [ av ] -> [aw]
 [ aw ] -> [ax]`
+  },
+  {
+    name: 'Parallel Processes (Graphviz)',
+    graph: `digraph {
+    subgraph cluster_0 {
+        a0 -> a1 -> a2 -> a3;
+        label = "process #1";
+    }
+
+    subgraph cluster_1 {
+        b0 -> b1 -> b2 -> b3;
+        label = "process #2";
+    }
+
+    start -> a0;
+    start -> b0;
+    a1 -> b3;
+    b2 -> a3;
+    a3 -> a0;
+    a3 -> end;
+    b3 -> end;
+}`
   }
 ]
 
