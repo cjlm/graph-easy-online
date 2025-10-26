@@ -82,16 +82,18 @@ export class NodePlacer {
       this.calculateNodeDimensions(node)
     }
 
-    // Strategy 1: Rank-based placement (for all ranked nodes)
-    if (node.rank !== undefined) {
-      if (this.tryRankBasedPlacement(node, tryCount)) {
+    // For nodes with parent (chained), try parent-based placement first
+    // This gives better layout for chains
+    if (parent && parent.x !== undefined && parent.y !== undefined) {
+      if (this.tryParentBasedPlacement(node, parent, parentEdge, tryCount)) {
         return true
       }
     }
 
-    // Strategy 2: Parent-based placement (for chained nodes)
-    if (parent && parent.x !== undefined && parent.y !== undefined) {
-      if (this.tryParentBasedPlacement(node, parent, parentEdge, tryCount)) {
+    // Strategy 1: Rank-based placement (for all ranked nodes)
+    // This provides vertical separation for nodes at same rank
+    if (node.rank !== undefined) {
+      if (this.tryRankBasedPlacement(node, tryCount)) {
         return true
       }
     }
@@ -119,40 +121,33 @@ export class NodePlacer {
   /**
    * Strategy 1: Place based on user-defined rank
    */
-  private tryRankBasedPlacement(node: Node, tryCount: number): boolean {
+  private tryRankBasedPlacement(node: Node, _tryCount: number): boolean {
     const rank = Math.abs(node.rank!)
     const rankPos = this.graph._rankPos!
 
     // Get or create position for this rank
     if (!rankPos.has(rank)) {
-      rankPos.set(rank, { x: rank * 4, y: 0 })
+      // Use wider spacing between ranks for better layout
+      const rankSpacing = 15
+      rankPos.set(rank, { x: rank * rankSpacing, y: 0 })
     }
 
     const pos = rankPos.get(rank)!
     const coord = this.graph._rankCoord!
 
-    // Try to place at rank position with increasing offsets
-    for (let offset = 0; offset <= tryCount; offset++) {
-      let x = pos.x
-      let y = pos.y
+    // Place at current rank position (X fixed, Y varies)
+    const x = pos.x
+    const y = pos.y
 
+    if (this.tryPlaceAt(node, x, y)) {
+      // Update rank position for next node at same rank
+      const gap = 2  // Increased gap between nodes at same rank
       if (coord === 'x') {
-        y += offset * 2
+        pos.y += (node.cy || 1) + gap
       } else {
-        x += offset * 2
+        pos.x += (node.cx || 1) + gap
       }
-
-      if (this.tryPlaceAt(node, x, y)) {
-        // Update rank position for next node
-        // Use node height/width + gap to avoid overlap
-        const gap = 1  // Minimum gap between nodes at same rank
-        if (coord === 'x') {
-          pos.y += (node.cy || 1) + gap
-        } else {
-          pos.x += (node.cx || 1) + gap
-        }
-        return true
-      }
+      return true
     }
 
     return false
@@ -171,10 +166,42 @@ export class NodePlacer {
     // This is the gap between nodes, not including node width
     const minDist = (parentEdge?.getAttribute('minlen') as number) || 5
 
-    // Get candidate positions around parent
-    const candidates = this.getNearPlaces(parent, minDist)
+    // If node has a rank, use rank-based X position instead of parent-relative
+    if (node.rank !== undefined) {
+      const rank = Math.abs(node.rank)
+      const rankPos = this.graph._rankPos!
 
-    // Try each candidate
+      // Ensure rank position exists
+      if (!rankPos.has(rank)) {
+        const rankSpacing = 15
+        rankPos.set(rank, { x: rank * rankSpacing, y: 0 })
+      }
+
+      const rpos = rankPos.get(rank)!
+      const x = rpos.x
+      const y = rpos.y
+
+      // Try to place at rank column
+      if (this.tryPlaceAt(node, x, y)) {
+        // Update Y for next node at this rank
+        const gap = 2
+        if (this.graph._rankCoord === 'x') {
+          rpos.y += (node.cy || 1) + gap
+        }
+        return true
+      }
+
+      // If rank position is occupied, try with small Y offset
+      for (let offset = 1; offset <= tryCount + 2; offset++) {
+        if (this.tryPlaceAt(node, x, y + offset)) {
+          rpos.y = Math.max(rpos.y, y + offset + (node.cy || 1) + 2)
+          return true
+        }
+      }
+    }
+
+    // Fallback to original parent-based placement if no rank
+    const candidates = this.getNearPlaces(parent, minDist)
     for (let i = 0; i < Math.min(candidates.length, tryCount + 1); i++) {
       const pos = candidates[i]
       if (this.tryPlaceAt(node, pos.x, pos.y)) {
