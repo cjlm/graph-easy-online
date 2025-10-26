@@ -351,7 +351,10 @@ export class EdgeRouter {
 
         // Calculate cost
         const moveCost = 1
-        const crossingPenalty = cell && cell.edge && cell.edge !== edge ? 30 : 0
+
+        // HEAVILY penalize crossing existing edges
+        const crossingPenalty = cell && cell.edge && cell.edge !== edge ? 200 : 0
+
         const directionChangePenalty = this.getDirectionChangePenalty(
           current.x,
           current.y,

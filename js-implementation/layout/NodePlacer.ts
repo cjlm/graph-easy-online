@@ -128,7 +128,7 @@ export class NodePlacer {
     // Get or create position for this rank
     if (!rankPos.has(rank)) {
       // Use wider spacing between ranks for better layout
-      const rankSpacing = 15
+      const rankSpacing = 25  // Increased from 15 for complex graphs
       rankPos.set(rank, { x: rank * rankSpacing, y: 0 })
     }
 
@@ -141,7 +141,7 @@ export class NodePlacer {
 
     if (this.tryPlaceAt(node, x, y)) {
       // Update rank position for next node at same rank
-      const gap = 2  // Increased gap between nodes at same rank
+      const gap = 4  // Larger gap for complex graphs between nodes at same rank
       if (coord === 'x') {
         pos.y += (node.cy || 1) + gap
       } else {
@@ -173,7 +173,7 @@ export class NodePlacer {
 
       // Ensure rank position exists
       if (!rankPos.has(rank)) {
-        const rankSpacing = 15
+        const rankSpacing = 25  // Increased from 15 for complex graphs
         rankPos.set(rank, { x: rank * rankSpacing, y: 0 })
       }
 
