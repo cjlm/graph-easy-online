@@ -144,10 +144,12 @@ export class NodePlacer {
 
       if (this.tryPlaceAt(node, x, y)) {
         // Update rank position for next node
+        // Use node height/width + gap to avoid overlap
+        const gap = 1  // Minimum gap between nodes at same rank
         if (coord === 'x') {
-          pos.y += 2
+          pos.y += (node.cy || 1) + gap
         } else {
-          pos.x += 2
+          pos.x += (node.cx || 1) + gap
         }
         return true
       }
