@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@datastructures-js/priority-queue':
+        specifier: ^6.3.5
+        version: 6.3.5
       '@viz-js/viz':
         specifier: ^3.20.0
         version: 3.20.0
@@ -164,6 +167,12 @@ packages:
   '@babel/types@7.28.5':
     resolution: {integrity: sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA==}
     engines: {node: '>=6.9.0'}
+
+  '@datastructures-js/heap@4.3.7':
+    resolution: {integrity: sha512-Dx4un7Uj0dVxkfoq4RkpzsY2OrvNJgQYZ3n3UlGdl88RxxdHd7oTi21/l3zoxUUe0sXFuNUrfmWqlHzqnoN6Ug==}
+
+  '@datastructures-js/priority-queue@6.3.5':
+    resolution: {integrity: sha512-NmdmvLnkUyG67W6Iy8tP+865ILq5VDyZh90c8lHMOkYYydUNzOV0QNPCRAuj4AoHSm/V2DeuYvDKnvALaCwLvA==}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -1556,6 +1565,12 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
+
+  '@datastructures-js/heap@4.3.7': {}
+
+  '@datastructures-js/priority-queue@6.3.5':
+    dependencies:
+      '@datastructures-js/heap': 4.3.7
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
