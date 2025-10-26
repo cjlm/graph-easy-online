@@ -7,7 +7,7 @@
 
 import type { OutputFormat } from '../App'
 
-export type ConversionEngine = 'webperl' | 'elk'
+export type ConversionEngine = 'webperl' | 'elk' | 'typescript'
 
 export interface ConversionResult {
   output: string
@@ -19,6 +19,8 @@ export interface ConversionResult {
 export class GraphConversionService {
   private elkConverter: any = null
   private elkInitialized = false
+  private typescriptConverter: any = null
+  private typescriptInitialized = false
   private preferredEngine: ConversionEngine = 'webperl'
   private perlMutex: Promise<void> = Promise.resolve()
 
@@ -38,6 +40,30 @@ export class GraphConversionService {
     return saved || this.preferredEngine
   }
 
+
+  /**
+   * Initialize the TypeScript converter
+   */
+  async initializeTypeScript(): Promise<void> {
+    if (this.typescriptInitialized) return
+
+    try {
+      // Dynamically import TypeScript Perl layout engine
+      const { PerlLayoutEngine } = await import('../../js-implementation/PerlLayoutEngine')
+
+      // Create TypeScript converter
+      this.typescriptConverter = new PerlLayoutEngine({
+        boxart: false,
+        debug: false,
+      })
+
+      this.typescriptInitialized = true
+      console.log('✅ TypeScript converter initialized')
+    } catch (error) {
+      console.error('Failed to initialize TypeScript converter:', error)
+      throw error
+    }
+  }
 
   /**
    * Initialize the ELK converter
@@ -77,7 +103,47 @@ export class GraphConversionService {
     const startTime = performance.now()
 
     try {
-      if (engine === 'elk') {
+      if (engine === 'typescript') {
+        // TypeScript Perl layout engine
+        if (format !== 'ascii' && format !== 'boxart') {
+          return {
+            output: '',
+            engine: 'typescript',
+            timeMs: performance.now() - startTime,
+            error: `TypeScript implementation only supports ASCII and Boxart formats. Selected format: ${format}\n\nPlease select ASCII or Boxart, or switch to WebPerl engine for other formats.`,
+          }
+        }
+
+        try {
+          if (!this.typescriptInitialized) {
+            console.log('🔷 Initializing TypeScript engine...')
+            await this.initializeTypeScript()
+          }
+
+          console.log(`🔷 Converting with TypeScript Perl layout engine...`)
+          const output = await this.convertWithTypeScript(input, format)
+          const timeMs = performance.now() - startTime
+
+          console.log(`✅ TypeScript conversion succeeded in ${timeMs.toFixed(1)}ms`)
+
+          return {
+            output,
+            engine: 'typescript',
+            timeMs,
+          }
+        } catch (tsError) {
+          const errorMessage = tsError instanceof Error ? tsError.message : String(tsError)
+          console.error('❌ TypeScript conversion failed:', errorMessage)
+
+          // NO FALLBACK - return error
+          return {
+            output: '',
+            engine: 'typescript',
+            timeMs: performance.now() - startTime,
+            error: `TypeScript engine failed: ${errorMessage}\n\nThis is the pure TypeScript reimplementation with no fallback. Please report this issue or try WebPerl/ELK engines.`,
+          }
+        }
+      } else if (engine === 'elk') {
         // ELK engine
         if (format !== 'ascii' && format !== 'boxart') {
           console.warn(`ELK doesn't support ${format} format, using WebPerl`)
@@ -153,6 +219,27 @@ export class GraphConversionService {
     }
   }
 
+
+  /**
+   * Convert using TypeScript Perl layout engine
+   */
+  private async convertWithTypeScript(input: string, format: OutputFormat): Promise<string> {
+    if (!this.typescriptInitialized) {
+      await this.initializeTypeScript()
+    }
+
+    // Only ASCII/boxart formats supported
+    if (format !== 'ascii' && format !== 'boxart') {
+      throw new Error(`Format '${format}' not yet supported in TypeScript. Use WebPerl.`)
+    }
+
+    // Set boxart option based on format
+    this.typescriptConverter.setOptions({ boxart: format === 'boxart' })
+
+    const result = await this.typescriptConverter.convert(input)
+
+    return result
+  }
 
   /**
    * Convert using ELK layout engine
@@ -306,6 +393,10 @@ END_INPUT
    */
   getEngineStatus() {
     return {
+      typescript: {
+        available: this.typescriptInitialized,
+        status: this.typescriptInitialized ? 'ready' : 'not-initialized',
+      },
       elk: {
         available: this.elkInitialized,
         status: this.elkInitialized ? 'ready' : 'not-initialized',

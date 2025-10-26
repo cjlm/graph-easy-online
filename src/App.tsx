@@ -165,7 +165,7 @@ const getStateFromURL = (): { input?: string; format?: OutputFormat; engine?: Co
     format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
       ? format
       : undefined,
-    engine: engine && ['webperl', 'elk', 'dot'].includes(engine)
+    engine: engine && ['webperl', 'elk', 'typescript'].includes(engine)
       ? engine
       : undefined
   }
@@ -888,7 +888,7 @@ function App() {
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
                 <span className="font-medium">
-                  {engineUsed === 'elk' ? 'ELK' : 'Perl'}
+                  {engineUsed === 'elk' ? 'ELK' : engineUsed === 'typescript' ? 'TypeScript' : 'Perl'}
                 </span>
               </div>
               <span>•</span>
@@ -987,6 +987,17 @@ function App() {
             title="ELK (Eclipse Layout Kernel)"
           >
             ELK
+          </button>
+          <button
+            onClick={() => handleEngineChange('typescript')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              conversionEngine === 'typescript'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="TypeScript (Pure TS Perl reimplementation)"
+          >
+            TS
           </button>
         </div>
 
