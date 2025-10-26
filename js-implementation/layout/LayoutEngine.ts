@@ -17,7 +17,7 @@ import { RankAssigner } from './RankAssigner'
 import { ChainDetector } from './ChainDetector'
 import { ActionStackBuilder } from './ActionStackBuilder'
 import { NodePlacer } from './NodePlacer'
-import { EdgeRouter } from './EdgeRouter'
+import { OrthogonalRouter } from './OrthogonalRouter'
 import { Action, ActionType } from './Action'
 
 export class LayoutEngine {
@@ -83,7 +83,7 @@ export class LayoutEngine {
     let score = 0
 
     const nodePlacer = new NodePlacer(this.graph)
-    const edgeRouter = new EdgeRouter(this.graph)
+    const edgeRouter = new OrthogonalRouter(this.graph)
 
     while (todo.length > 0 && tries > 0) {
       const action = todo.shift()!
@@ -175,13 +175,13 @@ export class LayoutEngine {
   /**
    * Execute edge routing action
    */
-  private executeTraceAction(action: Action, router: EdgeRouter): number | null {
+  private executeTraceAction(action: Action, router: OrthogonalRouter): number | null {
     if (!action.edge) {
       throw new Error('Trace action missing edge')
     }
 
     try {
-      const path = router.findPath(action.edge)
+      const path = router.routeEdge(action.edge)
 
       if (path.length === 0) {
         return null // No path found
