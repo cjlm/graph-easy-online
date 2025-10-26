@@ -94,8 +94,21 @@ export class LayoutEngine {
       try {
         switch (action.type) {
           case ActionType.NODE:
+            result = this.executeNodeAction(action, nodePlacer)
+            break
+
           case ActionType.CHAIN:
             result = this.executeNodeAction(action, nodePlacer)
+            // After placing chained node, route the edge from parent
+            if (result !== null && action.parentEdge) {
+              const edgeResult = this.executeTraceAction(
+                { type: ActionType.TRACE, edge: action.parentEdge, tryCount: 0 },
+                edgeRouter
+              )
+              if (edgeResult !== null) {
+                result += edgeResult
+              }
+            }
             break
 
           case ActionType.TRACE:
