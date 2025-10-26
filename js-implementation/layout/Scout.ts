@@ -126,7 +126,6 @@ export class Scout {
     const exitY_vert = dy > 0 ? y0 + srcCy : y0 - 1  // Below/above for vertical
 
     const enterX = x1 - 1  // Cell to the left of dest
-    const enterY_horiz = y1 + Math.floor(dstCy / 2)  // Middle row for horizontal
     const enterY_vert = dy > 0 ? y1 - 1 : y1 + dstCy  // Above/below for vertical
 
     const path: PathCell[] = []
