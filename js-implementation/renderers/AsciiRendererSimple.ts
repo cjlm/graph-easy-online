@@ -95,23 +95,65 @@ export class AsciiRendererSimple {
         const label = cell.edge!.label
         const labelStartX = charX - Math.floor(label.length / 2)
 
-        // Check if there's enough space for the label
-        // Count consecutive spaces/edge chars that can be overwritten
-        let availableSpace = 0
+        // Check if there's enough CLEAR space for the label
+        // We need empty space (or just edge chars) on both sides
+        let canRender = true
+
+        // Check all positions where label would be placed
         for (let i = 0; i < label.length; i++) {
           const lx = labelStartX + i
-          if (lx >= 0 && lx < grid[0].length && charY >= 0 && charY < grid.length) {
-            const existingChar = grid[charY][lx]
-            if (existingChar === ' ' || existingChar === '-' || existingChar === '|') {
-              availableSpace++
-            } else {
-              break  // Hit a non-overwritable character
+
+          if (lx < 0 || lx >= grid[0].length || charY < 0 || charY >= grid.length) {
+            canRender = false
+            break
+          }
+
+          const existingChar = grid[charY][lx]
+
+          // Only allow rendering over spaces and simple edge characters
+          // Don't render over corners (+), borders (|), or any letters/numbers
+          if (existingChar !== ' ' && existingChar !== '-') {
+            canRender = false
+            break
+          }
+        }
+
+        // Also check a buffer zone - require at least 2 spaces before and after
+        // This prevents labels from appearing too close to node boxes
+        if (canRender) {
+          const bufferSize = 2
+
+          // Check buffer before label
+          for (let j = 1; j <= bufferSize; j++) {
+            const checkPos = labelStartX - j
+            if (checkPos >= 0 && checkPos < grid[0].length) {
+              const char = grid[charY][checkPos]
+              // If there's anything other than space or dash in buffer, don't render
+              if (char !== ' ' && char !== '-') {
+                canRender = false
+                break
+              }
+            }
+          }
+
+          // Check buffer after label
+          if (canRender) {
+            for (let j = 0; j < bufferSize; j++) {
+              const checkPos = labelStartX + label.length + j
+              if (checkPos < grid[0].length) {
+                const char = grid[charY][checkPos]
+                // If there's anything other than space or dash in buffer, don't render
+                if (char !== ' ' && char !== '-') {
+                  canRender = false
+                  break
+                }
+              }
             }
           }
         }
 
-        // Only render if we have enough space
-        if (availableSpace >= label.length) {
+        // Only render if we have completely clear space with buffer
+        if (canRender) {
           for (let i = 0; i < label.length; i++) {
             const lx = labelStartX + i
             if (lx >= 0 && lx < grid[0].length) {
