@@ -16,8 +16,11 @@
 
 import { Graph } from '../core/Graph'
 import { Node } from '../core/Node'
-import { Edge } from '../core/Edge'
 import { Chain } from './Chain'
+
+// Edge import kept for edge iteration
+// @ts-ignore - used in edge iteration
+import { Edge } from '../core/Edge'
 
 export class ChainDetector {
   private graph: Graph

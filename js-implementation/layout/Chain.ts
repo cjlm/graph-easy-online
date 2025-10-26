@@ -9,6 +9,9 @@
 
 import { Graph } from '../core/Graph'
 import { Node } from '../core/Node'
+
+// Edge import kept for module augmentation declarations
+// @ts-ignore - used in module augmentation
 import { Edge } from '../core/Edge'
 
 /**

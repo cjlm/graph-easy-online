@@ -15,7 +15,6 @@ import { Graph } from '../core/Graph'
 import { Node } from '../core/Node'
 import { Edge } from '../core/Edge'
 import {
-  Cell,
   gridKey,
   EDGE_HOR,
   EDGE_VER,
@@ -24,14 +23,6 @@ import {
   EDGE_N_W,
   EDGE_S_E,
   EDGE_S_W,
-  EDGE_START_N,
-  EDGE_START_S,
-  EDGE_START_E,
-  EDGE_START_W,
-  EDGE_END_N,
-  EDGE_END_S,
-  EDGE_END_E,
-  EDGE_END_W,
 } from '../core/Cell'
 
 interface PathCell {
@@ -119,7 +110,7 @@ export class EdgeRouter {
   /**
    * Try straight path
    */
-  private tryStraightPath(src: Node, dst: Node, edge: Edge): PathCell[] {
+  private tryStraightPath(src: Node, dst: Node, _edge: Edge): PathCell[] {
     const path: PathCell[] = []
     const dx = dst.x! - src.x!
     const dy = dst.y! - src.y!
@@ -178,7 +169,7 @@ export class EdgeRouter {
   /**
    * Try single bend path (L-shape)
    */
-  private trySingleBend(src: Node, dst: Node, edge: Edge, horizontalFirst: boolean): PathCell[] {
+  private trySingleBend(src: Node, dst: Node, _edge: Edge, horizontalFirst: boolean): PathCell[] {
     const path: PathCell[] = []
 
     if (horizontalFirst) {
@@ -273,9 +264,7 @@ export class EdgeRouter {
    */
   private findPathAStar(src: Node, dst: Node, edge: Edge): PathCell[] {
     // Initialize open list (priority queue)
-    const open = new MinPriorityQueue<AStarNode>({
-      priority: (node) => node.f,
-    })
+    const open = new MinPriorityQueue<AStarNode>((node: AStarNode) => node.f)
 
     // Track best g scores
     const gScores = new Map<string, number>()
@@ -304,7 +293,8 @@ export class EdgeRouter {
 
     // A* main loop
     while (!open.isEmpty()) {
-      const current = open.dequeue().element
+      const current = open.dequeue()
+      if (!current) break
 
       const currentKey = gridKey(current.x, current.y)
 
@@ -371,7 +361,7 @@ export class EdgeRouter {
   /**
    * Get start positions (positions just outside source node)
    */
-  private getStartPositions(src: Node, dst: Node): Array<{ x: number; y: number }> {
+  private getStartPositions(src: Node, _dst: Node): Array<{ x: number; y: number }> {
     const positions: Array<{ x: number; y: number }> = []
     const x = src.x!
     const y = src.y!
@@ -388,7 +378,7 @@ export class EdgeRouter {
   /**
    * Get goal positions (positions just outside destination node)
    */
-  private getGoalPositions(src: Node, dst: Node): Array<{ x: number; y: number }> {
+  private getGoalPositions(_src: Node, dst: Node): Array<{ x: number; y: number }> {
     const positions: Array<{ x: number; y: number }> = []
     const x = dst.x!
     const y = dst.y!
@@ -447,8 +437,8 @@ export class EdgeRouter {
   private reconstructPath(
     parents: Map<string, { x: number; y: number }>,
     goal: AStarNode,
-    src: Node,
-    dst: Node
+    _src: Node,
+    _dst: Node
   ): PathCell[] {
     const path: PathCell[] = []
 
@@ -484,7 +474,7 @@ export class EdgeRouter {
   /**
    * Find path for self-loop
    */
-  private findPathLoop(node: Node, edge: Edge): PathCell[] {
+  private findPathLoop(node: Node, _edge: Edge): PathCell[] {
     // Simple self-loop going to the right
     const x = node.x!
     const y = node.y!

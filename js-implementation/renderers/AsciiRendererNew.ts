@@ -186,7 +186,7 @@ export class AsciiRendererNew {
    * Render edges
    */
   private renderEdges(grid: string[][], bounds: any): void {
-    for (const [key, cell] of this.graph.cells) {
+    for (const [_key, cell] of this.graph.cells) {
       if (!cell.edge) continue
 
       const x = cell.x - bounds.minX + 1

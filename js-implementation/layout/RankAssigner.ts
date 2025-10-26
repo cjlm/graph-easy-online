@@ -39,9 +39,8 @@ export class RankAssigner {
    */
   assignRanks(): void {
     // Create a priority queue sorted by absolute rank value
-    const heap = new MinPriorityQueue<Node>({
-      priority: (node) => Math.abs(node.rank ?? 0),
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const heap = new MinPriorityQueue<Node>((node: any) => Math.abs(node.rank ?? 0))
 
     // Nodes that haven't been ranked yet
     const unranked: Node[] = []
@@ -92,14 +91,15 @@ export class RankAssigner {
     while (!heap.isEmpty() || unranked.length > 0) {
       // Process all nodes in heap
       while (!heap.isEmpty()) {
-        const { element: node } = heap.dequeue()
-        const currentRank = node.rank!
+        const dequeuedNode = heap.dequeue()
+        if (!dequeuedNode) break
+        const currentRank = dequeuedNode.rank!
 
         // Calculate next rank for successors
         const nextRank = this.getNextRank(currentRank)
 
         // Assign rank to all successors
-        for (const successor of this.successors(node)) {
+        for (const successor of this.successors(dequeuedNode)) {
           if (successor.rank === undefined) {
             successor.rank = nextRank
 

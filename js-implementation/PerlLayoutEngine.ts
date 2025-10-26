@@ -6,7 +6,6 @@
  */
 
 import { Parser } from './parser/Parser'
-import { Graph } from './core/Graph'
 import { LayoutEngine } from './layout/LayoutEngine'
 import { AsciiRendererNew } from './renderers/AsciiRendererNew'
 

@@ -22,7 +22,6 @@ import { Edge } from '../core/Edge'
 import { Chain } from './Chain'
 import {
   Action,
-  ActionType,
   createNodeAction,
   createChainAction,
   createTraceAction,
