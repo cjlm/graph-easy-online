@@ -22,7 +22,7 @@ const tests = [
   },
   {
     name: 'Seven Bridges graph',
-    input: 'graph { [ A ] -- [ B ]; [ A ] -- [ C ]; [ A ] -- [ D ]; [ B ] -- [ D ]; [ C ] -- [ D ] }',
+    input: '[ A ] -- [ B ]\n[ A ] -- [ C ]\n[ A ] -- [ D ]\n[ B ] -- [ D ]\n[ C ] -- [ D ]',
     expected: 'Undirected graph with multiple edges'
   },
   {
