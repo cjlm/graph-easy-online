@@ -365,12 +365,17 @@ export class EdgeRouter {
     const positions: Array<{ x: number; y: number }> = []
     const x = src.x!
     const y = src.y!
+    const cx = src.cx || 1
+    const cy = src.cy || 1
 
-    // Add positions in all 4 directions
-    positions.push({ x: x + 1, y })
-    positions.push({ x: x - 1, y })
-    positions.push({ x, y: y + 1 })
-    positions.push({ x, y: y - 1 })
+    // Calculate center of node
+    const centerY = y + Math.floor(cy / 2)
+
+    // Add positions in all 4 directions from center
+    positions.push({ x: x + cx, y: centerY })  // right (east)
+    positions.push({ x: x - 1, y: centerY })    // left (west)
+    positions.push({ x, y: y + cy })            // bottom (south)
+    positions.push({ x, y: y - 1 })             // top (north)
 
     return positions
   }
@@ -382,12 +387,17 @@ export class EdgeRouter {
     const positions: Array<{ x: number; y: number }> = []
     const x = dst.x!
     const y = dst.y!
+    const cx = dst.cx || 1
+    const cy = dst.cy || 1
 
-    // Add positions in all 4 directions
-    positions.push({ x: x + 1, y })
-    positions.push({ x: x - 1, y })
-    positions.push({ x, y: y + 1 })
-    positions.push({ x, y: y - 1 })
+    // Calculate center of node
+    const centerY = y + Math.floor(cy / 2)
+
+    // Add positions in all 4 directions from center
+    positions.push({ x: x + cx, y: centerY })  // right (east)
+    positions.push({ x: x - 1, y: centerY })    // left (west)
+    positions.push({ x, y: y + cy })            // bottom (south)
+    positions.push({ x, y: y - 1 })             // top (north)
 
     return positions
   }

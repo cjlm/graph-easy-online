@@ -186,19 +186,59 @@ export class AsciiRendererNew {
    * Render edges
    */
   private renderEdges(grid: string[][], bounds: any): void {
+    // Group cells by edge
+    const edgeCells = new Map<string, Cell[]>()
     for (const [_key, cell] of this.graph.cells) {
       if (!cell.edge) continue
 
-      const x = cell.x - bounds.minX + 1
-      const y = cell.y - bounds.minY + 1
+      const edgeId = cell.edge.id
+      if (!edgeCells.has(edgeId)) {
+        edgeCells.set(edgeId, [])
+      }
+      edgeCells.get(edgeId)!.push(cell)
+    }
 
-      const edgeType = cell.type & EDGE_TYPE_MASK
-      const char = this.getEdgeCharacter(edgeType)
+    // Render each edge
+    for (const [_edgeId, cells] of edgeCells) {
+      const edge = cells[0].edge!
 
-      if (y >= 0 && y < grid.length && x >= 0 && x < grid[0].length) {
-        // Only draw if not already occupied by node
-        if (grid[y][x] === ' ') {
-          grid[y][x] = char
+      // Find endpoint cells (closest to to-node)
+      const toNode = edge.to
+      let endpointCell: Cell | null = null
+      let minDist = Infinity
+
+      for (const cell of cells) {
+        if (toNode.x !== undefined && toNode.y !== undefined) {
+          const dist = Math.abs(cell.x - toNode.x) + Math.abs(cell.y - toNode.y)
+          if (dist < minDist) {
+            minDist = dist
+            endpointCell = cell
+          }
+        }
+      }
+
+      // Render all cells
+      for (const cell of cells) {
+        const x = cell.x - bounds.minX + 1
+        const y = cell.y - bounds.minY + 1
+
+        if (y >= 0 && y < grid.length && x >= 0 && x < grid[0].length) {
+          // Only draw if not already occupied by node
+          if (grid[y][x] === ' ') {
+            const edgeType = cell.type & EDGE_TYPE_MASK
+            let char = this.getEdgeCharacter(edgeType)
+
+            // Add arrowhead at endpoint
+            if (cell === endpointCell) {
+              if (edgeType === EDGE_HOR) {
+                char = '>'
+              } else if (edgeType === EDGE_VER) {
+                char = 'v'
+              }
+            }
+
+            grid[y][x] = char
+          }
         }
       }
     }

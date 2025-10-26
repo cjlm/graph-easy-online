@@ -165,8 +165,9 @@ export class NodePlacer {
     parentEdge: Edge | undefined,
     tryCount: number
   ): boolean {
-    // Get minimum distance from edge attribute (default 2)
-    const minDist = (parentEdge?.getAttribute('minlen') as number) || 2
+    // Get minimum distance from edge attribute (default 3)
+    // This is the gap between nodes, not including node width
+    const minDist = (parentEdge?.getAttribute('minlen') as number) || 3
 
     // Get candidate positions around parent
     const candidates = this.getNearPlaces(parent, minDist)
@@ -189,7 +190,7 @@ export class NodePlacer {
     if (predecessors.length === 1) {
       // Single predecessor: place near it
       const pred = predecessors[0]
-      const candidates = this.getNearPlaces(pred, 2)
+      const candidates = this.getNearPlaces(pred, 3)
 
       for (let i = 0; i < Math.min(candidates.length, tryCount + 1); i++) {
         if (this.tryPlaceAt(node, candidates[i].x, candidates[i].y)) {
@@ -211,7 +212,7 @@ export class NodePlacer {
 
       // Try near each predecessor
       for (const pred of predecessors) {
-        const candidates = this.getNearPlaces(pred, 2)
+        const candidates = this.getNearPlaces(pred, 3)
         for (const pos of candidates) {
           if (this.tryPlaceAt(node, pos.x, pos.y)) {
             return true
@@ -228,7 +229,7 @@ export class NodePlacer {
    */
   private trySuccessorBasedPlacement(node: Node, successors: Node[], tryCount: number): boolean {
     for (const succ of successors) {
-      const candidates = this.getNearPlaces(succ, 2)
+      const candidates = this.getNearPlaces(succ, 3)
 
       for (let i = 0; i < Math.min(candidates.length, tryCount + 1); i++) {
         if (this.tryPlaceAt(node, candidates[i].x, candidates[i].y)) {
@@ -300,17 +301,17 @@ export class NodePlacer {
     // For multi-cell nodes: positions along all sides
     const positions: Position[] = []
 
-    // Right side
+    // Right side (east)
     for (let dy = 0; dy < cy; dy++) {
-      positions.push({ x: x + cx + distance - 1, y: y + dy })
+      positions.push({ x: x + cx + distance, y: y + dy })
     }
 
-    // Bottom side
+    // Bottom side (south)
     for (let dx = 0; dx < cx; dx++) {
-      positions.push({ x: x + dx, y: y + cy + distance - 1 })
+      positions.push({ x: x + dx, y: y + cy + distance })
     }
 
-    // Left side
+    // Left side (west)
     for (let dy = 0; dy < cy; dy++) {
       positions.push({ x: x - distance, y: y + dy })
     }
