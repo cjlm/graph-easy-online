@@ -15,7 +15,7 @@ import {
   EDGE_TYPE_MASK,
 } from '../core/Cell.ts'
 
-const CELL_WIDTH = 5   // Each grid cell is 5 characters wide
+const CELL_WIDTH = 4   // Each grid cell is 4 characters wide (balanced spacing)
 const CELL_HEIGHT = 3  // Each grid cell is 3 characters tall
 
 export class AsciiRendererSimple {
@@ -61,7 +61,8 @@ export class AsciiRendererSimple {
       const charY = (node.y - minY + 1) * CELL_HEIGHT
 
       const label = node.label || node.name
-      const boxWidth = Math.max(label.length + 2, 5)
+      // Box width: label + 2 for borders, minimum 3 for tiny nodes
+      const boxWidth = Math.max(label.length + 2, 3)
 
       // Draw box
       this.drawBox(grid, charX, charY, boxWidth, CELL_HEIGHT, label)
