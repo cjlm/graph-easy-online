@@ -77,15 +77,21 @@ export class Scout {
       throw new Error(`Nodes not placed: ${src.name} or ${dst.name}`)
     }
 
+    console.log(`🔍 Scout.findPath: ${src.name}(${src.x},${src.y}) -> ${dst.name}(${dst.x},${dst.y})`)
+
     // Tier 1: Try straight path
+    console.log('  Trying straight path...')
     const straight = this.tryStraightPath(src, dst, edge)
+    console.log(`  Straight path result: ${straight.length} cells`)
     if (straight.length > 0) {
       if (this.debug) console.log(`# Found straight path with ${straight.length} cells`)
       return straight
     }
 
     // Tier 2: Try single-bend path
+    console.log('  Trying bend path...')
     const bend = this.tryBendPath(src, dst, edge)
+    console.log(`  Bend path result: ${bend.length} cells`)
     if (bend.length > 0) {
       if (this.debug) console.log(`# Found bend path with ${bend.length} cells`)
       return bend
@@ -109,17 +115,30 @@ export class Scout {
     const dx = Math.sign(x1 - x0)
     const dy = Math.sign(y1 - y0)
 
+    console.log(`    dx=${dx}, dy=${dy}`)
+
     // Not straight
-    if (dx !== 0 && dy !== 0) return []
+    if (dx !== 0 && dy !== 0) {
+      console.log('    Not straight, returning []')
+      return []
+    }
+
+    console.log('    Is straight, continuing...')
 
     const srcCx = src.cx || 1
     const srcCy = src.cy || 1
+    const dstCy = dst.cy || 1
 
     // Exit from source, enter to destination
-    const exitX = x0 + srcCx
-    const exitY = y0 + Math.floor(srcCy / 2)
-    const enterX = x1 - 1
-    const enterY = y1 + Math.floor((dst.cy || 1) / 2)
+    // For horizontal edges: exit right of source, enter left of dest
+    // For vertical edges: exit below/above source, enter above/below dest
+    const exitX = x0 + srcCx  // Cell to the right of source
+    const exitY_horiz = y0 + Math.floor(srcCy / 2)  // Middle row for horizontal
+    const exitY_vert = dy > 0 ? y0 + srcCy : y0 - 1  // Below/above for vertical
+
+    const enterX = x1 - 1  // Cell to the left of dest
+    const enterY_horiz = y1 + Math.floor(dstCy / 2)  // Middle row for horizontal
+    const enterY_vert = dy > 0 ? y1 - 1 : y1 + dstCy  // Above/below for vertical
 
     const path: PathCell[] = []
 
@@ -144,7 +163,7 @@ export class Scout {
       // Horizontal
       let blocked = false
       for (let x = exitX; x < enterX; x++) {
-        if (this.isBlocked(x, exitY, src, dst)) {
+        if (this.isBlocked(x, exitY_horiz, src, dst)) {
           blocked = true
           break
         }
@@ -153,24 +172,27 @@ export class Scout {
       if (!blocked) {
         for (let x = exitX; x < enterX; x++) {
           const type = path.length === 0 ? EDGE_HOR + EDGE_LABEL_CELL : EDGE_HOR
-          path.push({ x, y: exitY, type })
+          path.push({ x, y: exitY_horiz, type })
         }
         return path
       }
     } else if (dy !== 0) {
       // Vertical
       let blocked = false
-      for (let y = exitY; dy > 0 ? y < enterY : y > enterY; y += dy) {
-        if (this.isBlocked(exitX, y, src, dst)) {
+      const startY = exitY_vert
+      const endY = enterY_vert
+
+      for (let y = startY; dy > 0 ? y <= endY : y >= endY; y += dy) {
+        if (this.isBlocked(x0, y, src, dst)) {
           blocked = true
           break
         }
       }
 
       if (!blocked) {
-        for (let y = exitY; dy > 0 ? y < enterY : y > enterY; y += dy) {
+        for (let y = startY; dy > 0 ? y <= endY : y >= endY; y += dy) {
           const type = path.length === 0 ? EDGE_VER + EDGE_LABEL_CELL : EDGE_VER
-          path.push({ x: exitX, y, type })
+          path.push({ x: x0, y, type })
         }
         return path
       }
@@ -317,10 +339,16 @@ export class Scout {
     const closedSet = new Set<string>()
     const cameFrom = new Map<string, { x: number; y: number; px: number; py: number; type: number }>()
 
-    let maxTries = 2000
+    let maxTries = 500  // Reduced from 2000
     let tries = 0
+    const maxOpenListSize = 1000  // Reduced from 5000 - prevent unbounded memory growth
 
     while (openList.length > 0 && tries++ < maxTries) {
+      // Safety check: prevent open list from growing too large
+      if (openList.length > maxOpenListSize) {
+        if (this.debug) console.log(`# A* open list too large (${openList.length}), aborting`)
+        return []
+      }
       // Find node with lowest f score
       openList.sort((a, b) => a.f - b.f)
       const current = openList.shift()!
