@@ -6,6 +6,7 @@
 
 import ELK from 'elkjs'
 import type { Graph } from './core/Graph'
+import type { Group } from './core/Group'
 import type { LayoutResult } from './core/Graph'
 
 interface ELKNode {
@@ -13,6 +14,9 @@ interface ELKNode {
   width?: number
   height?: number
   labels?: Array<{ text: string }>
+  children?: ELKNode[] // For hierarchical layout (groups)
+  edges?: ELKEdge[] // For edges within a group
+  layoutOptions?: Record<string, string>
 }
 
 interface ELKEdge {
@@ -89,28 +93,91 @@ function analyzeGraphStructure(graph: Graph): GraphStructure {
 }
 
 /**
+ * Convert a Node to an ELKNode
+ */
+function nodeToELKNode(node: any): ELKNode {
+  // Calculate width: label + 2 chars padding (1 on each side) for compact nodes
+  const labelLength = (node.name || '').length
+  const width = (labelLength + 2) * 6 // 6 pixels per character for compact display
+
+  return {
+    id: node.id,
+    width: width,
+    height: 10, // Exactly 3 lines high (with scale 0.3: 10*0.3=3)
+    labels: node.name ? [{ text: node.name }] : undefined
+  }
+}
+
+/**
+ * Convert a Group to an ELKNode with children
+ */
+function groupToELKNode(group: Group): ELKNode {
+  const members = group.getMembers()
+  const children = members.map(nodeToELKNode)
+  const internalEdges = group.getInternalEdges()
+
+  return {
+    id: group.id,
+    labels: group.label ? [{ text: group.label }] : undefined,
+    children: children,
+    edges: internalEdges.map(edge => ({
+      id: edge.id,
+      sources: [edge.from.id],
+      targets: [edge.to.id],
+      labels: edge.label ? [{ text: edge.label }] : undefined
+    })),
+    layoutOptions: {
+      'elk.padding': '[top=20,left=10,bottom=10,right=10]', // Space for label and borders
+      'elk.algorithm': 'layered',
+      'elk.hierarchyHandling': 'INCLUDE_CHILDREN'
+    }
+  }
+}
+
+/**
  * Convert Graph to ELK format with structure-aware options
  */
 function graphToELK(graph: Graph): ELKGraph {
-  const nodes: ELKNode[] = graph.getNodes().map(node => {
-    // Calculate width: label + 2 chars padding (1 on each side) for compact nodes
-    const labelLength = (node.name || '').length
-    const width = (labelLength + 2) * 6 // 6 pixels per character for compact display
+  const groups = graph.getGroups()
+  const allNodes = graph.getNodes()
+  const allEdges = graph.getEdges()
 
-    return {
-      id: node.id,
-      width: width,
-      height: 10, // Exactly 3 lines high (with scale 0.3: 10*0.3=3)
-      labels: node.name ? [{ text: node.name }] : undefined
+  // Track which nodes are in groups
+  const groupedNodeIds = new Set<string>()
+  for (const group of groups) {
+    for (const member of group.getMembers()) {
+      groupedNodeIds.add(member.id)
     }
-  })
+  }
 
-  const edges: ELKEdge[] = graph.getEdges().map(edge => ({
-    id: edge.id,
-    sources: [edge.from.id],
-    targets: [edge.to.id],
-    labels: edge.label ? [{ text: edge.label }] : undefined
-  }))
+  // Create ELK nodes for groups
+  const groupNodes: ELKNode[] = groups.map(groupToELKNode)
+
+  // Create ELK nodes for ungrouped nodes
+  const ungroupedNodes: ELKNode[] = allNodes
+    .filter(node => !groupedNodeIds.has(node.id))
+    .map(nodeToELKNode)
+
+  // Combine all top-level children (groups + ungrouped nodes)
+  const children = [...groupNodes, ...ungroupedNodes]
+
+  // Collect all internal edge IDs (edges within groups)
+  const internalEdgeIds = new Set<string>()
+  for (const group of groups) {
+    for (const edge of group.getInternalEdges()) {
+      internalEdgeIds.add(edge.id)
+    }
+  }
+
+  // Create ELK edges for external edges (not within any group)
+  const edges: ELKEdge[] = allEdges
+    .filter(edge => !internalEdgeIds.has(edge.id))
+    .map(edge => ({
+      id: edge.id,
+      sources: [edge.from.id],
+      targets: [edge.to.id],
+      labels: edge.label ? [{ text: edge.label }] : undefined
+    }))
 
   // Analyze graph structure
   const structure = analyzeGraphStructure(graph)
@@ -209,9 +276,14 @@ function graphToELK(graph: Graph): ELKGraph {
     })
   }
 
+  // Enable hierarchical layout if there are groups
+  if (groups.length > 0) {
+    layoutOptions['elk.hierarchyHandling'] = 'INCLUDE_CHILDREN'
+  }
+
   return {
     id: 'root',
-    children: nodes,
+    children: children,
     edges: edges,
     layoutOptions
   }
@@ -228,36 +300,53 @@ function snapToGrid(x: number, y: number, gridSize: number = 8): { x: number, y:
 }
 
 /**
- * Convert ELK layout result to Grid Layout for ASCII rendering
+ * Recursively collect all nodes from ELK result (including nodes in groups)
  */
-function elkToGridLayout(elkResult: any): LayoutResult {
-  const gridNodes = elkResult.children.map((node: any) => {
-    const gridPos = snapToGrid(node.x || 0, node.y || 0)
+function collectNodesFromELK(elkNode: any, offsetX: number = 0, offsetY: number = 0): any[] {
+  const nodes: any[] = []
 
-    return {
-      id: node.id,
-      x: gridPos.x,
-      y: gridPos.y,
-      width: Math.ceil((node.width || 80) / 8),
-      height: Math.ceil((node.height || 40) / 8),
-      label: node.labels?.[0]?.text || ''
+  for (const child of elkNode.children || []) {
+    const absoluteX = (child.x || 0) + offsetX
+    const absoluteY = (child.y || 0) + offsetY
+
+    if (child.children && child.children.length > 0) {
+      // This is a group - recurse into it
+      nodes.push(...collectNodesFromELK(child, absoluteX, absoluteY))
+    } else {
+      // This is a regular node
+      const gridPos = snapToGrid(absoluteX, absoluteY)
+      nodes.push({
+        id: child.id,
+        x: gridPos.x,
+        y: gridPos.y,
+        width: Math.ceil((child.width || 80) / 8),
+        height: Math.ceil((child.height || 40) / 8),
+        label: child.labels?.[0]?.text || ''
+      })
     }
-  })
+  }
 
-  const gridEdges = elkResult.edges.map((edge: any) => {
-    // Get edge routing points from ELK
+  return nodes
+}
+
+/**
+ * Recursively collect all edges from ELK result (including edges in groups)
+ */
+function collectEdgesFromELK(elkNode: any, offsetX: number = 0, offsetY: number = 0): any[] {
+  const edges: any[] = []
+
+  // Process edges at this level
+  for (const edge of elkNode.edges || []) {
     const section = edge.sections?.[0]
     const bendPoints = section?.bendPoints || []
-
-    // Start and end points
     const startPoint = section?.startPoint || { x: 0, y: 0 }
     const endPoint = section?.endPoint || { x: 0, y: 0 }
 
-    // Snap all points to grid
+    // Apply offset and snap to grid
     let points = [
-      snapToGrid(startPoint.x, startPoint.y),
-      ...bendPoints.map((p: any) => snapToGrid(p.x, p.y)),
-      snapToGrid(endPoint.x, endPoint.y)
+      snapToGrid(startPoint.x + offsetX, startPoint.y + offsetY),
+      ...bendPoints.map((p: any) => snapToGrid(p.x + offsetX, p.y + offsetY)),
+      snapToGrid(endPoint.x + offsetX, endPoint.y + offsetY)
     ]
 
     // Pull back the arrow endpoint by 1 cell to avoid overlap with node box
@@ -268,30 +357,103 @@ function elkToGridLayout(elkResult: any): LayoutResult {
       const dx = Math.sign(lastPoint.x - prevPoint.x)
       const dy = Math.sign(lastPoint.y - prevPoint.y)
 
-      // Move arrow back one cell in the direction it came from
       points[points.length - 1] = {
         x: lastPoint.x - dx,
         y: lastPoint.y - dy
       }
     }
 
-    return {
+    edges.push({
       id: edge.id,
       from: edge.sources[0],
       to: edge.targets[0],
       points: points,
       label: edge.labels?.[0]?.text
-    }
-  })
+    })
+  }
 
-  // Calculate bounds
-  const maxX = Math.max(...gridNodes.map((n: any) => n.x + n.width), 0)
-  const maxY = Math.max(...gridNodes.map((n: any) => n.y + n.height), 0)
+  // Recurse into children (groups)
+  for (const child of elkNode.children || []) {
+    if (child.children && child.children.length > 0) {
+      const absoluteX = (child.x || 0) + offsetX
+      const absoluteY = (child.y || 0) + offsetY
+      edges.push(...collectEdgesFromELK(child, absoluteX, absoluteY))
+    }
+  }
+
+  return edges
+}
+
+/**
+ * Collect group boundaries for rendering
+ */
+function collectGroupBoundaries(elkNode: any, offsetX: number = 0, offsetY: number = 0): any[] {
+  const groups: any[] = []
+
+  for (const child of elkNode.children || []) {
+    if (child.children && child.children.length > 0) {
+      // This is a group
+      const absoluteX = (child.x || 0) + offsetX
+      const absoluteY = (child.y || 0) + offsetY
+      const gridPos = snapToGrid(absoluteX, absoluteY)
+      const gridSize = {
+        width: Math.ceil((child.width || 80) / 8),
+        height: Math.ceil((child.height || 40) / 8)
+      }
+
+      groups.push({
+        id: child.id,
+        x: gridPos.x,
+        y: gridPos.y,
+        width: gridSize.width,
+        height: gridSize.height,
+        label: child.labels?.[0]?.text || ''
+      })
+
+      // Recurse into nested groups
+      groups.push(...collectGroupBoundaries(child, absoluteX, absoluteY))
+    }
+  }
+
+  return groups
+}
+
+/**
+ * Convert ELK layout result to Grid Layout for ASCII rendering
+ */
+function elkToGridLayout(elkResult: any): LayoutResult {
+  // Collect all nodes (including those in groups)
+  const gridNodes = collectNodesFromELK(elkResult)
+
+  // Collect all edges (including those in groups)
+  const gridEdges = collectEdgesFromELK(elkResult)
+
+  // Collect group boundaries for rendering
+  const groups = collectGroupBoundaries(elkResult)
+
+  // Calculate bounds (include both nodes and groups)
+  const nodeBounds = gridNodes.length > 0
+    ? Math.max(...gridNodes.map((n: any) => n.x + n.width))
+    : 0
+  const groupBounds = groups.length > 0
+    ? Math.max(...groups.map((g: any) => g.x + g.width))
+    : 0
+  const maxX = Math.max(nodeBounds, groupBounds, 0)
+
+  const nodeHeight = gridNodes.length > 0
+    ? Math.max(...gridNodes.map((n: any) => n.y + n.height))
+    : 0
+  const groupHeight = groups.length > 0
+    ? Math.max(...groups.map((g: any) => g.y + g.height))
+    : 0
+  const maxY = Math.max(nodeHeight, groupHeight, 0)
 
   return {
     nodes: gridNodes,
     edges: gridEdges,
-    bounds: { width: maxX, height: maxY }
+    bounds: { width: maxX, height: maxY },
+    // @ts-expect-error - groups is not in the base LayoutResult type yet, but the renderer may use it
+    groups: groups
   }
 }
 

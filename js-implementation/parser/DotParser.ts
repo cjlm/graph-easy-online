@@ -21,8 +21,8 @@
 
 import { Graph } from '../core/Graph'
 import { Node } from '../core/Node'
+import { Group } from '../core/Group'
 // import { Edge } from '../core/Edge'  // Future use
-// import { Group } from '../core/Group'  // Future use
 import { Parser } from './Parser'
 
 export interface DotParseOptions {
@@ -39,6 +39,7 @@ export class DotParser {
   private options: Required<DotParseOptions>
   // @ts-expect-error - Reserved for future use
   private _isDirected: boolean = true
+  private groupStack: Group[] = [] // Stack for nested subgraphs
 
   constructor(options: DotParseOptions = {}) {
     this.graph = new Graph()
@@ -112,6 +113,16 @@ export class DotParser {
     this.expect('}')
   }
 
+  /**
+   * Add a node to the current group if one is active
+   */
+  private addNodeToCurrentGroup(node: Node): void {
+    if (this.groupStack.length > 0) {
+      const currentGroup = this.groupStack[this.groupStack.length - 1]
+      currentGroup.addMember(node)
+    }
+  }
+
   private parseStatement(): void {
     this.skipWhitespaceAndComments()
 
@@ -145,7 +156,8 @@ export class DotParser {
       this.parseSubgraph()
     } else {
       // Just a node mention without attributes
-      this.graph.addNode(id)
+      const node = this.graph.addNode(id)
+      this.addNodeToCurrentGroup(node)
     }
 
     // Optional semicolon
@@ -157,6 +169,7 @@ export class DotParser {
 
   private parseNodeAttributes(nodeName: string): void {
     const node = this.graph.addNode(nodeName)
+    this.addNodeToCurrentGroup(node)
 
     this.skipWhitespace()
     if (this.peekChar() === '[') {
@@ -167,6 +180,7 @@ export class DotParser {
 
   private parseEdgeStatement(fromName: string): void {
     const from = this.graph.addNode(fromName)
+    this.addNodeToCurrentGroup(from)
 
     this.skipWhitespace()
 
@@ -178,6 +192,7 @@ export class DotParser {
     // Parse target node(s)
     const toName = this.parseIdentifier()
     const to = this.graph.addNode(toName)
+    this.addNodeToCurrentGroup(to)
 
     // Create edge
     const edge = this.graph.addEdge(from, to)
@@ -251,7 +266,15 @@ export class DotParser {
     this.skipWhitespace()
 
     const value = this.parseAttributeValue()
-    this.graph.setAttribute(this.convertDotAttributeName(key), value)
+    const attributeName = this.convertDotAttributeName(key)
+
+    // If we're inside a subgraph and it's the label attribute, set it on the group
+    if (this.groupStack.length > 0 && attributeName === 'label') {
+      const currentGroup = this.groupStack[this.groupStack.length - 1]
+      currentGroup.setAttribute('label', value)
+    } else {
+      this.graph.setAttribute(attributeName, value)
+    }
   }
 
   private parseSubgraph(): void {
@@ -266,22 +289,23 @@ export class DotParser {
       name = `subgraph_${Math.random().toString(36).substr(2, 9)}`
     }
 
-    // @ts-expect-error - Reserved for future use
-    const _group = this.graph.addGroup(name)
+    // Create group and push to stack
+    const group = this.graph.addGroup(name)
+    this.groupStack.push(group)
 
     this.expect('{')
     this.skipWhitespaceAndComments()
 
-    // Parse subgraph statements
-    // For now, we'll just parse nodes and add them to the group
-    // @ts-expect-error - Reserved for future use
-    const _savedGraph = this.graph
+    // Parse subgraph statements (nodes will be added to the group automatically)
     while (this.peekChar() !== '}' && !this.isEOF()) {
       this.parseStatement()
       this.skipWhitespaceAndComments()
     }
 
     this.expect('}')
+
+    // Pop the group from the stack
+    this.groupStack.pop()
   }
 
   // ===== Attribute Parsing =====
