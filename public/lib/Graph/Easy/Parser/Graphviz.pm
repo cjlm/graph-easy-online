@@ -1905,7 +1905,7 @@ sub _parser_cleanup
       # part of the autosplit node (dot seems to render them arbitrarily
       # on the autosplit node):
 
-      for my $e (sort { ($a->{from}->{name} || '') cmp ($b->{from}->{name} || '') || ($a->{to}->{name} || '') cmp ($b->{to}->{name} || '') || $a->{id} <=> $b->{id} } values %{$n->{edges}})
+      for my $e (sort _sort_edges values %{$n->{edges}})
 	{
         $e->start_at($rc[0]) if $e->{from} == $n;
         $e->end_at($rc[0]) if $e->{to} == $n;
