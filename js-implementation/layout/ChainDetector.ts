@@ -24,6 +24,7 @@ import { Edge } from '../core/Edge'
 
 export class ChainDetector {
   private graph: Graph
+  private allChains: Chain[] = []
 
   constructor(graph: Graph) {
     this.graph = graph
@@ -38,7 +39,7 @@ export class ChainDetector {
    * 3. Alphabetical by start node name
    */
   findChains(): Chain[] {
-    const chains: Chain[] = []
+    this.allChains = []  // Reset global chains list
 
     // Get all nodes sorted by ID for deterministic ordering
     const nodes = this.graph.getNodes().sort((a, b) => a.id.localeCompare(b.id))
@@ -46,24 +47,37 @@ export class ChainDetector {
     // Process each node
     for (const node of nodes) {
       // Skip if already in a chain
-      if (node._chain) continue
+      if (node._chain) {
+        console.log(`  Skipping ${node.name} (already in chain ${node._chain.id})`)
+        continue
+      }
 
-      // Start a new chain from this node
-      const chain = this.followChain(node)
-      chains.push(chain)
+      // Start a new chain from this node (top-level only)
+      console.log(`  Starting chain from ${node.name}`)
+      const chain = this.followChain(node, true)  // Pass isTopLevel=true
+      console.log(`    Chain: ${chain.toString()}`)
+      console.log(`    Total chains: ${this.allChains.length}`)
     }
 
+    console.log(`  Total chains before sorting: ${this.allChains.length}`)
+
     // Sort chains by priority
-    return this.sortChains(chains)
+    const sorted = this.sortChains(this.allChains)
+    console.log(`  Total chains after sorting: ${sorted.length}`)
+    return sorted
   }
 
   /**
    * Follow a chain starting from a node
    *
    * This implements the Perl _follow_chain logic with recursive merging
+   * @param isTopLevel - If true, add this chain to allChains list
    */
-  private followChain(startNode: Node): Chain {
+  private followChain(startNode: Node, isTopLevel: boolean = false): Chain {
     const chain = new Chain(startNode, this.graph)
+    if (isTopLevel) {
+      this.allChains.push(chain)  // Only track top-level chains
+    }
 
     let currentNode = startNode
 
@@ -98,13 +112,15 @@ export class ChainDetector {
       // Multiple successors: recursively follow each and merge longest
       let longestChain: Chain | null = null
       let maxLength = 0
+      const successorChains: Chain[] = []
 
       for (const successor of successors) {
         // Skip if already in a chain
         if (successor._chain) continue
 
         // Recursively follow this successor
-        const successorChain = this.followChain(successor)
+        const successorChain = this.followChain(successor, false)  // Not top-level
+        successorChains.push(successorChain)
 
         // Track longest chain
         if (successorChain.length > maxLength) {
@@ -116,6 +132,13 @@ export class ChainDetector {
       // Merge longest chain back into current chain
       if (longestChain) {
         chain.merge(longestChain, currentNode)
+      }
+
+      // Add all other chains (not merged) to allChains
+      for (const sc of successorChains) {
+        if (sc !== longestChain) {
+          this.allChains.push(sc)
+        }
       }
 
       // Done with this chain

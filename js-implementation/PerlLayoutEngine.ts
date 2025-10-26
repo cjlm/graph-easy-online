@@ -6,6 +6,7 @@
  */
 
 import { Parser } from './parser/Parser'
+import { DotParser } from './parser/DotParser'
 import { LayoutEngine } from './layout/LayoutEngine'
 import { AsciiRendererNew } from './renderers/AsciiRendererNew'
 
@@ -39,7 +40,9 @@ export class PerlLayoutEngine {
       console.log('🔍 Parsing...')
     }
 
-    const parser = new Parser()
+    // Detect format (DOT vs Graph::Easy)
+    const isDot = DotParser.isDot(input)
+    const parser = isDot ? new DotParser() : new Parser()
     const graph = parser.parse(input)
 
     // Set graph attributes

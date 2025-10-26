@@ -49,6 +49,17 @@ export class DotParser {
   }
 
   /**
+   * Check if input is in DOT format
+   */
+  static isDot(input: string): boolean {
+    const trimmed = input.trim()
+    return trimmed.startsWith('graph ') ||
+           trimmed.startsWith('digraph ') ||
+           trimmed.startsWith('strict graph ') ||
+           trimmed.startsWith('strict digraph ')
+  }
+
+  /**
    * Parse DOT/Graphviz format and return a Graph object
    */
   parse(input: string): Graph {
