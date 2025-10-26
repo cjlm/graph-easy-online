@@ -8,7 +8,7 @@
 import { Parser } from './parser/Parser.ts'
 import { DotParser } from './parser/DotParser.ts'
 import { LayoutEngine } from './layout/LayoutEngine.ts'
-import { AsciiRendererNew } from './renderers/AsciiRendererNew.ts'
+import { AsciiRendererSimple } from './renderers/AsciiRendererSimple.ts'
 
 export interface PerlLayoutOptions {
   boxart?: boolean
@@ -72,10 +72,7 @@ export class PerlLayoutEngine {
       console.log('🎨 Rendering...')
     }
 
-    const renderer = new AsciiRendererNew(graph, {
-      boxart: this.options.boxart,
-    })
-
+    const renderer = new AsciiRendererSimple(graph)
     const ascii = renderer.render()
 
     if (this.options.debug) {

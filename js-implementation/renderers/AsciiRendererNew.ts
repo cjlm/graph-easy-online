@@ -93,34 +93,26 @@ export class AsciiRendererNew {
 
       const node = cells[0].node!
 
-      // Find bounding box of node cells
-      let minX = Infinity
-      let minY = Infinity
-      let maxX = -Infinity
-      let maxY = -Infinity
+      // Calculate character-based position and size
+      // Each grid cell is rendered as 5 characters wide and 3 characters tall
+      const CELL_WIDTH = 5
+      const CELL_HEIGHT = 3
 
-      for (const cell of cells) {
-        minX = Math.min(minX, cell.x)
-        minY = Math.min(minY, cell.y)
-        maxX = Math.max(maxX, cell.x)
-        maxY = Math.max(maxY, cell.y)
-      }
+      const label = node.label || node.name
+      const labelWidth = label.length + 2  // +2 for padding
+      const nodeWidth = Math.max(labelWidth, CELL_WIDTH)
 
-      // Draw box
-      const boxMinX = minX - bounds.minX + 1
-      const boxMinY = minY - bounds.minY + 1
-      const boxMaxX = maxX - bounds.minX + 1
-      const boxMaxY = maxY - bounds.minY + 1
+      // Position in character grid
+      const charX = node.x! * CELL_WIDTH
+      const charY = node.y! * CELL_HEIGHT
 
-      this.drawBox(grid, boxMinX, boxMinY, boxMaxX - boxMinX + 1, boxMaxY - boxMinY + 1)
+      this.drawBox(grid, charX, charY, nodeWidth, CELL_HEIGHT)
 
       // Draw label (centered)
-      const label = node.label || node.name
-      const labelY = boxMinY + 1
-      const boxWidth = boxMaxX - boxMinX + 1
-      const innerWidth = boxWidth - 2  // Subtract borders
+      const labelY = charY + 1  // Middle row of the 3-row box
+      const innerWidth = nodeWidth - 2  // Subtract borders
       const leftPadding = Math.floor((innerWidth - label.length) / 2)
-      const labelX = boxMinX + 1 + leftPadding
+      const labelX = charX + 1 + leftPadding
 
       for (let i = 0; i < label.length && labelX + i < grid[0].length; i++) {
         if (grid[labelY]) {

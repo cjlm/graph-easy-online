@@ -16,7 +16,7 @@ import { Cell } from '../core/Cell.ts'
 import { RankAssigner } from './RankAssigner.ts'
 import { ChainDetector } from './ChainDetector.ts'
 import { ActionStackBuilder } from './ActionStackBuilder.ts'
-import { NodePlacer } from './NodePlacer.ts'
+import { NodePlacer } from './NodePlacerNew.ts'
 import { Scout } from './Scout.ts'
 import { Action, ActionType } from './Action.ts'
 
@@ -191,11 +191,17 @@ export class LayoutEngine {
       let pathScore = path.length
 
       for (const pathCell of path) {
+        const key = `${pathCell.x},${pathCell.y}`
+        const existing = this.graph.cells.get(key)
+
+        // NEVER overwrite node cells!
+        if (existing && existing.node) {
+          continue
+        }
+
         const cell = Cell.createEdgeCell(pathCell.x, pathCell.y, action.edge, pathCell.type)
 
         // Check if crossing existing edge
-        const key = `${pathCell.x},${pathCell.y}`
-        const existing = this.graph.cells.get(key)
         if (existing && existing.edge && existing.edge !== action.edge) {
           pathScore += 3 // Crossing penalty
         }
