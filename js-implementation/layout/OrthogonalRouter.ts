@@ -18,9 +18,7 @@ import {
   EDGE_HOR,
   EDGE_VER,
   EDGE_N_E,
-  EDGE_N_W,
   EDGE_S_E,
-  EDGE_S_W,
 } from '../core/Cell'
 
 interface PathCell {
@@ -93,10 +91,11 @@ export class OrthogonalRouter {
     const dstCenterY = dst.y! + Math.floor(dstCy / 2)
 
     // Calculate offset Y (alternating above/below center)
+    // Use larger spacing (2 cells per offset) for better visual separation
     let yOffset = 0
     if (offset > 0) {
       const n = Math.ceil(offset / 2)
-      yOffset = (offset % 2 === 0) ? -n : n
+      yOffset = (offset % 2 === 0) ? -(n * 2) : (n * 2)
     }
 
     // Exit source node (right side, at center + offset)
@@ -118,44 +117,41 @@ export class OrthogonalRouter {
       return path
     }
 
-    // Otherwise: out -> across -> in
+    // Otherwise: Manhattan routing (out -> over -> in)
+    // Strategy: exit horizontally, turn vertically at midpoint, enter horizontally
 
-    // Step 1: Exit source horizontally a bit
-    const outDistance = 2
-    let currentX = exitX
-    for (let i = 0; i < outDistance; i++) {
-      if (currentX < enterX) {
-        path.push({ x: currentX, y: exitY, type: EDGE_HOR })
-        currentX++
+    const midX = Math.floor((exitX + enterX) / 2)
+
+    // Phase 1: Exit horizontally to midpoint
+    for (let x = exitX; x < midX; x++) {
+      if (!this.isBlocked(x, exitY, src, dst)) {
+        path.push({ x, y: exitY, type: EDGE_HOR })
       }
     }
 
-    // Step 2: Move vertically to destination Y level
-    const step = enterY > exitY ? 1 : -1
-    let currentY = exitY
-    for (let y = exitY; step > 0 ? y < enterY : y > enterY; y += step) {
-      if (y !== exitY) {
-        path.push({ x: currentX, y, type: EDGE_VER })
-      }
-      currentY = y
-    }
+    // Phase 2: Turn corner and go vertically
+    const yStep = enterY > exitY ? 1 : -1
 
-    // Add corner if we changed direction
-    if (currentY !== exitY && currentX !== exitX) {
-      // Replace last cell with corner
-      if (path.length > 0) {
-        const last = path[path.length - 1]
-        if (enterY > exitY) {
-          last.type = currentX > exitX ? EDGE_S_E : EDGE_S_W
-        } else {
-          last.type = currentX > exitX ? EDGE_N_E : EDGE_N_W
-        }
+    for (let y = exitY; yStep > 0 ? y <= enterY : y >= enterY; y += yStep) {
+      if (y === exitY) {
+        // First corner cell
+        const cornerType = enterY > exitY ? EDGE_S_E : EDGE_N_E
+        path.push({ x: midX, y, type: cornerType })
+      } else if (y === enterY) {
+        // Last corner cell before horizontal run
+        const cornerType = enterY > exitY ? EDGE_N_E : EDGE_S_E
+        path.push({ x: midX, y, type: cornerType })
+      } else {
+        // Vertical segment
+        path.push({ x: midX, y, type: EDGE_VER })
       }
     }
 
-    // Step 3: Move horizontally to destination X
-    for (let x = currentX; x < enterX; x++) {
-      path.push({ x, y: enterY, type: EDGE_HOR })
+    // Phase 3: Enter horizontally from midpoint to destination
+    for (let x = midX + 1; x < enterX; x++) {
+      if (!this.isBlocked(x, enterY, src, dst)) {
+        path.push({ x, y: enterY, type: EDGE_HOR })
+      }
     }
 
     return path
