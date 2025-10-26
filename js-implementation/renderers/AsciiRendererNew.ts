@@ -231,8 +231,8 @@ export class AsciiRendererNew {
             const edgeType = cell.type & EDGE_TYPE_MASK
             let char = this.getEdgeCharacter(edgeType)
 
-            // Add arrowhead at endpoint
-            if (cell === endpointCell) {
+            // Add arrowhead at endpoint (only for directed edges)
+            if (cell === endpointCell && !edge.isUndirected()) {
               if (edgeType === EDGE_HOR) {
                 char = '>'
               } else if (edgeType === EDGE_VER) {
