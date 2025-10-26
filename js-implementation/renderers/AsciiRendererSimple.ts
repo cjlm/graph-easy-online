@@ -89,6 +89,37 @@ export class AsciiRendererSimple {
           grid[charY][charX] = char
         }
       }
+
+      // Render edge label if this cell has one
+      if (cell.hasLabel() && cell.edge!.label) {
+        const label = cell.edge!.label
+        const labelStartX = charX - Math.floor(label.length / 2)
+
+        // Check if there's enough space for the label
+        // Count consecutive spaces/edge chars that can be overwritten
+        let availableSpace = 0
+        for (let i = 0; i < label.length; i++) {
+          const lx = labelStartX + i
+          if (lx >= 0 && lx < grid[0].length && charY >= 0 && charY < grid.length) {
+            const existingChar = grid[charY][lx]
+            if (existingChar === ' ' || existingChar === '-' || existingChar === '|') {
+              availableSpace++
+            } else {
+              break  // Hit a non-overwritable character
+            }
+          }
+        }
+
+        // Only render if we have enough space
+        if (availableSpace >= label.length) {
+          for (let i = 0; i < label.length; i++) {
+            const lx = labelStartX + i
+            if (lx >= 0 && lx < grid[0].length) {
+              grid[charY][lx] = label[i]
+            }
+          }
+        }
+      }
     }
 
     // Convert to string
