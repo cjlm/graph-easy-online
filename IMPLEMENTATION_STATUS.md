@@ -154,16 +154,19 @@ These are **edge cases** that can be implemented later:
 - Memory usage: Minimal (cells stored in Map)
 - No memory leaks or unbounded growth
 
-### 📝 Commits in This Session
+### 📝 Recent Commits
 
-1. `781f196` - Remove unused variable enterY_horiz
-2. `be9bcb0` - Fix infinite loop in tryBendPath
-3. `708640e` - WIP: Improve vertical edge routing and add debug output
-4. `2d33293` - Fix TypeScript unused variable warnings
-5. `1baa612` - Fix node placement and multi-cell support
+1. `8de8220` - **Fix edge label rendering and parser inline attribute syntax**
+   - Parser now supports `[ A ] -- { label: "test"; } [ B ]` syntax
+   - Labels render correctly on edges (removed overly strict buffer checks)
+   - Labels can overwrite edge arrows to display properly
+2. `46a1e00` - Fix edge label overlap with node boxes
+3. `39f5e99` - Fix Seven Bridges test - use correct parser syntax
+4. `2c69d6d` - Add comprehensive test suite and verification
+5. `28365b7` - Add edge label rendering with smart spacing
 6. `199e8e3` - Enforce minimum 1-cell spacing between nodes
-7. `28365b7` - Add edge label rendering with smart spacing
-8. `2c69d6d` - Add comprehensive test suite and verification
+7. `1baa612` - Fix node placement and multi-cell support
+8. `2d33293` - Fix TypeScript unused variable warnings
 
 ### ✨ Summary
 
