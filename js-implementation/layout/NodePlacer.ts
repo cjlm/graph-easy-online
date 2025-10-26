@@ -77,6 +77,11 @@ export class NodePlacer {
    * @returns true if placement succeeded, false otherwise
    */
   placeNode(node: Node, tryCount: number, parent?: Node, parentEdge?: Edge): boolean {
+    // Calculate node dimensions if not already set
+    if (node.cx === undefined || node.cy === undefined) {
+      this.calculateNodeDimensions(node)
+    }
+
     // Strategy 1: Rank-based placement
     if (node.rank !== undefined && node.rank >= 0) {
       if (this.tryRankBasedPlacement(node, tryCount)) {
@@ -430,5 +435,31 @@ export class NodePlacer {
 
     node.x = undefined
     node.y = undefined
+  }
+
+  /**
+   * Calculate node dimensions based on label and attributes
+   */
+  private calculateNodeDimensions(node: Node): void {
+    const label = node.label || node.name
+
+    // Width: label length + 4 (2 for borders, 2 for padding)
+    const labelWidth = label.length
+    node.cx = labelWidth + 4
+
+    // Height: always 3 (top border, label, bottom border)
+    node.cy = 3
+
+    // Apply minimum dimensions from attributes if specified
+    const minWidth = node.getAttribute('minwidth') as number | undefined
+    const minHeight = node.getAttribute('minheight') as number | undefined
+
+    if (minWidth !== undefined && minWidth > node.cx) {
+      node.cx = minWidth
+    }
+
+    if (minHeight !== undefined && minHeight > node.cy) {
+      node.cy = minHeight
+    }
   }
 }
