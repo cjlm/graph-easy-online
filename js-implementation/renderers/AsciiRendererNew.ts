@@ -114,10 +114,13 @@ export class AsciiRendererNew {
 
       this.drawBox(grid, boxMinX, boxMinY, boxMaxX - boxMinX + 1, boxMaxY - boxMinY + 1)
 
-      // Draw label
+      // Draw label (centered)
       const label = node.label || node.name
-      const labelX = boxMinX + 1
       const labelY = boxMinY + 1
+      const boxWidth = boxMaxX - boxMinX + 1
+      const innerWidth = boxWidth - 2  // Subtract borders
+      const leftPadding = Math.floor((innerWidth - label.length) / 2)
+      const labelX = boxMinX + 1 + leftPadding
 
       for (let i = 0; i < label.length && labelX + i < grid[0].length; i++) {
         if (grid[labelY]) {

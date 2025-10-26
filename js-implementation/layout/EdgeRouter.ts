@@ -141,12 +141,17 @@ export class EdgeRouter {
     } else if (dy === 0) {
       // Horizontal path
       const step = dx > 0 ? 1 : -1
-      const startX = src.x! + step
-      const endX = dst.x!
+      const srcCx = src.cx || 1
+      const srcCy = src.cy || 1
+      const centerY = src.y! + Math.floor(srcCy / 2)
+      // Add 1-cell margin after source node
+      const startX = step > 0 ? src.x! + srcCx + 1 : src.x! - 2
+      // Leave 1-cell margin before destination node
+      const endX = step > 0 ? dst.x! - 1 : dst.x! + (dst.cx || 1) + 1
 
       // Check if path is clear
       for (let x = startX; step > 0 ? x < endX : x > endX; x += step) {
-        const key = gridKey(x, src.y!)
+        const key = gridKey(x, centerY)
         const cell = this.graph.cells.get(key)
         if (cell && cell.node) {
           return [] // Blocked by node
@@ -157,7 +162,7 @@ export class EdgeRouter {
       for (let x = startX; step > 0 ? x < endX : x > endX; x += step) {
         path.push({
           x,
-          y: src.y!,
+          y: centerY,
           type: EDGE_HOR,
         })
       }

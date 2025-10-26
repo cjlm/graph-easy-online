@@ -82,8 +82,8 @@ export class NodePlacer {
       this.calculateNodeDimensions(node)
     }
 
-    // Strategy 1: Rank-based placement
-    if (node.rank !== undefined && node.rank >= 0) {
+    // Strategy 1: Rank-based placement (for all ranked nodes)
+    if (node.rank !== undefined) {
       if (this.tryRankBasedPlacement(node, tryCount)) {
         return true
       }
@@ -165,9 +165,9 @@ export class NodePlacer {
     parentEdge: Edge | undefined,
     tryCount: number
   ): boolean {
-    // Get minimum distance from edge attribute (default 3)
+    // Get minimum distance from edge attribute (default 5)
     // This is the gap between nodes, not including node width
-    const minDist = (parentEdge?.getAttribute('minlen') as number) || 3
+    const minDist = (parentEdge?.getAttribute('minlen') as number) || 5
 
     // Get candidate positions around parent
     const candidates = this.getNearPlaces(parent, minDist)
@@ -190,7 +190,7 @@ export class NodePlacer {
     if (predecessors.length === 1) {
       // Single predecessor: place near it
       const pred = predecessors[0]
-      const candidates = this.getNearPlaces(pred, 3)
+      const candidates = this.getNearPlaces(pred, 5)
 
       for (let i = 0; i < Math.min(candidates.length, tryCount + 1); i++) {
         if (this.tryPlaceAt(node, candidates[i].x, candidates[i].y)) {
@@ -212,7 +212,7 @@ export class NodePlacer {
 
       // Try near each predecessor
       for (const pred of predecessors) {
-        const candidates = this.getNearPlaces(pred, 3)
+        const candidates = this.getNearPlaces(pred, 5)
         for (const pos of candidates) {
           if (this.tryPlaceAt(node, pos.x, pos.y)) {
             return true
@@ -229,7 +229,7 @@ export class NodePlacer {
    */
   private trySuccessorBasedPlacement(node: Node, successors: Node[], tryCount: number): boolean {
     for (const succ of successors) {
-      const candidates = this.getNearPlaces(succ, 3)
+      const candidates = this.getNearPlaces(succ, 5)
 
       for (let i = 0; i < Math.min(candidates.length, tryCount + 1); i++) {
         if (this.tryPlaceAt(node, candidates[i].x, candidates[i].y)) {
