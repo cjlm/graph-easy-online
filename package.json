@@ -15,6 +15,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@datastructures-js/priority-queue": "^6.3.5",
     "@viz-js/viz": "^3.20.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
