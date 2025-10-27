@@ -23,7 +23,7 @@ import {
   EDGE_LOOP_WEST,
 } from '../core/Cell.ts'
 
-const CELL_WIDTH = 5  // Smaller cell width for more compact output
+const CELL_WIDTH = 4  // Balanced cell width - not too wide, not too narrow
 const CELL_HEIGHT = 3
 
 export class AsciiRendererConnected {
