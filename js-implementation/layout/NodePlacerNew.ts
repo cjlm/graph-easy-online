@@ -50,8 +50,9 @@ export class NodePlacer {
   private graph: Graph
   private debug: boolean = false
 
-  constructor(graph: Graph) {
+  constructor(graph: Graph, debug: boolean = false) {
     this.graph = graph
+    this.debug = debug
 
     // Initialize cells map if not exists
     if (!this.graph.cells) {
@@ -116,11 +117,13 @@ export class NodePlacer {
     if (predecessors.length === 1) {
       // Place near single predecessor
       const pred = predecessors[0]
-      const minDist = parentEdge ? this.getMinDistance(parentEdge) : 2
+      const minDist = parentEdge ? this.getMinDistance(parentEdge) : 1
 
       if (this.debug) console.log(`# Placing ${node.name} near predecessor`)
 
-      tries.push(...this.getNearPositions(pred, minDist))
+      const nearPos = this.getNearPositions(pred, minDist)
+      if (this.debug) console.log(`# getNearPositions(${pred.name}, ${minDist}) returned ${nearPos.length} positions: ${nearPos.map(p => `(${p.x},${p.y})`).join(', ')}`)
+      tries.push(...nearPos)
       tries.push(...this.getNearPositions(pred, minDist + 2))
     } else if (predecessors.length === 2) {
       // Place at crossing point or midpoint
@@ -144,7 +147,7 @@ export class NodePlacer {
 
       // Also try around each predecessor
       for (const pred of predecessors) {
-        const minDist = parentEdge ? this.getMinDistance(parentEdge) : 2
+        const minDist = parentEdge ? this.getMinDistance(parentEdge) : 1
         tries.push(...this.getNearPositions(pred, minDist))
       }
     } else if (predecessors.length >= 3) {
@@ -300,13 +303,20 @@ export class NodePlacer {
 
   /**
    * Get minimum distance based on edge attributes
+   *
+   * To match Perl's tighter spacing, use distance of 1 by default
+   * This gives a 1-cell gap (5 characters) between nodes
    */
   private getMinDistance(edge: Edge): number {
-    // minlen = 0 => min_dist = 2
+    // minlen = 0 => min_dist = 1
     // minlen = 1 => min_dist = 2
     // minlen = 2 => min_dist = 3, etc
     const minlen = edge.getAttribute('minlen') as number | undefined
-    return minlen !== undefined ? minlen + 1 : 2
+    const dist = minlen !== undefined ? minlen + 1 : 1
+    if (this.debug) {
+      console.log(`getMinDistance for ${edge.from.name}->${edge.to.name}: minlen=${minlen}, dist=${dist}`)
+    }
+    return dist
   }
 
   /**
@@ -364,9 +374,8 @@ export class NodePlacer {
   /**
    * Check if position is clear for node
    *
-   * Requires:
-   * 1. Node cells must be empty
-   * 2. At least 1 cell spacing on all sides (to allow for edges)
+   * Only requires that the node's cells are empty.
+   * Nodes can be adjacent to match Perl's tighter spacing.
    */
   private isPositionClear(node: Node, x: number, y: number): boolean {
     const cx = node.cx || 1
@@ -380,6 +389,15 @@ export class NodePlacer {
         }
       }
     }
+
+    // No spacing requirement - nodes can be adjacent
+    return true
+  }
+
+  // Legacy spacing check method (keeping for reference, not used)
+  private _checkSpacingLegacy(node: Node, x: number, y: number): boolean {
+    const cx = node.cx || 1
+    const cy = node.cy || 1
 
     // Check spacing: at least 1 cell gap on all sides
     // Left side (x-1)

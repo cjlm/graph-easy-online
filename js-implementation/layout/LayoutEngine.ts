@@ -93,7 +93,7 @@ export class LayoutEngine {
     let tries = this.maxTries
     let score = 0
 
-    const nodePlacer = new NodePlacer(this.graph)
+    const nodePlacer = new NodePlacer(this.graph, this.debug)
     const scout = new Scout(this.graph, false)  // A* pathfinding scout
 
     while (todo.length > 0 && tries > 0) {
