@@ -25,21 +25,21 @@ The TypeScript implementation now successfully creates arcs for parallel edges, 
 
 ### TypeScript Output:
 ```
-       |                                                      |
-     --+------------------------------------------------------+--
-       |                                                      |
-       |  +------------+           +--------------+         +------------+
-       |  | North Bank | ----------| Island Lomse |---------| South Bank |
-       |  +------------+           +--------------+         +------------+
-       |    |    |                                  |                        |
-       |    |    |                                  |                        |
-       |    |    |                                  |                        |
-       |    |    |                                  |                        |
-       |    |    |                                  |                        |
-       |    |    |                                  |                        |
-       |  +-----------------+                       |                        |
-       |  | Island Kneiphof | ----------------------+------------------------+--
-       |  +-----------------+                       |                        |
+       |                                            |
+     --+--------------------------------------------+--
+       |                                            |
+       |  +------------+      +--------------+    +------------+
+       |  | North Bank | -----| Island Lomse |----| South Bank |
+       |  +------------+      +--------------+    +------------+
+       |    |    |                             |                   |
+       |    |    |                             |                   |
+       |    |    |                             |                   |
+       |    |    |                             |                   |
+       |    |    |                             |                   |
+       |    |    |                             |                   |
+       |  +-----------------+                  |                   |
+       |  | Island Kneiphof | -----------------+-------------------+--
+       |  +-----------------+                  |                   |
 ```
 
 ## Key Improvements Made
@@ -75,15 +75,17 @@ The TypeScript implementation now successfully creates arcs for parallel edges, 
 ## Remaining Differences
 
 ### Visual Differences:
-1. **Horizontal spacing between nodes**: Perl uses `---` (3 dashes), TypeScript uses `----------` (10 dashes) - likely due to different node cell width calculations
-2. **Arc positioning**: The arcs form at slightly different vertical positions
-3. **Overall layout scale**: TypeScript output appears more spread out horizontally
+1. **Horizontal spacing between nodes**: Perl uses `---` (3 dashes with spaces = 5 chars), TypeScript uses `-----` (5 dashes) - VERY close now!
+2. **Arc positioning**: The arcs form at similar positions
+3. **Overall compactness**: TypeScript is now much closer to Perl's compact layout
 
 ### Major Progress! ✅
 - ✅ Corner characters (`+`) now appear at direction changes
 - ✅ Arcs form properly with parallel edges routing around each other
 - ✅ All 7 edges successfully routed
 - ✅ Edge types determined using Perl's exact lookup table
+- ✅ Tighter node spacing with 1-cell gap (5 characters) matching Perl
+- ✅ Removed mandatory spacing constraints to allow tighter placement
 - ✅ Pathfinding and rendering are functionally equivalent to Perl
 
 ## Technical Details
