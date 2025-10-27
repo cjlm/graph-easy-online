@@ -394,48 +394,6 @@ export class NodePlacer {
     return true
   }
 
-  // Legacy spacing check method (keeping for reference, not used)
-  private _checkSpacingLegacy(node: Node, x: number, y: number): boolean {
-    const cx = node.cx || 1
-    const cy = node.cy || 1
-
-    // Check spacing: at least 1 cell gap on all sides
-    // Left side (x-1)
-    for (let dy = 0; dy < cy; dy++) {
-      if (this.graph.cells.has(gridKey(x - 1, y + dy))) {
-        const cell = this.graph.cells.get(gridKey(x - 1, y + dy))!
-        // Only blocked by nodes, not edges
-        if (cell.node) return false
-      }
-    }
-
-    // Right side (x+cx)
-    for (let dy = 0; dy < cy; dy++) {
-      if (this.graph.cells.has(gridKey(x + cx, y + dy))) {
-        const cell = this.graph.cells.get(gridKey(x + cx, y + dy))!
-        if (cell.node) return false
-      }
-    }
-
-    // Top side (y-1)
-    for (let dx = 0; dx < cx; dx++) {
-      if (this.graph.cells.has(gridKey(x + dx, y - 1))) {
-        const cell = this.graph.cells.get(gridKey(x + dx, y - 1))!
-        if (cell.node) return false
-      }
-    }
-
-    // Bottom side (y+cy)
-    for (let dx = 0; dx < cx; dx++) {
-      if (this.graph.cells.has(gridKey(x + dx, y + cy))) {
-        const cell = this.graph.cells.get(gridKey(x + dx, y + cy))!
-        if (cell.node) return false
-      }
-    }
-
-    return true
-  }
-
   /**
    * Get all placed predecessors of a node
    */

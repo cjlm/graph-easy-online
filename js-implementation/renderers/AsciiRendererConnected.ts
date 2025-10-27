@@ -81,7 +81,8 @@ export class AsciiRendererConnected {
       const charY = gridY * CELL_HEIGHT
 
       const label = node.label || node.name
-      const boxWidth = Math.max(label.length + 4, 5)
+      // Box width: label + 2 borders + 2 padding spaces = label.length + 4
+      const boxWidth = label.length + 4
 
       this.drawBox(grid, charX, charY, boxWidth, CELL_HEIGHT, label)
     }
