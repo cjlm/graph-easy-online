@@ -22,7 +22,7 @@ sub _edges_into_groups
   my $self = shift;
 
   # Put all edges between two nodes with the same group in the group as well
-  for my $edge (values %{$self->{edges}})
+  for my $edge (sort _sort_edges values %{$self->{edges}})
     {
     my $gf = $edge->{from}->group();
     my $gt = $edge->{to}->group();
@@ -111,7 +111,7 @@ sub _splice_edges
 
   # go over the old layout, because the new cells were inserted into odd
   # rows/columns and we do not care for these:
-  for my $cell (sort { $a->{x} <=> $b->{x} || $a->{y} <=> $b->{y} } values %$cells)
+  for my $cell (sort _sort_by_coords values %$cells)
     {
     next unless $cell->isa('Graph::Easy::Edge::Cell');
  
@@ -386,7 +386,7 @@ sub _repair_edges
   my $cells = $self->{cells};
 
   # go over all existing cells
-  for my $cell (sort { $a->{x} <=> $b->{x} || $a->{y} <=> $b->{y} } values %$cells)
+  for my $cell (sort _sort_by_coords values %$cells)
     {
     next unless $cell->isa('Graph::Easy::Edge::Cell');
 
@@ -440,7 +440,7 @@ sub _fill_group_cells
   $self->_repair_nodes();		# repair multi-celled nodes
 
   my $c = 'Graph::Easy::Group::Cell';
-  for my $cell (values %{$self->{cells}})
+  for my $cell (sort _sort_by_coords values %{$self->{cells}})
     {
     # DO NOT MODIFY $cell IN THE LOOP BODY!
 
@@ -475,7 +475,7 @@ sub _fill_group_cells
   # three cells apart (y == 0 and y == 4) after the splicing, the step above
   # will not be able to close that hole - it will create fillers at y == 1 and
   # y == 3. So we close these holes now with an extra step.
-  for my $cell (values %{$self->{cells}})
+  for my $cell (sort _sort_by_coords values %{$self->{cells}})
     {
     # only for filler cells
     next unless $cell->isa('Graph::Easy::Group::Cell');
@@ -512,7 +512,7 @@ sub _fill_group_cells
   # XXX TODO
   # we should "grow" the group area to close holes
 
-  for my $group (values %{$self->{groups}})
+  for my $group (sort _sort_by_name_id values %{$self->{groups}})
     {
     $group->_set_cell_types($cells);
     }
@@ -529,7 +529,7 @@ sub _fill_group_cells
 					# border rows/columns
 
   # for all groups, set the cell carrying the label (top-left-most cell)
-  for my $group (values %{$self->{groups}})
+  for my $group (sort _sort_by_name_id values %{$self->{groups}})
     {
     $group->_find_label_cell();
     }

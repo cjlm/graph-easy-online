@@ -321,6 +321,11 @@ export class GraphConversionService {
         use lib '/lib';
         use Graph::Easy;
 
+        # Set Perl's random seed BEFORE Graph::Easy->new() to avoid randomize()
+        # Graph::Easy->new() calls randomize() which calls srand() with no args,
+        # reseeding from system. We need to control this from the start.
+        srand(12345);
+
         my $input = <<'END_INPUT';
 ${escapedInput}
 END_INPUT
@@ -329,6 +334,9 @@ END_INPUT
 
         eval {
           my $graph = Graph::Easy->new($input);
+
+          # Set Graph::Easy's internal seed as well
+          $graph->seed(12345);
 
           if ($graph->error()) {
             $output = "Error: " . $graph->error();
