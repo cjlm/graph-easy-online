@@ -23,8 +23,8 @@ import {
   EDGE_LOOP_WEST,
 } from '../core/Cell.ts'
 
-const CELL_WIDTH = 4  // Balanced cell width - not too wide, not too narrow
-const CELL_HEIGHT = 3
+const CELL_WIDTH = 5  // EXACT match to Perl: always 5 chars
+const CELL_HEIGHT = 3 // EXACT match to Perl: always 3 chars
 
 export class AsciiRendererConnected {
   private graph: Graph
@@ -93,61 +93,74 @@ export class AsciiRendererConnected {
     return compactLines.join('\n')
   }
 
+  /**
+   * EXACT implementation matching Perl's As_ascii.pm
+   *
+   * Cell dimensions: 5 chars wide x 3 chars tall
+   * Horizontal lines: drawn at y = h-2 = 1 (middle row)
+   * Vertical lines: drawn at x = 2 (center column)
+   * Corners: drawn at (2, 1)
+   */
   private renderEdgeCell(grid: string[][], gridX: number, gridY: number, cell: any): void {
     const edgeType = cell.type & EDGE_TYPE_MASK
-    const centerX = gridX * CELL_WIDTH + Math.floor(CELL_WIDTH / 2)
-    const centerY = gridY * CELL_HEIGHT + Math.floor(CELL_HEIGHT / 2)
 
-    // Horizontal edge: fill entire width with dashes
+    // Convert grid position to character position
+    const charX = gridX * CELL_WIDTH
+    const charY = gridY * CELL_HEIGHT
+
+    // Perl positions: horizontal at y=h-2, vertical at x=2, corner at (2,h-2)
+    const horizY = charY + (CELL_HEIGHT - 2)  // y = h-2 = 1
+    const vertX = charX + 2                    // x = 2 (center of 5-char cell)
+    const cornerX = charX + 2                  // x = 2
+    const cornerY = charY + (CELL_HEIGHT - 2)  // y = h-2 = 1
+
+    // Horizontal edge: fill entire width with dashes at y=h-2
     if (edgeType === EDGE_HOR) {
-      const y = centerY
-      if (y >= 0 && y < grid.length) {
-        for (let x = gridX * CELL_WIDTH; x < (gridX + 1) * CELL_WIDTH; x++) {
-          if (x >= 0 && x < grid[0].length && grid[y][x] === ' ') {
-            grid[y][x] = '-'
+      if (horizY >= 0 && horizY < grid.length) {
+        for (let x = charX; x < charX + CELL_WIDTH; x++) {
+          if (x >= 0 && x < grid[0].length) {
+            grid[horizY][x] = '-'
           }
         }
       }
     }
 
-    // Vertical edge: fill entire height with pipes
+    // Vertical edge: fill entire height with pipes at x=2
     else if (edgeType === EDGE_VER) {
-      const x = centerX
-      if (x >= 0 && x < grid[0].length) {
-        for (let y = gridY * CELL_HEIGHT; y < (gridY + 1) * CELL_HEIGHT; y++) {
-          if (y >= 0 && y < grid.length && grid[y][x] === ' ') {
-            grid[y][x] = '|'
+      if (vertX >= 0 && vertX < grid[0].length) {
+        for (let y = charY; y < charY + CELL_HEIGHT; y++) {
+          if (y >= 0 && y < grid.length) {
+            grid[y][vertX] = '|'
           }
         }
       }
     }
 
-    // Corner cells
+    // Corner cells: place '+' at (2, h-2) and extend lines
     else if (edgeType === EDGE_N_E || edgeType === EDGE_N_W ||
              edgeType === EDGE_S_E || edgeType === EDGE_S_W ||
              edgeType === EDGE_CROSS) {
-      if (centerY >= 0 && centerY < grid.length &&
-          centerX >= 0 && centerX < grid[0].length) {
-        grid[centerY][centerX] = '+'
 
-        // Draw lines extending from corners
-        if (edgeType === EDGE_N_E || edgeType === EDGE_S_E || edgeType === EDGE_N_W || edgeType === EDGE_S_W) {
-          // Extend horizontal
-          const startX = gridX * CELL_WIDTH
-          const endX = (gridX + 1) * CELL_WIDTH
-          for (let x = startX; x < endX; x++) {
-            if (x !== centerX && x >= 0 && x < grid[0].length && grid[centerY][x] === ' ') {
-              grid[centerY][x] = '-'
-            }
+      // Place corner character at (2, h-2)
+      if (cornerY >= 0 && cornerY < grid.length &&
+          cornerX >= 0 && cornerX < grid[0].length) {
+        grid[cornerY][cornerX] = '+'
+      }
+
+      // Extend horizontal line at y=h-2
+      if (cornerY >= 0 && cornerY < grid.length) {
+        for (let x = charX; x < charX + CELL_WIDTH; x++) {
+          if (x >= 0 && x < grid[0].length && grid[cornerY][x] === ' ') {
+            grid[cornerY][x] = '-'
           }
+        }
+      }
 
-          // Extend vertical
-          const startY = gridY * CELL_HEIGHT
-          const endY = (gridY + 1) * CELL_HEIGHT
-          for (let y = startY; y < endY; y++) {
-            if (y !== centerY && y >= 0 && y < grid.length && grid[y][centerX] === ' ') {
-              grid[y][centerX] = '|'
-            }
+      // Extend vertical line at x=2
+      if (vertX >= 0 && vertX < grid[0].length) {
+        for (let y = charY; y < charY + CELL_HEIGHT; y++) {
+          if (y >= 0 && y < grid.length && grid[y][vertX] === ' ') {
+            grid[y][vertX] = '|'
           }
         }
       }
