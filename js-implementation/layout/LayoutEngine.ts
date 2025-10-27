@@ -13,6 +13,7 @@
 
 import { Graph } from '../core/Graph.ts'
 import { Cell } from '../core/Cell.ts'
+import { Edge } from '../core/Edge.ts'
 import { RankAssigner } from './RankAssigner.ts'
 import { ChainDetector } from './ChainDetector.ts'
 import { ActionStackBuilder } from './ActionStackBuilder.ts'
@@ -275,7 +276,7 @@ export class LayoutEngine {
     }
 
     // Assign offsets to parallel edges
-    for (const [key, edges] of edgeGroups) {
+    for (const [_key, edges] of edgeGroups) {
       if (edges.length === 1) {
         // Single edge, no offset needed
         edges[0].offset = 0
