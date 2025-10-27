@@ -115,12 +115,35 @@ export class AsciiRendererConnected {
     const cornerX = charX + 2                  // x = 2
     const cornerY = charY + (CELL_HEIGHT - 2)  // y = h-2 = 1
 
-    // Horizontal edge: fill entire width with dashes at y=h-2
+    // Horizontal edge: render with smart padding
+    // Isolated cells: ' --- ' (Perl style)
+    // Connected cells: '-----' (seamless connection)
     if (edgeType === EDGE_HOR) {
       if (horizY >= 0 && horizY < grid.length) {
+        // Check left neighbor using RAW coordinates (cell.x, cell.y)
+        const leftKey = `${cell.x - 1},${cell.y}`
+        const leftCell = this.graph.cells.get(leftKey)
+        const leftHasHoriz = leftCell?.edge && this.rendersHorizontalLine(leftCell.type & EDGE_TYPE_MASK)
+
+        // Check right neighbor using RAW coordinates
+        const rightKey = `${cell.x + 1},${cell.y}`
+        const rightCell = this.graph.cells.get(rightKey)
+        const rightHasHoriz = rightCell?.edge && this.rendersHorizontalLine(rightCell.type & EDGE_TYPE_MASK)
+
         for (let x = charX; x < charX + CELL_WIDTH; x++) {
           if (x >= 0 && x < grid[0].length) {
-            grid[horizY][x] = '-'
+            // Add space on left if no left horizontal neighbor
+            if (!leftHasHoriz && x === charX) {
+              grid[horizY][x] = ' '
+            }
+            // Add space on right if no right horizontal neighbor
+            else if (!rightHasHoriz && x === charX + CELL_WIDTH - 1) {
+              grid[horizY][x] = ' '
+            }
+            // Fill with dashes
+            else {
+              grid[horizY][x] = '-'
+            }
           }
         }
       }
@@ -198,6 +221,19 @@ export class AsciiRendererConnected {
         }
       }
     }
+  }
+
+  /**
+   * Check if an edge type renders horizontal lines
+   * Used to determine if cells should connect seamlessly
+   */
+  private rendersHorizontalLine(edgeType: number): boolean {
+    return edgeType === EDGE_HOR ||
+           edgeType === EDGE_N_E ||
+           edgeType === EDGE_N_W ||
+           edgeType === EDGE_S_E ||
+           edgeType === EDGE_S_W ||
+           edgeType === EDGE_CROSS
   }
 
   private drawBox(grid: string[][], x: number, y: number, w: number, h: number, label: string): void {
