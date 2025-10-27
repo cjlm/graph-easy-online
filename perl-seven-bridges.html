@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Perl Seven Bridges Output</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    h1 { color: #4ec9b0; }
+    h2 { color: #9cdcfe; margin-top: 30px; }
+    pre {
+      background: #2d2d30;
+      padding: 20px;
+      border-radius: 4px;
+      overflow-x: auto;
+      border: 2px solid #007acc;
+    }
+    .input { background: #3c3c3c; }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #0e639c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+    .loading { color: #ce9178; }
+  </style>
+</head>
+<body>
+  <h1>Seven Bridges of Königsberg - Perl Output</h1>
+
+  <h2>Input:</h2>
+  <pre class="input">[ North Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Lomse ]
+[ Island Lomse ] -- [ South Bank ]
+[ Island Lomse ] -- [ Island Kneiphof ]</pre>
+
+  <button onclick="runPerl()">Generate Perl Output</button>
+
+  <h2>Perl Output (Reference Implementation):</h2>
+  <pre id="output"><span class="loading">Click button to generate...</span></pre>
+
+  <script src="webperl.js"></script>
+  <script>
+    var Module = {
+      preRun: [],
+      postRun: [],
+      print: (text) => { },
+      printErr: (text) => { },
+      setStatus: (text) => {
+        if (text) console.log('WebPerl:', text);
+      }
+    };
+
+    let perlReady = false;
+
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        perlReady = true;
+        document.getElementById('output').innerHTML = '<span class="loading">WebPerl loaded. Click button above.</span>';
+      }, 3000);
+    });
+
+    function runPerl() {
+      const input = `[ North Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Lomse ]
+[ Island Lomse ] -- [ South Bank ]
+[ Island Lomse ] -- [ Island Kneiphof ]`;
+
+      document.getElementById('output').innerHTML = '<span class="loading">Running Perl...</span>';
+
+      try {
+        const perlCode = `
+use lib '/lib';
+use Graph::Easy;
+
+my $input = q{${input}};
+my $graph = Graph::Easy->new($input);
+print $graph->as_ascii();
+        `;
+
+        let result = '';
+
+        if (window.Perl && window.Perl.eval) {
+          result = window.Perl.eval(perlCode);
+        } else if (window.Module && window.Module.ccall) {
+          result = window.Module.ccall('run_perl', 'string', ['string'], [perlCode]);
+        } else {
+          document.getElementById('output').innerHTML = '<span class="loading">WebPerl not ready. Wait a moment and try again.</span>';
+          return;
+        }
+
+        document.getElementById('output').textContent = result;
+      } catch (e) {
+        document.getElementById('output').textContent = 'Error: ' + e.message + '\n\n' + e.stack;
+      }
+    }
+  </script>
+</body>
+</html>

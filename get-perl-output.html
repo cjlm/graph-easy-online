@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Get Perl Output</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+    pre { background: #2d2d30; padding: 20px; border-radius: 4px; overflow-x: auto; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Perl Output for Seven Bridges</h1>
+  <button onclick="runPerl()">Get Perl Output</button>
+  <pre id="output">Waiting...</pre>
+
+  <script src="webperl.js"></script>
+  <script>
+    var Module = {
+      preRun: [],
+      postRun: [],
+      print: (text) => { console.log(text); },
+      printErr: (text) => { console.error(text); }
+    };
+
+    function runPerl() {
+      const input = `[ North Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Lomse ]
+[ Island Lomse ] -- [ South Bank ]
+[ Island Lomse ] -- [ Island Kneiphof ]`;
+
+      try {
+        const perlCode = `
+use lib '/lib';
+use Graph::Easy;
+
+my $input = q{${input}};
+my $graph = Graph::Easy->new($input);
+print $graph->as_ascii();
+        `;
+
+        if (window.Perl && window.Perl.eval) {
+          const result = window.Perl.eval(perlCode);
+          document.getElementById('output').textContent = result;
+        } else if (window.Module && window.Module.ccall) {
+          const result = window.Module.ccall('run_perl', 'string', ['string'], [perlCode]);
+          document.getElementById('output').textContent = result;
+        } else {
+          document.getElementById('output').textContent = 'WebPerl not loaded yet. Wait a moment and try again.';
+        }
+      } catch (e) {
+        document.getElementById('output').textContent = 'Error: ' + e.message + '\n\n' + e.stack;
+      }
+    }
+
+    // Auto-run after WebPerl loads
+    setTimeout(() => {
+      runPerl();
+    }, 2000);
+  </script>
+</body>
+</html>

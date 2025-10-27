@@ -23,6 +23,7 @@ import {
   EDGE_HOR,
   EDGE_VER,
   EDGE_N_E,
+  EDGE_N_W,
   EDGE_S_E,
   EDGE_S_W,
   EDGE_SHORT_E,
@@ -410,10 +411,12 @@ export class Scout {
           openList.push({ f, g, h, x: nx, y: ny, px: current.x, py: current.y })
         }
 
-        // Store path info
-        if (!cameFrom.has(nKey) || g < (cameFrom.get(nKey)?.type || Infinity)) {
-          const type = this.getEdgeType(current.px || current.x, current.py || current.y, current.x, current.y, nx, ny)
-          cameFrom.set(nKey, { x: current.x, y: current.y, px: current.px || current.x, py: current.py || current.y, type })
+        // Store path info (without edge type - determined later in reconstructPath)
+        if (!cameFrom.has(nKey)) {
+          cameFrom.set(nKey, { x: current.x, y: current.y, px: current.px || current.x, py: current.py || current.y, type: 0 })
+        } else if (g < (cameFrom.get(nKey)!.type || Infinity)) {
+          // Update with better path
+          cameFrom.set(nKey, { x: current.x, y: current.y, px: current.px || current.x, py: current.py || current.y, type: g })
         }
       }
     }
@@ -424,6 +427,8 @@ export class Scout {
 
   /**
    * Reconstruct path from A* came-from map
+   *
+   * Edge types are determined AFTER path is complete, matching Perl's algorithm
    */
   private reconstructPath(
     cameFrom: Map<string, { x: number; y: number; px: number; py: number; type: number }>,
@@ -431,14 +436,31 @@ export class Scout {
     _src: Node,
     _dst: Node
   ): PathCell[] {
-    const path: PathCell[] = []
+    // First, build the path positions
+    const positions: { x: number; y: number }[] = []
     let current = { x: goal.x, y: goal.y }
 
+    positions.unshift(current)
     while (cameFrom.has(gridKey(current.x, current.y))) {
       const prev = cameFrom.get(gridKey(current.x, current.y))!
-      const type = prev.type
-      path.unshift({ x: current.x, y: current.y, type })
       current = { x: prev.x, y: prev.y }
+      positions.unshift(current)
+    }
+
+    // Remove the first position (it's inside the source node)
+    if (positions.length > 0) {
+      positions.shift()
+    }
+
+    // Now determine edge types for each position using prev->current->next
+    const path: PathCell[] = []
+    for (let i = 0; i < positions.length; i++) {
+      const curr = positions[i]
+      const prev = i > 0 ? positions[i - 1] : positions[i]  // Use curr if no prev
+      const next = i < positions.length - 1 ? positions[i + 1] : positions[i]  // Use curr if no next
+
+      const type = this.getEdgeType(prev.x, prev.y, curr.x, curr.y, next.x, next.y)
+      path.push({ x: curr.x, y: curr.y, type })
     }
 
     // Add label to first cell
@@ -505,28 +527,60 @@ export class Scout {
   }
 
   /**
-   * Determine edge type based on direction
+   * Determine edge type based on direction - EXACT match to Perl's _astar_edge_type
+   *
+   * Given three consecutive positions: (px,py) → (x,y) → (nx,ny)
+   * Returns the edge type for cell at (x,y)
    */
   private getEdgeType(px: number, py: number, x: number, y: number, nx: number, ny: number): number {
-    const dx1 = Math.sign(x - px)
-    const dy1 = Math.sign(y - py)
-    const dx2 = Math.sign(nx - x)
-    const dy2 = Math.sign(ny - y)
+    // Direction from previous to current
+    let dx1 = Math.sign(x - px)
+    let dy1 = Math.sign(y - py)
 
-    // Straight horizontal
-    if (dy1 === 0 && dy2 === 0) return EDGE_HOR
+    // Direction from current to next
+    let dx2 = Math.sign(nx - x)
+    let dy2 = Math.sign(ny - y)
 
-    // Straight vertical
-    if (dx1 === 0 && dx2 === 0) return EDGE_VER
+    // If next same as current (shouldn't happen), use current direction
+    if (dx2 === 0 && dy2 === 0) {
+      dx2 = dx1
+      dy2 = dy1
+    }
 
-    // Corners
-    if (dx1 === 0 && dx2 > 0 && dy2 === 0) return EDGE_S_E  // from north, to east
-    if (dx1 === 0 && dx2 < 0 && dy2 === 0) return EDGE_S_W  // from north, to west
-    if (dx1 > 0 && dy1 === 0 && dy2 < 0) return EDGE_N_E  // from west, to north
-    if (dx1 > 0 && dy1 === 0 && dy2 > 0) return EDGE_S_E  // from west, to south
+    // If no previous direction, use next direction
+    if (dx1 === 0 && dy1 === 0) {
+      dx1 = dx2
+      dy1 = dy2
+    }
 
-    // Default to horizontal
-    return EDGE_HOR
+    // EXACT lookup table from Perl (lines 599-621 of Scout.pm)
+    const key = `${dx1},${dy1},${dx2},${dy2}`
+
+    const edgeTypes: Record<string, number> = {
+      // Straight edges
+      '0,1,0,1': EDGE_VER,      // Down, continue down
+      '-1,0,-1,0': EDGE_HOR,    // Left, continue left
+      '1,0,1,0': EDGE_HOR,      // Right, continue right
+      '0,-1,0,-1': EDGE_VER,    // Up, continue up
+
+      // Corners - South to East/West
+      '0,1,-1,0': EDGE_N_W,     // Down then left (┘)
+      '0,1,1,0': EDGE_N_E,      // Down then right (└)
+
+      // Corners - North to East/West
+      '0,-1,-1,0': EDGE_S_W,    // Up then left (┐)
+      '0,-1,1,0': EDGE_S_E,     // Up then right (┌)
+
+      // Corners - East to North/South
+      '1,0,0,-1': EDGE_N_W,     // Right then up (┘)
+      '1,0,0,1': EDGE_S_W,      // Right then down (┐)
+
+      // Corners - West to North/South
+      '-1,0,0,-1': EDGE_S_E,    // Left then up (┌)
+      '-1,0,0,1': EDGE_N_E,     // Left then down (└)
+    }
+
+    return edgeTypes[key] || EDGE_HOR  // Default to horizontal if not found
   }
 
   /**

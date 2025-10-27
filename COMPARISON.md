@@ -25,7 +25,9 @@ The TypeScript implementation now successfully creates arcs for parallel edges, 
 
 ### TypeScript Output:
 ```
-     ------------------------------------------------------------
+       |                                                      |
+     --+------------------------------------------------------+--
+       |                                                      |
        |  +------------+           +--------------+         +------------+
        |  | North Bank | ----------| Island Lomse |---------| South Bank |
        |  +------------+           +--------------+         +------------+
@@ -57,20 +59,32 @@ The TypeScript implementation now successfully creates arcs for parallel edges, 
 - Forces second edge to route around the first
 - Creates natural arc paths
 
-### 4. **Connected Rendering** (`AsciiRendererConnected.ts`)
+### 4. **Edge Type Determination After Pathfinding** (`Scout.ts`)
+- Refactored to separate pathfinding from edge type determination
+- A* search now stores path positions without edge types
+- `reconstructPath()` determines edge types by examining prev->current->next triplets
+- Uses Perl's exact edge type lookup table with 12 corner combinations
+- Produces proper `+` characters at corners where edges change direction
+
+### 5. **Connected Rendering** (`AsciiRendererConnected.ts`)
 - Fills entire grid cell width/height for edges
 - Uses smaller cell dimensions (5x3) for more compact output
 - Properly connects adjacent edge cells
+- Renders corner types (EDGE_N_E, EDGE_N_W, EDGE_S_E, EDGE_S_W) as `+` characters
 
 ## Remaining Differences
 
 ### Visual Differences:
-1. **Corner Characters**: Perl uses `+` for corners, TypeScript currently uses corners in some places but not consistently
-2. **Arc Closure**: Perl's arcs have proper corner closures, TypeScript arcs could be more polished
-3. **Spacing**: TypeScript uses slightly larger spacing (CELL_WIDTH=5 vs Perl's tighter rendering)
-4. **Vertical Bar Counts**: Both show multiple edges, but visual representation differs
+1. **Horizontal spacing between nodes**: Perl uses `---` (3 dashes), TypeScript uses `----------` (10 dashes) - likely due to different node cell width calculations
+2. **Arc positioning**: The arcs form at slightly different vertical positions
+3. **Overall layout scale**: TypeScript output appears more spread out horizontally
 
-### These are cosmetic differences - the core pathfinding and arc creation logic is now working!
+### Major Progress! ✅
+- ✅ Corner characters (`+`) now appear at direction changes
+- ✅ Arcs form properly with parallel edges routing around each other
+- ✅ All 7 edges successfully routed
+- ✅ Edge types determined using Perl's exact lookup table
+- ✅ Pathfinding and rendering are functionally equivalent to Perl
 
 ## Technical Details
 

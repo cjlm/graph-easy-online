@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graph::Easy - Perl vs TypeScript Comparison</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #4ec9b0;
+    }
+
+    .controls {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #9cdcfe;
+      font-weight: bold;
+    }
+
+    select, textarea, button {
+      width: 100%;
+      padding: 10px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #d4d4d4;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      background: #0e639c;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #1177bb;
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .output-panel {
+      background: #252526;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .output-header {
+      background: #2d2d30;
+      padding: 15px;
+      border-bottom: 2px solid #007acc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .output-header h2 {
+      color: #4ec9b0;
+      font-size: 18px;
+    }
+
+    .status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status.success {
+      background: #2d5f2d;
+      color: #a3d9a5;
+    }
+
+    .status.error {
+      background: #5f2d2d;
+      color: #d9a3a3;
+    }
+
+    .status.loading {
+      background: #5f5f2d;
+      color: #d9d9a3;
+    }
+
+    .output-content {
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre;
+      overflow-x: auto;
+      min-height: 300px;
+      background: #1e1e1e;
+    }
+
+    .metrics {
+      background: #252526;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .metrics h3 {
+      color: #4ec9b0;
+      margin-bottom: 15px;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .metric-item {
+      background: #2d2d30;
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 3px solid #007acc;
+    }
+
+    .metric-label {
+      color: #9cdcfe;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4ec9b0;
+    }
+
+    .metric-value.match {
+      color: #4ec9b0;
+    }
+
+    .metric-value.diff {
+      color: #ce9178;
+    }
+
+    .diff-highlight {
+      background: #3a3d41;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .diff-highlight h3 {
+      color: #4ec9b0;
+      margin-bottom: 10px;
+    }
+
+    .diff-stats {
+      font-family: 'Courier New', monospace;
+      color: #d4d4d4;
+    }
+
+    .error-message {
+      color: #f48771;
+      padding: 10px;
+      background: #5f2d2d;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #555;
+      border-top-color: #4ec9b0;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Graph::Easy Comparison Tool</h1>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="test-select">Test Case:</label>
+      <select id="test-select">
+        <option value="">-- Custom Input --</option>
+        <option value="simple-flow">Simple Flow</option>
+        <option value="complex-graph">Complex Graph</option>
+        <option value="with-styling">With Styling</option>
+        <option value="link-styles">Link Styles</option>
+        <option value="network-topology">Network Topology</option>
+        <option value="seven-bridges">Seven Bridges of Königsberg</option>
+        <option value="project-flow">Project Task Flow</option>
+        <option value="network-graph">Network Graph</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="input">Graph Input (Graph::Easy notation):</label>
+      <textarea id="input" placeholder="Enter graph notation, e.g.:\n[ A ] -> [ B ] -> [ C ]"></textarea>
+    </div>
+
+    <button id="compare-btn">Compare Layouts</button>
+  </div>
+
+  <div class="metrics" id="metrics" style="display: none;">
+    <h3>Comparison Metrics</h3>
+    <div class="metric-grid">
+      <div class="metric-item">
+        <div class="metric-label">Output Match</div>
+        <div class="metric-value" id="match-status">-</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">Line Count Perl</div>
+        <div class="metric-value" id="perl-lines">-</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">Line Count TS</div>
+        <div class="metric-value" id="ts-lines">-</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">Width Perl</div>
+        <div class="metric-value" id="perl-width">-</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">Width TS</div>
+        <div class="metric-value" id="ts-width">-</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">Similarity</div>
+        <div class="metric-value" id="similarity">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="comparison">
+    <div class="output-panel">
+      <div class="output-header">
+        <h2>Perl (WebPerl)</h2>
+        <span class="status" id="perl-status">Ready</span>
+      </div>
+      <div class="output-content" id="perl-output">Waiting for input...</div>
+    </div>
+
+    <div class="output-panel">
+      <div class="output-header">
+        <h2>TypeScript</h2>
+        <span class="status" id="ts-status">Ready</span>
+      </div>
+      <div class="output-content" id="ts-output">Waiting for input...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Test cases from the main app
+    const testCases = {
+      'simple-flow': `[ Berlin ] -> [ Frankfurt ]
+[ Frankfurt ] -> [ Dresden ]`,
+
+      'complex-graph': `[ Bonn ] -> [ Berlin ]
+[ Bonn ] -> [ Frankfurt ]
+[ Frankfurt ] -> [ Berlin ]
+[ Berlin ] -> [ Dresden ]
+[ Dresden ] -> [ Frankfurt ]`,
+
+      'with-styling': `[ Start ] -> [ Process ] -> [ End ]`,
+
+      'link-styles': `[ Bonn ] <-> [ Berlin ]
+[ Berlin ] ==> [ Rostock ]
+[ Hamburg ] ..> [ Altona ]
+[ Dresden ] - > [ Bautzen ]
+[ Leipzig ] ~~> [ Kirchhain ]
+[ Hof ] .-> [ Chemnitz ]
+[ Magdeburg ] <=> [ Ulm ]
+[ Magdeburg ] -- [ Ulm ]`,
+
+      'network-topology': `[ Internet ] ==> [ Firewall ]
+[ Firewall ] ==> [ Router ]
+[ Router ] ==> [ Switch ]
+[ Switch ] -> [ Server 1 ]
+[ Switch ] -> [ Server 2 ]
+[ Switch ] -> [ Workstation A ]
+[ Switch ] -> [ Workstation B ]
+[ Switch ] -> [ Workstation C ]
+[ Server 1 ] <-> [ Server 2 ]`,
+
+      'seven-bridges': `[ North Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ South Bank ] -- [ Island Kneiphof ]
+[ North Bank ] -- [ Island Lomse ]
+[ Island Lomse ] -- [ South Bank ]
+[ Island Lomse ] -- [ Island Kneiphof ]`,
+
+      'project-flow': `[ Project Start ] -> [ Requirements Gathering ]
+[ Requirements Gathering ] -> [ Design Phase ]
+[ Design Phase ] -> [ Development ]
+[ Development ] -> [ Code Review ]
+[ Code Review ] -> [ Testing ]
+[ Code Review ] ..> [ Development ]
+[ Testing ] -> [ QA Approval ]
+[ Testing ] ..> [ Bug Fixes ]
+[ Bug Fixes ] --> [ Testing ]
+[ QA Approval ] -> [ Staging Deployment ]
+[ Staging Deployment ] ..> [ Bug Fixes ]
+[ Staging Deployment ] -> [ Production Deployment ]
+[ Production Deployment ] -> [ Project Complete ]`,
+
+      'network-graph': `[ aa ] -> [ab]
+[ aa ] -> [ac]
+[ ab ] -> [ad]
+[ ac ] -> [ad]
+[ ad ] -> [ae]
+[ ad ] -> [af]
+[ ag ] -> [ah]
+[ ag ] -> [ai]
+[ ah ] -> [aj]
+[ ai ] -> [aj]
+[ aj ] -> [ak]
+[ ak ] -> [al]
+[ ak ] -> [am]
+[ al ] -> [an]
+[ am ] -> [an]
+[ ao ] -> [ap]
+[ ao ] -> [aq]
+[ ap ] -> [ar]
+[ aq ] -> [ar]
+[ ar ] -> [as]
+[ as ] -> [at]
+[ at ] -> [au]
+[ av ] -> [aw]
+[ aw ] -> [ax]`
+    };
+
+    // DOM elements
+    const testSelect = document.getElementById('test-select');
+    const inputArea = document.getElementById('input');
+    const compareBtn = document.getElementById('compare-btn');
+    const perlOutput = document.getElementById('perl-output');
+    const tsOutput = document.getElementById('ts-output');
+    const perlStatus = document.getElementById('perl-status');
+    const tsStatus = document.getElementById('ts-status');
+    const metricsDiv = document.getElementById('metrics');
+
+    // Handle test case selection
+    testSelect.addEventListener('change', (e) => {
+      const testCase = e.target.value;
+      if (testCase && testCases[testCase]) {
+        inputArea.value = testCases[testCase];
+      }
+    });
+
+    // Set status
+    function setStatus(element, status, text) {
+      element.className = `status ${status}`;
+      element.textContent = text;
+    }
+
+    // Calculate similarity (simple line-by-line comparison)
+    function calculateSimilarity(text1, text2) {
+      const lines1 = text1.split('\n');
+      const lines2 = text2.split('\n');
+      const maxLines = Math.max(lines1.length, lines2.length);
+
+      let matchingLines = 0;
+      for (let i = 0; i < maxLines; i++) {
+        if (lines1[i] === lines2[i]) {
+          matchingLines++;
+        }
+      }
+
+      return ((matchingLines / maxLines) * 100).toFixed(1);
+    }
+
+    // Update metrics
+    function updateMetrics(perlText, tsText) {
+      const perlLines = perlText.split('\n');
+      const tsLines = tsText.split('\n');
+      const similarity = calculateSimilarity(perlText, tsText);
+      const isMatch = perlText.trim() === tsText.trim();
+
+      const perlWidth = Math.max(...perlLines.map(l => l.length));
+      const tsWidth = Math.max(...tsLines.map(l => l.length));
+
+      document.getElementById('match-status').textContent = isMatch ? 'EXACT' : 'DIFFERENT';
+      document.getElementById('match-status').className = `metric-value ${isMatch ? 'match' : 'diff'}`;
+      document.getElementById('perl-lines').textContent = perlLines.length;
+      document.getElementById('ts-lines').textContent = tsLines.length;
+      document.getElementById('perl-width').textContent = perlWidth;
+      document.getElementById('ts-width').textContent = tsWidth;
+      document.getElementById('similarity').textContent = similarity + '%';
+
+      metricsDiv.style.display = 'block';
+    }
+
+    // Import TypeScript engine
+    let tsEngine = null;
+    async function initTypeScriptEngine() {
+      try {
+        const { PerlLayoutEngine } = await import('./js-implementation/PerlLayoutEngine.ts');
+        tsEngine = new PerlLayoutEngine({ debug: false });
+        return true;
+      } catch (error) {
+        console.error('Failed to load TypeScript engine:', error);
+        return false;
+      }
+    }
+
+    // Initialize WebPerl
+    let perlReady = false;
+    window.addEventListener('load', () => {
+      if (window.Module && window.Module.onRuntimeInitialized) {
+        window.Module.onRuntimeInitialized = () => {
+          perlReady = true;
+          setStatus(perlStatus, 'success', 'Ready');
+        };
+      } else {
+        setTimeout(() => {
+          perlReady = true;
+          setStatus(perlStatus, 'success', 'Ready');
+        }, 2000);
+      }
+    });
+
+    // Initialize TS engine
+    initTypeScriptEngine().then(success => {
+      if (success) {
+        setStatus(tsStatus, 'success', 'Ready');
+      } else {
+        setStatus(tsStatus, 'error', 'Failed to load');
+      }
+    });
+
+    // Compare button handler
+    compareBtn.addEventListener('click', async () => {
+      const input = inputArea.value.trim();
+      if (!input) {
+        alert('Please enter graph input');
+        return;
+      }
+
+      compareBtn.disabled = true;
+      compareBtn.textContent = 'Comparing...';
+
+      // Run Perl conversion
+      setStatus(perlStatus, 'loading', 'Running...');
+      perlOutput.textContent = '';
+
+      try {
+        const perlResult = await convertWithPerl(input);
+        perlOutput.textContent = perlResult;
+        setStatus(perlStatus, 'success', `Done (${Date.now()}ms)`);
+      } catch (error) {
+        perlOutput.textContent = 'Error: ' + error.message;
+        setStatus(perlStatus, 'error', 'Error');
+      }
+
+      // Run TypeScript conversion
+      setStatus(tsStatus, 'loading', 'Running...');
+      tsOutput.textContent = '';
+
+      try {
+        const startTime = Date.now();
+        const tsResult = await tsEngine.convert(input);
+        const elapsed = Date.now() - startTime;
+        tsOutput.textContent = tsResult;
+        setStatus(tsStatus, 'success', `Done (${elapsed}ms)`);
+      } catch (error) {
+        tsOutput.textContent = 'Error: ' + error.message;
+        setStatus(tsStatus, 'error', 'Error');
+      }
+
+      // Update metrics
+      if (perlOutput.textContent && tsOutput.textContent &&
+          !perlOutput.textContent.startsWith('Error') &&
+          !tsOutput.textContent.startsWith('Error')) {
+        updateMetrics(perlOutput.textContent, tsOutput.textContent);
+      }
+
+      compareBtn.disabled = false;
+      compareBtn.textContent = 'Compare Layouts';
+    });
+
+    // Perl conversion using WebPerl
+    async function convertWithPerl(input) {
+      return new Promise((resolve, reject) => {
+        try {
+          // Use the existing WebPerl Module
+          if (!window.Module || !window.Module.FS) {
+            reject(new Error('WebPerl not loaded'));
+            return;
+          }
+
+          // Write input to virtual filesystem
+          const inputFile = '/input.txt';
+          const outputFile = '/output.txt';
+
+          window.Module.FS.writeFile(inputFile, input);
+
+          // Call graph-easy via Perl
+          const result = window.Module.ccall(
+            'run_perl',
+            'string',
+            ['string'],
+            [`
+              use lib '/lib';
+              use Graph::Easy;
+
+              my $input = do { local $/; open my $fh, '<', '${inputFile}'; <$fh> };
+              my $graph = Graph::Easy->new($input);
+              print $graph->as_ascii();
+            `]
+          );
+
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+  </script>
+
+  <!-- Load WebPerl -->
+  <script src="webperl.js"></script>
+  <script>
+    var Module = {
+      preRun: [],
+      postRun: [],
+      print: (text) => { console.log(text); },
+      printErr: (text) => { console.error(text); },
+      setStatus: (text) => { console.log('WebPerl Status:', text); }
+    };
+  </script>
+</body>
+</html>

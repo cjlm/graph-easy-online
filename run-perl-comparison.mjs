@@ -1,0 +1,10 @@
+// This will help us see what Perl vs TS produces
+console.log("Visit: http://localhost:5173/graph-easy/")
+console.log("1. Select 'Seven Bridges of Königsberg' from examples")
+console.log("2. Switch engine dropdown to 'WebPerl'")  
+console.log("3. Look at the output")
+console.log("")
+console.log("The issue is likely:")
+console.log("- Wrong node placement strategy")
+console.log("- Different flow direction")
+console.log("- Edge routing paths don't match Perl")
