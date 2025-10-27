@@ -38,6 +38,19 @@ export class RankAssigner {
    * Returns: void (modifies nodes in place by setting rank property)
    */
   assignRanks(): void {
+    // Special case: For undirected graphs with flow direction,
+    // assign all nodes to the same rank (they'll be laid out horizontally/vertically)
+    const flow = this.graph.getAttribute('flow')
+    const isUndirected = this.isGraphUndirected()
+
+    if (isUndirected && flow && ['east', 'west', 'north', 'south'].includes(flow)) {
+      // All nodes get the same rank
+      for (const node of this.graph.getNodes()) {
+        node.rank = -1
+      }
+      return
+    }
+
     // Create a priority queue sorted by absolute rank value
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const heap = new MinPriorityQueue<Node>((node: any) => Math.abs(node.rank ?? 0))
@@ -208,5 +221,16 @@ export class RankAssigner {
       // Auto rank: decrement further into negative
       return currentRank - 1
     }
+  }
+
+  /**
+   * Check if the graph is undirected (all edges use '--' notation)
+   */
+  private isGraphUndirected(): boolean {
+    const edges = this.graph.getEdges()
+    if (edges.length === 0) return false
+
+    // A graph is undirected if all edges are undirected
+    return edges.every(edge => edge.isUndirected())
   }
 }

@@ -142,8 +142,13 @@ export class AsciiRendererSimple {
       }
     }
 
-    // Convert to string
-    return grid.map(row => row.join('')).join('\n')
+    // Convert to string and remove empty rows
+    const lines = grid.map(row => row.join(''))
+
+    // Remove completely empty rows (only spaces)
+    const compactLines = lines.filter(line => line.trim().length > 0)
+
+    return compactLines.join('\n')
   }
 
   private drawBox(grid: string[][], x: number, y: number, w: number, h: number, label: string): void {

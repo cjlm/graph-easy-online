@@ -18,6 +18,12 @@ export class Edge {
   private group_: Group | null = null
   private attributes: AttributeManager
 
+  /**
+   * Offset for parallel edges
+   * 0 = no offset, +1/-1 = one cell offset, etc.
+   */
+  public offset: number = 0
+
   constructor(from: Node, to: Node, graph?: Graph) {
     this.id = Graph.generateId()
     this.from_ = from

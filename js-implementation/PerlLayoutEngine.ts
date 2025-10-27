@@ -8,7 +8,7 @@
 import { Parser } from './parser/Parser.ts'
 import { DotParser } from './parser/DotParser.ts'
 import { LayoutEngine } from './layout/LayoutEngine.ts'
-import { AsciiRendererSimple } from './renderers/AsciiRendererSimple.ts'
+import { AsciiRendererConnected } from './renderers/AsciiRendererConnected.ts'
 
 export interface PerlLayoutOptions {
   boxart?: boolean
@@ -59,7 +59,7 @@ export class PerlLayoutEngine {
       console.log('📐 Laying out...')
     }
 
-    const layoutEngine = new LayoutEngine(graph)
+    const layoutEngine = new LayoutEngine(graph, this.options.debug)
     const score = layoutEngine.layout()
 
     if (this.options.debug) {
@@ -72,7 +72,7 @@ export class PerlLayoutEngine {
       console.log('🎨 Rendering...')
     }
 
-    const renderer = new AsciiRendererSimple(graph)
+    const renderer = new AsciiRendererConnected(graph)
     const ascii = renderer.render()
 
     if (this.options.debug) {

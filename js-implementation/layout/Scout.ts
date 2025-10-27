@@ -102,7 +102,7 @@ export class Scout {
   /**
    * Tier 1: Try straight horizontal or vertical path
    */
-  private tryStraightPath(src: Node, dst: Node, _edge: Edge): PathCell[] {
+  private tryStraightPath(src: Node, dst: Node, edge: Edge): PathCell[] {
     const x0 = src.x!
     const y0 = src.y!
     const x1 = dst.x!
@@ -118,23 +118,27 @@ export class Scout {
     const srcCy = src.cy || 1
     const dstCy = dst.cy || 1
 
+    // Apply offset perpendicular to the direction of travel
+    const offset = edge.offset || 0
+
     // Exit from source, enter to destination
     // For horizontal edges: exit right of source, enter left of dest
     // For vertical edges: exit below/above source, enter above/below dest
     const exitX = x0 + srcCx  // Cell to the right of source
-    const exitY_horiz = y0 + Math.floor(srcCy / 2)  // Middle row for horizontal
+    const exitY_horiz = y0 + Math.floor(srcCy / 2) + offset  // Middle row for horizontal + offset
     const exitY_vert = dy > 0 ? y0 + srcCy : y0 - 1  // Below/above for vertical
 
     const enterX = x1 - 1  // Cell to the left of dest
     const enterY_vert = dy > 0 ? y1 - 1 : y1 + dstCy  // Above/below for vertical
+    const exitX_vert = x0 + offset  // Apply offset for vertical edges
 
     const path: PathCell[] = []
 
     // Check if nodes are 2 cells apart (short edge)
     const distance = dx !== 0 ? Math.abs(x1 - x0) : Math.abs(y1 - y0)
     if (distance === 2) {
-      const x = dx !== 0 ? x0 + dx : x0
-      const y = dy !== 0 ? y0 + dy : y0
+      const x = dx !== 0 ? x0 + dx : x0 + offset
+      const y = dy !== 0 ? y0 + dy : y0 + offset
 
       if (!this.isBlocked(x, y, src, dst)) {
         let type = EDGE_LABEL_CELL
@@ -148,9 +152,9 @@ export class Scout {
 
     // Try longer straight path
     if (dx !== 0) {
-      // Horizontal
+      // Horizontal - apply offset to Y
       let blocked = false
-      for (let x = exitX; x < enterX; x++) {
+      for (let x = exitX; x <= enterX; x++) {
         if (this.isBlocked(x, exitY_horiz, src, dst)) {
           blocked = true
           break
@@ -158,20 +162,20 @@ export class Scout {
       }
 
       if (!blocked) {
-        for (let x = exitX; x < enterX; x++) {
+        for (let x = exitX; x <= enterX; x++) {
           const type = path.length === 0 ? EDGE_HOR + EDGE_LABEL_CELL : EDGE_HOR
           path.push({ x, y: exitY_horiz, type })
         }
         return path
       }
     } else if (dy !== 0) {
-      // Vertical
+      // Vertical - apply offset to X
       let blocked = false
       const startY = exitY_vert
       const endY = enterY_vert
 
       for (let y = startY; dy > 0 ? y <= endY : y >= endY; y += dy) {
-        if (this.isBlocked(x0, y, src, dst)) {
+        if (this.isBlocked(exitX_vert, y, src, dst)) {
           blocked = true
           break
         }
@@ -180,7 +184,7 @@ export class Scout {
       if (!blocked) {
         for (let y = startY; dy > 0 ? y <= endY : y >= endY; y += dy) {
           const type = path.length === 0 ? EDGE_VER + EDGE_LABEL_CELL : EDGE_VER
-          path.push({ x: x0, y, type })
+          path.push({ x: exitX_vert, y, type })
         }
         return path
       }
@@ -538,7 +542,17 @@ export class Scout {
     // Blocked by nodes
     if (cell.node) return true
 
-    // Can cross edges (A* will handle via penalty)
+    // Blocked by edges from same source/dest (parallel edges)
+    // This forces parallel edges to route around each other, creating arcs
+    if (cell.edge) {
+      const sameSource = cell.edge.from === src || cell.edge.to === src
+      const sameDest = cell.edge.from === dst || cell.edge.to === dst
+      if (sameSource && sameDest) {
+        return true // Block parallel edges
+      }
+    }
+
+    // Can cross unrelated edges (A* will handle via penalty)
     return false
   }
 }

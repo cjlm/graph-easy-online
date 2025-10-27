@@ -23,10 +23,12 @@ import { Action, ActionType } from './Action.ts'
 export class LayoutEngine {
   private graph: Graph
   private maxTries: number
+  private debug: boolean
 
-  constructor(graph: Graph) {
+  constructor(graph: Graph, debug: boolean = false) {
     this.graph = graph
     this.maxTries = 16 // Maximum backtracking attempts
+    this.debug = debug
   }
 
   /**
@@ -35,40 +37,48 @@ export class LayoutEngine {
    * Returns: layout score
    */
   layout(): number {
-    console.log('🎯 Starting layout...')
+    if (this.debug) console.log('🎯 Starting layout...')
 
     // Phase 1: Assign ranks
-    console.log('📊 Phase 1: Assigning ranks...')
+    if (this.debug) console.log('📊 Phase 1: Assigning ranks...')
     const rankAssigner = new RankAssigner(this.graph)
     rankAssigner.assignRanks()
 
     // Debug: log ranks
-    for (const node of this.graph.getNodes()) {
-      console.log(`  ${node.name}: rank ${node.rank}`)
+    if (this.debug) {
+      for (const node of this.graph.getNodes()) {
+        console.log(`  ${node.name}: rank ${node.rank}`)
+      }
     }
 
+    // Phase 1.5: Assign parallel edge offsets
+    if (this.debug) console.log('🔄 Phase 1.5: Assigning parallel edge offsets...')
+    this.assignParallelEdgeOffsets()
+
     // Phase 2: Find chains
-    console.log('🔗 Phase 2: Finding chains...')
+    if (this.debug) console.log('🔗 Phase 2: Finding chains...')
     const chainDetector = new ChainDetector(this.graph)
     const chains = chainDetector.findChains()
 
-    console.log(`  Found ${chains.length} chains:`)
-    for (const chain of chains) {
-      console.log(`    ${chain.toString()}`)
+    if (this.debug) {
+      console.log(`  Found ${chains.length} chains:`)
+      for (const chain of chains) {
+        console.log(`    ${chain.toString()}`)
+      }
     }
 
     // Phase 3: Build action stack
-    console.log('📝 Phase 3: Building action stack...')
+    if (this.debug) console.log('📝 Phase 3: Building action stack...')
     const stackBuilder = new ActionStackBuilder(this.graph, chains)
     const actions = stackBuilder.buildStack()
 
-    console.log(`  Created ${actions.length} actions`)
+    if (this.debug) console.log(`  Created ${actions.length} actions`)
 
     // Phase 4: Execute with backtracking
-    console.log('⚡ Phase 4: Executing actions...')
+    if (this.debug) console.log('⚡ Phase 4: Executing actions...')
     const score = this.executeActions(actions)
 
-    console.log(`✅ Layout complete. Score: ${score}`)
+    if (this.debug) console.log(`✅ Layout complete. Score: ${score}`)
 
     return score
   }
@@ -126,7 +136,7 @@ export class LayoutEngine {
 
       if (result === null) {
         // Action failed
-        console.log(`  ❌ Action failed: ${this.actionToString(action)} (try ${action.tryCount + 1})`)
+        if (this.debug) console.log(`  ❌ Action failed: ${this.actionToString(action)} (try ${action.tryCount + 1})`)
 
         if (action.type === ActionType.NODE || action.type === ActionType.CHAIN) {
           // Undo node placement
@@ -142,7 +152,7 @@ export class LayoutEngine {
         tries--
       } else {
         // Action succeeded
-        console.log(`  ✅ ${this.actionToString(action)} (score +${result})`)
+        if (this.debug) console.log(`  ✅ ${this.actionToString(action)} (score +${result})`)
         score += result
       }
     }
@@ -229,6 +239,64 @@ export class LayoutEngine {
         return `Route ${action.edge?.from.name} -> ${action.edge?.to.name}`
       default:
         return `Unknown action`
+    }
+  }
+
+  /**
+   * Assign offsets to parallel edges
+   *
+   * When multiple edges exist between the same two nodes,
+   * assign them offsets (0, +1, -1, +2, -2, ...) so they
+   * route through different grid cells and don't overlap
+   */
+  private assignParallelEdgeOffsets(): void {
+    // Group edges by node pairs
+    const edgeGroups = new Map<string, Edge[]>()
+
+    for (const edge of this.graph.getEdges()) {
+      // Create a canonical key for this node pair
+      // For undirected edges, order doesn't matter
+      const fromId = edge.from.id
+      const toId = edge.to.id
+
+      let key: string
+      if (edge.isUndirected()) {
+        // For undirected, use lexicographic order
+        key = fromId < toId ? `${fromId}-${toId}` : `${toId}-${fromId}`
+      } else {
+        // For directed, preserve direction
+        key = `${fromId}->${toId}`
+      }
+
+      if (!edgeGroups.has(key)) {
+        edgeGroups.set(key, [])
+      }
+      edgeGroups.get(key)!.push(edge)
+    }
+
+    // Assign offsets to parallel edges
+    for (const [key, edges] of edgeGroups) {
+      if (edges.length === 1) {
+        // Single edge, no offset needed
+        edges[0].offset = 0
+        continue
+      }
+
+      // Multiple edges - assign alternating offsets
+      // Pattern: 0, +1, -1, +2, -2, +3, -3, ...
+      for (let i = 0; i < edges.length; i++) {
+        if (i === 0) {
+          edges[i].offset = 0
+        } else if (i % 2 === 1) {
+          edges[i].offset = Math.ceil(i / 2)
+        } else {
+          edges[i].offset = -Math.ceil(i / 2)
+        }
+
+        if (this.debug) {
+          console.log(`  Edge ${edges[i].from.name} -> ${edges[i].to.name}: offset ${edges[i].offset}`)
+        }
+      }
     }
   }
 
