@@ -1085,7 +1085,7 @@ function App() {
 
         {/* Content - Hidden when collapsed, different content for editor vs results on mobile */}
         {!inputPaneCollapsed && (
-          <div className={`flex flex-col gap-3 overflow-hidden ${
+          <div className={`flex flex-col gap-3 overflow-hidden relative ${
             isMobile && mobileView === 'results' ? 'p-3' : 'flex-1 p-4'
           }`}>
             {/* Editor view content OR desktop */}
@@ -1134,6 +1134,37 @@ function App() {
                     <span>{conversionTime.toFixed(1)}ms</span>
                   </div>
                 )}
+
+                {/* Minimap preview - Mobile only */}
+                {isMobile && mobileView === 'editor' && output && !error && !isConverting && (
+                  <div
+                    className="absolute bottom-14 right-6 w-32 h-24 bg-background border border-border rounded-lg overflow-hidden shadow-lg active:scale-95 transition-transform cursor-pointer"
+                    onClick={() => setMobileView('results')}
+                  >
+                    <div className="absolute inset-0 overflow-hidden flex items-center justify-center">
+                      {outputFormat === 'graphviz' && renderedGraphviz ? (
+                        <div
+                          className="scale-[0.1] origin-center"
+                          ref={(el) => {
+                            if (el && renderedGraphviz) {
+                              el.innerHTML = ''
+                              el.appendChild(renderedGraphviz.cloneNode(true))
+                            }
+                          }}
+                        />
+                      ) : outputFormat === 'html' || outputFormat === 'svg' ? (
+                        <div className="scale-[0.1] origin-center" dangerouslySetInnerHTML={{ __html: output }} />
+                      ) : (
+                        <pre className="font-mono text-[4px] leading-[1.2] text-foreground whitespace-pre text-center">
+                          {output.slice(0, 500)}
+                        </pre>
+                      )}
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-gradient-to-t from-background to-transparent py-1">
+                      <span className="text-[10px] font-medium text-foreground/80">Tap to view</span>
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
@@ -1146,7 +1177,7 @@ function App() {
                   onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
                   className="flex-1 text-xs h-8"
                 >
-                  {OUTPUT_FORMATS.map(f => (
+                  {COMMON_FORMATS.map(f => (
                     <option key={f.value} value={f.value}>{f.label}</option>
                   ))}
                 </Select>
@@ -1474,7 +1505,7 @@ function App() {
             <div>
               <h3 className="font-medium mb-1">About</h3>
               <p className="text-muted-foreground text-xs">
-                Graph::Easy is a tool for converting graph notation into ASCII art, SVG, and other formats using the original Perl engine or ELK layout.
+                A web-based graph visualization tool supporting both Graph::Easy and DOT (Graphviz) notation. Renders to ASCII art and Box art.
               </p>
             </div>
             <div>
@@ -1489,11 +1520,15 @@ function App() {
             </div>
             <div>
               <h3 className="font-medium mb-1">Syntax Examples</h3>
-              <ul className="text-muted-foreground text-xs space-y-1 font-mono">
-                <li>[ A ] -&gt; [ B ]</li>
-                <li>[ A ] &lt;-&gt; [ B ]</li>
-                <li>[ A ] -&gt; {'{ label: text; }'} [ B ]</li>
-              </ul>
+              <textarea
+                readOnly
+                className="w-full bg-muted/50 rounded p-2 font-mono text-xs text-muted-foreground resize-none border-0 focus:outline-none focus:ring-0"
+                style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+                rows={3}
+                defaultValue={`[ A ] -> [ B ]
+[ A ] <-> [ B ]
+[ A ] -> { label: text; } [ B ]`}
+              />
             </div>
             <div className="pt-2 border-t border-border">
               <h3 className="font-medium mb-2">Resources</h3>
@@ -1504,15 +1539,23 @@ function App() {
                   rel="noopener noreferrer"
                   className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Graph::Easy Documentation →
+                  Graph::Easy Docs (CPAN) →
                 </a>
                 <a
-                  href="https://github.com/ironcamel/Graph-Easy"
+                  href="https://graphviz.org/doc/info/lang.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  GitHub Repository →
+                  DOT Language Docs →
+                </a>
+                <a
+                  href="https://github.com/cjlm/graph-easy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  GitHub →
                 </a>
               </div>
             </div>
@@ -1571,7 +1614,7 @@ function App() {
             <div>
               <h3 className="font-medium mb-1">About</h3>
               <p className="text-muted-foreground text-xs">
-                Graph::Easy converts graph notation into ASCII art, SVG, and other formats.
+                Supports both Graph::Easy and DOT (Graphviz) notation. Renders to ASCII art and Box art.
               </p>
             </div>
             <div>
@@ -1582,23 +1625,37 @@ function App() {
             </div>
             <div>
               <h3 className="font-medium mb-1">Syntax Examples</h3>
-              <ul className="text-muted-foreground text-xs space-y-1 font-mono">
-                <li>[ A ] -&gt; [ B ]</li>
-                <li>[ A ] &lt;-&gt; [ B ]</li>
-              </ul>
+              <textarea
+                readOnly
+                className="w-full bg-muted/50 rounded p-2 font-mono text-xs text-muted-foreground resize-none border-0 focus:outline-none focus:ring-0"
+                style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+                rows={2}
+                defaultValue={`[ A ] -> [ B ]
+[ A ] <-> [ B ]`}
+              />
             </div>
             <div className="pt-2 border-t border-border space-y-2">
               <p className="text-xs text-muted-foreground italic">
                 Works best on desktop.
               </p>
-              <a
-                href="https://metacpan.org/pod/Graph::Easy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Full Documentation →
-              </a>
+              <div className="space-y-1">
+                <a
+                  href="https://metacpan.org/pod/Graph::Easy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Graph::Easy Docs →
+                </a>
+                <a
+                  href="https://github.com/cjlm/graph-easy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  GitHub →
+                </a>
+              </div>
             </div>
           </div>
         </div>
