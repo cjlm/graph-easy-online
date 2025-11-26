@@ -1161,10 +1161,8 @@ function App() {
         )}
       </div>
 
-      {/* Top Right Controls - Desktop: full controls, Mobile: minimal on left */}
-      <div className={`absolute top-4 left-4 md:left-auto md:right-8 md:top-8 z-10 flex gap-2 ${
-        mobileView === 'editor' ? 'hidden md:flex' : 'flex'
-      }`}>
+      {/* Top Right Controls - Desktop: full controls, Mobile: minimal on left (always visible) */}
+      <div className="absolute top-4 left-4 md:left-auto md:right-8 md:top-8 z-10 flex flex-row items-center gap-2">
         {/* Zoom controls - Desktop only */}
         <div className="hidden md:flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
           <Button
@@ -1290,8 +1288,8 @@ function App() {
         </Button>
       </div>
 
-      {/* Format Selector Panel - Top on mobile, Bottom Right on desktop, hidden on mobile when editor is shown */}
-      <div className={`absolute top-4 right-4 md:top-auto md:bottom-8 md:right-8 ${
+      {/* Format Selector Panel - Top right on mobile (below controls), Bottom Right on desktop */}
+      <div className={`absolute top-16 right-4 md:top-auto md:bottom-8 md:right-8 z-10 ${
         mobileView === 'editor' ? 'hidden md:block' : 'block'
       }`}>
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden transition-all duration-200">
@@ -1482,35 +1480,35 @@ function App() {
       )}
 
       {/* Mobile View Toggle - Bottom Center (Mobile Only) */}
-      <div className="md:hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="md:hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex gap-2">
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden flex">
           <Button
             onClick={() => setMobileView('editor')}
             size="sm"
             variant={mobileView === 'editor' ? 'default' : 'ghost'}
-            className="rounded-none px-4 py-6"
+            className="rounded-l-lg rounded-r-none px-4 py-2"
           >
-            <Code className="h-5 w-5 mr-2" />
+            <Code className="h-4 w-4 mr-2" />
             Editor
           </Button>
           <Button
             onClick={() => setMobileView('results')}
             size="sm"
             variant={mobileView === 'results' ? 'default' : 'ghost'}
-            className="rounded-none px-4 py-6 border-x border-border"
+            className="rounded-r-lg rounded-l-none px-4 py-2"
           >
-            <Eye className="h-5 w-5 mr-2" />
+            <Eye className="h-4 w-4 mr-2" />
             Results
           </Button>
-          <Button
-            onClick={() => setHelpOpen(!helpOpen)}
-            size="sm"
-            variant="ghost"
-            className="rounded-none px-4 py-6"
-          >
-            <HelpCircle className="h-5 w-5" />
-          </Button>
         </div>
+        <Button
+          onClick={() => setHelpOpen(!helpOpen)}
+          size="sm"
+          variant="outline"
+          className="px-3 shadow-2xl"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Mobile Help Overlay */}
@@ -1550,7 +1548,7 @@ function App() {
             </div>
             <div className="pt-2 border-t border-border space-y-2">
               <p className="text-xs text-muted-foreground italic">
-                For the best experience, use desktop.
+                Works best on desktop.
               </p>
               <a
                 href="https://metacpan.org/pod/Graph::Easy"
