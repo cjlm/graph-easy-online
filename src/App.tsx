@@ -896,7 +896,7 @@ function App() {
     }
   }, [isPanning, panStartX, panStartY, panX, panY])
 
-  // Handle zoom with Shift + scroll
+  // Handle zoom with Shift + scroll (desktop) or pinch (mobile)
   useEffect(() => {
     const container = outputContainerRef.current
     if (!container) return
@@ -915,10 +915,50 @@ function App() {
       }
     }
 
+    // Pinch-to-zoom for touch devices
+    let lastTouchDistance = 0
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        lastTouchDistance = Math.sqrt(dx * dx + dy * dy)
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        if (lastTouchDistance > 0) {
+          const scale = distance / lastTouchDistance
+          if (scale > 1.02) {
+            setZoom(prev => Math.min(prev * 1.05, 5))
+          } else if (scale < 0.98) {
+            setZoom(prev => Math.max(prev / 1.05, 0.1))
+          }
+        }
+        lastTouchDistance = distance
+      }
+    }
+
+    const handleTouchEnd = () => {
+      lastTouchDistance = 0
+    }
+
     container.addEventListener('wheel', handleWheel, { passive: false })
+    container.addEventListener('touchstart', handleTouchStart, { passive: true })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd, { passive: true })
 
     return () => {
       container.removeEventListener('wheel', handleWheel)
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
     }
   }, [])
 
@@ -1009,7 +1049,7 @@ function App() {
       <div
         className={`bg-card border border-border flex flex-col overflow-hidden select-none ${
           mobileView === 'results' ? 'hidden md:flex' : 'flex'
-        } ${isDragging ? '' : 'transition-shadow duration-200'} fixed inset-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:inset-auto`}
+        } ${isDragging ? '' : 'transition-shadow duration-200'} fixed inset-0 pb-20 md:pb-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:inset-auto`}
         style={!isMobile ? {
           width: inputPaneCollapsed ? 'auto' : `${paneWidth}px`,
           height: inputPaneCollapsed ? 'auto' : `${paneHeight}px`,
@@ -1496,13 +1536,22 @@ function App() {
               </p>
             </div>
             <div>
+              <h3 className="font-medium mb-1">Tips</h3>
+              <ul className="text-muted-foreground text-xs space-y-1">
+                <li>• <strong>Pinch</strong> to zoom in Results view</li>
+              </ul>
+            </div>
+            <div>
               <h3 className="font-medium mb-1">Syntax Examples</h3>
               <ul className="text-muted-foreground text-xs space-y-1 font-mono">
                 <li>[ A ] -&gt; [ B ]</li>
                 <li>[ A ] &lt;-&gt; [ B ]</li>
               </ul>
             </div>
-            <div className="pt-2 border-t border-border">
+            <div className="pt-2 border-t border-border space-y-2">
+              <p className="text-xs text-muted-foreground italic">
+                For the best experience, use desktop.
+              </p>
               <a
                 href="https://metacpan.org/pod/Graph::Easy"
                 target="_blank"
