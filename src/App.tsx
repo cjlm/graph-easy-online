@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap, HelpCircle } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap, HelpCircle, Share2, Download, X } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -277,12 +277,15 @@ function App() {
   const [inputPaneCollapsed, setInputPaneCollapsed] = useState(false)
   const [selectedExample, setSelectedExample] = useState<string>(EXAMPLES[0].name)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
   const outputContainerRef = useRef<HTMLDivElement>(null)
   const outputContentRef = useRef<HTMLDivElement>(null)
   const urlUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const helpPanelRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Initialize app
   useEffect(() => {
@@ -545,6 +548,46 @@ function App() {
     }
   }, [output, outputFormat])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Enter to force re-render
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (loadingState === 'ready' && input.trim()) {
+          setIsConverting(true)
+          convertGraph()
+        }
+      }
+      // Escape to close help panel
+      if (e.key === 'Escape' && helpOpen) {
+        e.preventDefault()
+        setHelpOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [helpOpen, loadingState, input])
+
+  // Close help panel on outside click
+  useEffect(() => {
+    if (!helpOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (helpPanelRef.current && !helpPanelRef.current.contains(e.target as Node)) {
+        setHelpOpen(false)
+      }
+    }
+
+    // Delay to prevent immediate close on the click that opened it
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 0)
+
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [helpOpen])
+
   const convertGraph = async (graphInput?: string, engineOverride?: ConversionEngine) => {
     const textToConvert = graphInput || input
 
@@ -689,6 +732,54 @@ function App() {
     } catch (err) {
       console.error('Failed to copy:', err)
     }
+  }
+
+  const handleShare = async () => {
+    try {
+      // Force URL update immediately
+      updateURL(input, outputFormat, conversionEngine)
+      await navigator.clipboard.writeText(window.location.href)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy URL:', err)
+    }
+  }
+
+  const handleDownload = () => {
+    if (!output) return
+
+    const extensions: Record<OutputFormat, string> = {
+      ascii: 'txt',
+      boxart: 'txt',
+      html: 'html',
+      svg: 'svg',
+      graphviz: 'dot',
+      graphml: 'graphml',
+      vcg: 'vcg',
+      txt: 'txt'
+    }
+
+    const mimeTypes: Record<OutputFormat, string> = {
+      ascii: 'text/plain',
+      boxart: 'text/plain',
+      html: 'text/html',
+      svg: 'image/svg+xml',
+      graphviz: 'text/plain',
+      graphml: 'application/xml',
+      vcg: 'text/plain',
+      txt: 'text/plain'
+    }
+
+    const blob = new Blob([output], { type: mimeTypes[outputFormat] })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `graph.${extensions[outputFormat]}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const handleZoomIn = () => {
@@ -1112,6 +1203,29 @@ function App() {
           )}
         </Button>
         <Button
+          onClick={handleDownload}
+          size="sm"
+          variant="outline"
+          className="h-9 w-9 p-0"
+          title="Download output"
+          disabled={!output || loadingState !== 'ready'}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+        <Button
+          onClick={handleShare}
+          size="sm"
+          variant="outline"
+          className="h-9 w-9 p-0"
+          title="Copy shareable URL"
+        >
+          {shareCopied ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <Share2 className="h-4 w-4" />
+          )}
+        </Button>
+        <Button
           onClick={() => setIsDarkMode(!isDarkMode)}
           size="sm"
           variant="outline"
@@ -1254,14 +1368,17 @@ function App() {
 
       {/* Help Overlay */}
       {helpOpen && (
-        <div className="hidden md:block absolute bottom-20 left-8 z-20 w-80 bg-card border border-border rounded-lg shadow-2xl overflow-hidden">
+        <div
+          ref={helpPanelRef}
+          className="hidden md:block absolute bottom-20 left-8 z-20 w-80 bg-card border border-border rounded-lg shadow-2xl overflow-hidden"
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
             <h2 className="text-sm font-medium">Help & Documentation</h2>
             <button
               onClick={() => setHelpOpen(false)}
               className="text-muted-foreground hover:text-foreground"
             >
-              ×
+              <X className="h-4 w-4" />
             </button>
           </div>
           <div className="p-4 space-y-4 text-sm">
@@ -1272,8 +1389,10 @@ function App() {
               </p>
             </div>
             <div>
-              <h3 className="font-medium mb-1">Quick Tips</h3>
+              <h3 className="font-medium mb-1">Keyboard Shortcuts</h3>
               <ul className="text-muted-foreground text-xs space-y-1">
+                <li>• <strong>Cmd/Ctrl + Enter</strong> to re-render</li>
+                <li>• <strong>Escape</strong> to close this panel</li>
                 <li>• <strong>Shift + Scroll</strong> to zoom</li>
                 <li>• <strong>Ctrl/Cmd + Drag</strong> to pan</li>
                 <li>• Click header to collapse editor</li>
@@ -1319,7 +1438,7 @@ function App() {
             onClick={() => setMobileView('editor')}
             size="sm"
             variant={mobileView === 'editor' ? 'default' : 'ghost'}
-            className="rounded-r-none px-6 py-6"
+            className="rounded-none px-4 py-6"
           >
             <Code className="h-5 w-5 mr-2" />
             Editor
@@ -1328,13 +1447,64 @@ function App() {
             onClick={() => setMobileView('results')}
             size="sm"
             variant={mobileView === 'results' ? 'default' : 'ghost'}
-            className="rounded-l-none px-6 py-6"
+            className="rounded-none px-4 py-6 border-x border-border"
           >
             <Eye className="h-5 w-5 mr-2" />
             Results
           </Button>
+          <Button
+            onClick={() => setHelpOpen(!helpOpen)}
+            size="sm"
+            variant="ghost"
+            className="rounded-none px-4 py-6"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Button>
         </div>
       </div>
+
+      {/* Mobile Help Overlay */}
+      {helpOpen && isMobile && (
+        <div
+          ref={helpPanelRef}
+          className="md:hidden fixed inset-x-4 bottom-24 z-50 bg-card border border-border rounded-lg shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto"
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30 sticky top-0">
+            <h2 className="text-sm font-medium">Help</h2>
+            <button
+              onClick={() => setHelpOpen(false)}
+              className="text-muted-foreground hover:text-foreground p-1"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="p-4 space-y-4 text-sm">
+            <div>
+              <h3 className="font-medium mb-1">About</h3>
+              <p className="text-muted-foreground text-xs">
+                Graph::Easy converts graph notation into ASCII art, SVG, and other formats.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium mb-1">Syntax Examples</h3>
+              <ul className="text-muted-foreground text-xs space-y-1 font-mono">
+                <li>[ A ] -&gt; [ B ]</li>
+                <li>[ A ] &lt;-&gt; [ B ]</li>
+              </ul>
+            </div>
+            <div className="pt-2 border-t border-border">
+              <a
+                href="https://metacpan.org/pod/Graph::Easy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Full Documentation →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
