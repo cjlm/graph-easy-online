@@ -27,3 +27,4 @@ dist-ssr
 target/
 Cargo.lock
 **/*.rs.bk
+npm-cache/*
