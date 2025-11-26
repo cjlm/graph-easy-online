@@ -7,7 +7,7 @@ import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, C
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
-import { graphConversionService, ConversionEngine } from './services/graphConversionService'
+import { graphConversionService } from './services/graphConversionService'
 
 // Example graphs
 const EXAMPLES = [
@@ -176,30 +176,25 @@ graph { flow: east; }
 ]
 
 // Utility functions for URL state serialization
-const getStateFromURL = (): { input?: string; format?: OutputFormat; engine?: ConversionEngine } => {
+const getStateFromURL = (): { input?: string; format?: OutputFormat } => {
   const params = new URLSearchParams(window.location.search)
   const input = params.get('input')
   const format = params.get('format') as OutputFormat | null
-  const engine = params.get('engine') as ConversionEngine | null
 
   return {
     input: input || undefined,
     format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
       ? format
       : undefined,
-    engine: engine && ['webperl', 'elk', 'dot'].includes(engine)
-      ? engine
-      : undefined
   }
 }
 
-const updateURL = (input: string, format: OutputFormat, engine: ConversionEngine) => {
+const updateURL = (input: string, format: OutputFormat) => {
   const params = new URLSearchParams()
   if (input.trim()) {
     params.set('input', input)
   }
   params.set('format', format)
-  params.set('engine', engine)
 
   const newURL = `${window.location.pathname}?${params.toString()}`
   window.history.replaceState({}, '', newURL)
@@ -268,11 +263,7 @@ function App() {
   const [isPanning, setIsPanning] = useState(false)
   const [panStartX, setPanStartX] = useState(0)
   const [panStartY, setPanStartY] = useState(0)
-  const [conversionEngine, setConversionEngine] = useState<ConversionEngine>(
-    () => urlState.engine || graphConversionService.getPreferredEngine()
-  )
   const [conversionTime, setConversionTime] = useState<number>(0)
-  const [engineUsed, setEngineUsed] = useState<ConversionEngine | null>(null)
   const [perlReady, setPerlReady] = useState(false)
   const [inputPaneCollapsed, setInputPaneCollapsed] = useState(false)
   const [selectedExample, setSelectedExample] = useState<string>(EXAMPLES[0].name)
@@ -285,7 +276,6 @@ function App() {
   const outputContentRef = useRef<HTMLDivElement>(null)
   const urlUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const helpPanelRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Initialize app
   useEffect(() => {
@@ -294,10 +284,7 @@ function App() {
 
   // Auto-convert first example when Perl is ready
   useEffect(() => {
-    if (perlReady && conversionEngine === 'webperl') {
-      setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
-    } else if (perlReady) {
-      // If using ELK, convert immediately
+    if (perlReady) {
       setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
     }
   }, [perlReady])
@@ -425,25 +412,6 @@ function App() {
     initPerl()
   }, [])
 
-  // Initialize ELK engine on demand
-  useEffect(() => {
-    const initEngines = async () => {
-      try {
-        if (conversionEngine === 'elk') {
-          await graphConversionService.initializeELK()
-          console.log('ELK engine initialized successfully')
-        }
-      } catch (err) {
-        console.error('Failed to initialize engine:', err)
-        // Silently fallback to WebPerl
-      }
-    }
-
-    if (conversionEngine === 'elk') {
-      initEngines()
-    }
-  }, [conversionEngine])
-
   // Initialize Viz.js for Graphviz rendering
   useEffect(() => {
     Viz.instance().then(viz => {
@@ -474,13 +442,13 @@ function App() {
     }
   }, [isDarkMode])
 
-  // Update URL when input, output format, or engine changes (debounced)
+  // Update URL when input or output format changes (debounced)
   useEffect(() => {
     if (urlUpdateTimeoutRef.current) {
       clearTimeout(urlUpdateTimeoutRef.current)
     }
     urlUpdateTimeoutRef.current = setTimeout(() => {
-      updateURL(input, outputFormat, conversionEngine)
+      updateURL(input, outputFormat)
     }, 1000) // 1 second debounce to reduce browser history clutter
 
     return () => {
@@ -488,7 +456,7 @@ function App() {
         clearTimeout(urlUpdateTimeoutRef.current)
       }
     }
-  }, [input, outputFormat, conversionEngine])
+  }, [input, outputFormat])
   
   // Handle window resize to update isMobile state
   useEffect(() => {
@@ -504,8 +472,8 @@ function App() {
   useEffect(() => {
     if (loadingState !== 'ready' || !input.trim()) return
 
-    // Don't auto-convert with WebPerl until modules are loaded
-    if (conversionEngine === 'webperl' && !perlReady) return
+    // Don't auto-convert until modules are loaded
+    if (!perlReady) return
 
     const timeoutId = setTimeout(() => {
       setIsConverting(true)
@@ -513,7 +481,7 @@ function App() {
     }, 500) // 500ms debounce
 
     return () => clearTimeout(timeoutId)
-  }, [input, loadingState, conversionEngine, perlReady])
+  }, [input, loadingState, perlReady])
 
   // Auto-convert when output format changes
   useEffect(() => {
@@ -521,13 +489,13 @@ function App() {
       // Only re-convert if we already have output
       // (don't convert on initial mount)
 
-      // Don't auto-convert with WebPerl until modules are loaded
-      if (conversionEngine === 'webperl' && !perlReady) return
+      // Don't auto-convert until modules are loaded
+      if (!perlReady) return
 
       setIsConverting(true)
       convertGraph()
     }
-  }, [outputFormat, conversionEngine, perlReady])
+  }, [outputFormat, perlReady])
 
   // Render Graphviz DOT output when format is 'graphviz'
   useEffect(() => {
@@ -588,7 +556,7 @@ function App() {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [helpOpen])
 
-  const convertGraph = async (graphInput?: string, engineOverride?: ConversionEngine) => {
+  const convertGraph = async (graphInput?: string) => {
     const textToConvert = graphInput || input
 
     if (!textToConvert.trim()) {
@@ -630,11 +598,10 @@ function App() {
       try {
         setError('')
 
-        // Use the conversion service with the selected engine
+        // Use the conversion service
         const result = await graphConversionService.convert(
           textToConvert,
-          outputFormat,
-          engineOverride || conversionEngine
+          outputFormat
         )
 
         // Check if this request is still the latest one
@@ -647,7 +614,6 @@ function App() {
 
         // Update performance metrics
         setConversionTime(result.timeMs)
-        setEngineUsed(result.engine)
 
         if (result.error) {
           setError(result.error)
@@ -708,20 +674,6 @@ function App() {
     }
   }
 
-  const handleEngineChange = (engine: ConversionEngine) => {
-    setConversionEngine(engine)
-    graphConversionService.setPreferredEngine(engine)
-
-    // Re-convert with new engine
-    if (loadingState === 'ready' && input.trim()) {
-      setIsConverting(true)
-      convertGraph(undefined, engine).then(() => {
-        // Fit to view after conversion completes
-        setTimeout(() => handleFitToView(), 100)
-      })
-    }
-  }
-
   const handleCopyOutput = async () => {
     if (!output) return
 
@@ -737,7 +689,7 @@ function App() {
   const handleShare = async () => {
     try {
       // Force URL update immediately
-      updateURL(input, outputFormat, conversionEngine)
+      updateURL(input, outputFormat)
       await navigator.clipboard.writeText(window.location.href)
       setShareCopied(true)
       setTimeout(() => setShareCopied(false), 2000)
@@ -1072,7 +1024,7 @@ function App() {
           </div>
           <div className="flex items-center gap-2 ml-4">
             {loadingState === 'ready' ? (
-              !perlReady && conversionEngine === 'webperl' ? (
+              !perlReady ? (
                 <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" title="Loading Perl modules..." />
               ) : (
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Ready" />
@@ -1122,13 +1074,11 @@ function App() {
                 )}
 
                 {/* Performance metrics */}
-                {!error && output && engineUsed && (
+                {!error && output && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Zap className="w-3 h-3" />
-                      <span className="font-medium">
-                        {engineUsed === 'elk' ? 'ELK' : 'Perl'}
-                      </span>
+                      <span className="font-medium">Perl</span>
                     </div>
                     <span>•</span>
                     <span>{conversionTime.toFixed(1)}ms</span>
@@ -1272,35 +1222,6 @@ function App() {
           >
             <Minimize2 className="h-4 w-4" />
           </Button>
-        </div>
-
-        {/* Engine Toggle - Desktop only */}
-        <div className="hidden md:flex gap-1 bg-card border border-border rounded-lg overflow-hidden p-1">
-          <button
-            onClick={() => handleEngineChange('webperl')}
-            disabled={!perlReady}
-            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-              conversionEngine === 'webperl'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : perlReady
-                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                : 'text-muted-foreground/50 cursor-not-allowed'
-            }`}
-            title={perlReady ? "Perl (Original - All formats)" : "Loading Perl modules..."}
-          >
-            {perlReady ? 'Perl' : 'Perl...'}
-          </button>
-          <button
-            onClick={() => handleEngineChange('elk')}
-            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-              conversionEngine === 'elk'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-            title="ELK (Eclipse Layout Kernel)"
-          >
-            ELK
-          </button>
         </div>
 
         {/* Copy */}

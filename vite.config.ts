@@ -8,8 +8,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      // Use the bundled browser version of elkjs (doesn't need web-worker)
-      'elkjs': path.resolve(__dirname, './node_modules/elkjs/lib/elk.bundled.js'),
     },
   },
   base: process.env.CF_PAGES ? '/' : '/graph-easy/',

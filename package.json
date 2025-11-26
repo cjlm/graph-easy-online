@@ -1,14 +1,12 @@
 {
-  "name": "graph-easy-wasm",
+  "name": "graph-easy-online",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "license": "GPL-2.0-or-later",
   "scripts": {
     "dev": "vite",
-    "build:wasm": "cd js-implementation/layout-engine-rust && PATH=\"$HOME/.cargo/bin:$PATH\" wasm-pack build --target web --out-dir pkg",
     "build": "tsc && vite build",
-    "build:local": "npm run build:wasm && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -18,7 +16,6 @@
     "@viz-js/viz": "^3.20.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "elkjs": "^0.11.0",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
