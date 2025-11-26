@@ -519,6 +519,20 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + A to select only output (when not in input textarea)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        const activeElement = document.activeElement
+        const isInTextarea = activeElement?.tagName === 'TEXTAREA' || activeElement?.tagName === 'INPUT'
+
+        if (!isInTextarea && outputContentRef.current) {
+          e.preventDefault()
+          const selection = window.getSelection()
+          const range = document.createRange()
+          range.selectNodeContents(outputContentRef.current)
+          selection?.removeAllRanges()
+          selection?.addRange(range)
+        }
+      }
       // Cmd/Ctrl + Enter to force re-render
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault()
@@ -970,7 +984,9 @@ function App() {
           style={{
             transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
             transformOrigin: 'center center',
-          }}
+            userSelect: 'contain',
+            WebkitUserSelect: 'contain',
+          } as React.CSSProperties}
         >
           {loadingState === 'ready' && output && !isConverting ? (
             outputFormat === 'graphviz' ? (
@@ -989,7 +1005,7 @@ function App() {
                 dangerouslySetInnerHTML={{ __html: output }}
               />
             ) : (
-              <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90 select-text">
+              <pre className="font-mono text-xs md:text-sm leading-relaxed text-foreground/90" style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
                 {output}
               </pre>
             )
@@ -1186,7 +1202,7 @@ function App() {
       </div>
 
       {/* Top Right Controls - Desktop only */}
-      <div className="hidden md:flex absolute right-8 top-8 z-10 flex-row items-center gap-2">
+      <div className="hidden md:flex absolute right-8 top-8 z-10 flex-row items-center gap-2 select-none">
         {/* Zoom controls - Desktop only */}
         <div className="hidden md:flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
           <Button
@@ -1284,7 +1300,7 @@ function App() {
       </div>
 
       {/* Format Selector Panel - Bottom Right on desktop only (mobile uses inline) */}
-      <div className="hidden md:block absolute bottom-8 right-8 z-10">
+      <div className="hidden md:block absolute bottom-8 right-8 z-10 select-none">
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden transition-all duration-200">
           {/* Collapsed header */}
           {!formatPanelOpen && (
@@ -1395,7 +1411,7 @@ function App() {
       </div>
 
       {/* Help Button - Bottom Left */}
-      <div className="hidden md:block absolute bottom-8 left-8 z-10">
+      <div className="hidden md:block absolute bottom-8 left-8 z-10 select-none">
         <Button
           onClick={() => setHelpOpen(!helpOpen)}
           size="sm"
