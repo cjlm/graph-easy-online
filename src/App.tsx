@@ -1045,11 +1045,13 @@ function App() {
         </div>
       </div>
 
-      {/* Input Pane - Full screen on mobile, floating on desktop */}
+      {/* Input Pane - Full screen on mobile (header always visible), floating on desktop */}
       <div
         className={`bg-card border border-border flex flex-col overflow-hidden select-none ${
-          mobileView === 'results' ? 'hidden md:flex' : 'flex'
-        } ${isDragging ? '' : 'transition-shadow duration-200'} fixed inset-0 pb-20 md:pb-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:inset-auto`}
+          isDragging ? '' : 'transition-shadow duration-200'
+        } fixed left-0 right-0 top-0 md:pb-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:right-auto ${
+          isMobile && mobileView === 'results' ? '' : 'bottom-0 pb-20 md:bottom-auto'
+        }`}
         style={!isMobile ? {
           width: inputPaneCollapsed ? 'auto' : `${paneWidth}px`,
           height: inputPaneCollapsed ? 'auto' : `${paneHeight}px`,
@@ -1081,50 +1083,91 @@ function App() {
           </div>
         </button>
 
-        {/* Content - Hidden when collapsed */}
+        {/* Content - Hidden when collapsed, different content for editor vs results on mobile */}
         {!inputPaneCollapsed && (
-          <div className="flex-1 flex flex-col p-4 gap-3 overflow-hidden">
-            {/* Example selector */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground shrink-0">Example:</label>
-              <Select
-                onChange={handleExampleChange}
-                className="flex-1 text-xs h-8"
-                value={selectedExample}
-              >
-                <option value="">Custom</option>
-                {EXAMPLES.map(ex => (
-                  <option key={ex.name} value={ex.name}>{ex.name}</option>
-                ))}
-              </Select>
-            </div>
+          <div className={`flex flex-col gap-3 overflow-hidden ${
+            isMobile && mobileView === 'results' ? 'p-3' : 'flex-1 p-4'
+          }`}>
+            {/* Editor view content OR desktop */}
+            {(!isMobile || mobileView === 'editor') && (
+              <>
+                {/* Example selector */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground shrink-0">Example:</label>
+                  <Select
+                    onChange={handleExampleChange}
+                    className="flex-1 text-xs h-8"
+                    value={selectedExample}
+                  >
+                    <option value="">Custom</option>
+                    {EXAMPLES.map(ex => (
+                      <option key={ex.name} value={ex.name}>{ex.name}</option>
+                    ))}
+                  </Select>
+                </div>
 
-            {/* Input */}
-            <Textarea
-              value={input}
-              onChange={handleInputChange}
-              placeholder=""
-              className="flex-1 resize-none text-xs select-text"
-            />
+                {/* Input */}
+                <Textarea
+                  value={input}
+                  onChange={handleInputChange}
+                  placeholder=""
+                  className="flex-1 resize-none text-xs select-text"
+                />
 
-            {/* Error display */}
-            {error && loadingState === 'ready' && (
-              <div className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
-                {error}
-              </div>
+                {/* Error display */}
+                {error && loadingState === 'ready' && (
+                  <div className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
+                    {error}
+                  </div>
+                )}
+
+                {/* Performance metrics */}
+                {!error && output && engineUsed && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Zap className="w-3 h-3" />
+                      <span className="font-medium">
+                        {engineUsed === 'elk' ? 'ELK' : 'Perl'}
+                      </span>
+                    </div>
+                    <span>•</span>
+                    <span>{conversionTime.toFixed(1)}ms</span>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Performance metrics */}
-            {!error && output && engineUsed && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  <span className="font-medium">
-                    {engineUsed === 'elk' ? 'ELK' : 'Perl'}
-                  </span>
-                </div>
-                <span>•</span>
-                <span>{conversionTime.toFixed(1)}ms</span>
+            {/* Results view content on mobile */}
+            {isMobile && mobileView === 'results' && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground shrink-0">Format:</label>
+                <Select
+                  value={outputFormat}
+                  onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
+                  className="flex-1 text-xs h-8"
+                >
+                  {OUTPUT_FORMATS.map(f => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </Select>
+                <Button
+                  onClick={handleCopyOutput}
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  title="Copy output"
+                  disabled={!output || loadingState !== 'ready'}
+                >
+                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                <Button
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                >
+                  {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
               </div>
             )}
           </div>
@@ -1161,8 +1204,8 @@ function App() {
         )}
       </div>
 
-      {/* Top Right Controls - Desktop: full controls, Mobile: minimal on left (always visible) */}
-      <div className="absolute top-4 left-4 md:left-auto md:right-8 md:top-8 z-10 flex flex-row items-center gap-2">
+      {/* Top Right Controls - Desktop only */}
+      <div className="hidden md:flex absolute right-8 top-8 z-10 flex-row items-center gap-2">
         {/* Zoom controls - Desktop only */}
         <div className="hidden md:flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
           <Button
@@ -1229,7 +1272,7 @@ function App() {
           </button>
         </div>
 
-        {/* Copy - Always visible */}
+        {/* Copy */}
         <Button
           onClick={handleCopyOutput}
           size="sm"
@@ -1288,10 +1331,8 @@ function App() {
         </Button>
       </div>
 
-      {/* Format Selector Panel - Top right on mobile (below controls), Bottom Right on desktop */}
-      <div className={`absolute top-16 right-4 md:top-auto md:bottom-8 md:right-8 z-10 ${
-        mobileView === 'editor' ? 'hidden md:block' : 'block'
-      }`}>
+      {/* Format Selector Panel - Bottom Right on desktop only (mobile uses inline) */}
+      <div className="hidden md:block absolute bottom-8 right-8 z-10">
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden transition-all duration-200">
           {/* Collapsed header */}
           {!formatPanelOpen && (
@@ -1498,7 +1539,7 @@ function App() {
             className="rounded-r-lg rounded-l-none px-4 py-2"
           >
             <Eye className="h-4 w-4 mr-2" />
-            Results
+            Graph
           </Button>
         </div>
         <Button
@@ -1536,7 +1577,7 @@ function App() {
             <div>
               <h3 className="font-medium mb-1">Tips</h3>
               <ul className="text-muted-foreground text-xs space-y-1">
-                <li>• <strong>Pinch</strong> to zoom in Results view</li>
+                <li>• <strong>Pinch</strong> to zoom in Graph view</li>
               </ul>
             </div>
             <div>
