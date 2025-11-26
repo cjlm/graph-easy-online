@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap, HelpCircle, ChevronLeft } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -80,19 +80,19 @@ graph { flow: east; }
 [ Island Lomse ] { fill: lightyellow; }
 
 # Two bridges connecting North Bank to Kneiphof
-[ North Bank ] -- [ Island Kneiphof ] { label: Bridge 1; }
-[ North Bank ] -- [ Island Kneiphof ] { label: Bridge 2; }
+[ North Bank ] -- { label: Bridge 1; } [ Island Kneiphof ]
+[ North Bank ] -- { label: Bridge 2; } [ Island Kneiphof ]
 
 # Two bridges connecting South Bank to Kneiphof
-[ South Bank ] -- [ Island Kneiphof ] { label: Bridge 3; }
-[ South Bank ] -- [ Island Kneiphof ] { label: Bridge 4; }
+[ South Bank ] -- { label: Bridge 3; } [ Island Kneiphof ]
+[ South Bank ] -- { label: Bridge 4; } [ Island Kneiphof ]
 
 # One bridge connecting North to South via Lomse
-[ North Bank ] -- [ Island Lomse ] { label: Bridge 5; }
-[ Island Lomse ] -- [ South Bank ] { label: Bridge 6; }
+[ North Bank ] -- { label: Bridge 5; } [ Island Lomse ]
+[ Island Lomse ] -- { label: Bridge 6; } [ South Bank ]
 
 # One bridge connecting Lomse to Kneiphof
-[ Island Lomse ] -- [ Island Kneiphof ] { label: Bridge 7; }`
+[ Island Lomse ] -- { label: Bridge 7; } [ Island Kneiphof ]`
   },
   {
     name: 'Project Task Flow',
@@ -274,11 +274,15 @@ function App() {
   const [conversionTime, setConversionTime] = useState<number>(0)
   const [engineUsed, setEngineUsed] = useState<ConversionEngine | null>(null)
   const [perlReady, setPerlReady] = useState(false)
+  const [inputPaneCollapsed, setInputPaneCollapsed] = useState(false)
+  const [selectedExample, setSelectedExample] = useState<string>(EXAMPLES[0].name)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
   const outputContainerRef = useRef<HTMLDivElement>(null)
   const outputContentRef = useRef<HTMLDivElement>(null)
+  const urlUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Initialize app
   useEffect(() => {
@@ -467,9 +471,20 @@ function App() {
     }
   }, [isDarkMode])
 
-  // Update URL when input, output format, or engine changes
+  // Update URL when input, output format, or engine changes (debounced)
   useEffect(() => {
-    updateURL(input, outputFormat, conversionEngine)
+    if (urlUpdateTimeoutRef.current) {
+      clearTimeout(urlUpdateTimeoutRef.current)
+    }
+    urlUpdateTimeoutRef.current = setTimeout(() => {
+      updateURL(input, outputFormat, conversionEngine)
+    }, 1000) // 1 second debounce to reduce browser history clutter
+
+    return () => {
+      if (urlUpdateTimeoutRef.current) {
+        clearTimeout(urlUpdateTimeoutRef.current)
+      }
+    }
   }, [input, outputFormat, conversionEngine])
   
   // Handle window resize to update isMobile state
@@ -622,12 +637,31 @@ function App() {
   }
 
   const handleExampleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const example = EXAMPLES.find(ex => ex.name === e.target.value)
+    const exampleName = e.target.value
+    if (exampleName === '') {
+      // User selected the blank "Custom" option
+      setSelectedExample('')
+      return
+    }
+    const example = EXAMPLES.find(ex => ex.name === exampleName)
     if (example) {
+      setSelectedExample(exampleName)
       setInput(example.graph)
       // Let the auto-convert useEffect handle the conversion to avoid race conditions
       // Fit to view after a short delay to ensure conversion completes
       setTimeout(() => handleFitToView(), 700)
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
+    setInput(newValue)
+    // Clear the example selection when user manually edits
+    const matchingExample = EXAMPLES.find(ex => ex.graph === newValue)
+    if (matchingExample) {
+      setSelectedExample(matchingExample.name)
+    } else {
+      setSelectedExample('')
     }
   }
 
@@ -792,14 +826,39 @@ function App() {
     }
   }, [])
 
-  // Reset scroll position when output changes
+  // Auto-fit to view when output changes
   useEffect(() => {
     const container = outputContainerRef.current
-    if (!container || !output) return
+    const content = outputContentRef.current
+    if (!container || !content || !output) return
 
-    // Scroll to top-left to ensure the graph is visible from the start
-    container.scrollTop = 0
-    container.scrollLeft = 0
+    // Wait for the DOM to update with new content dimensions
+    requestAnimationFrame(() => {
+      // Reset scroll position first
+      container.scrollTop = 0
+      container.scrollLeft = 0
+
+      // Get container dimensions (viewport)
+      const containerRect = container.getBoundingClientRect()
+      const containerWidth = containerRect.width - 64 // Account for padding
+      const containerHeight = containerRect.height - 64
+
+      // Get content dimensions
+      const contentWidth = content.scrollWidth
+      const contentHeight = content.scrollHeight
+
+      if (contentWidth === 0 || contentHeight === 0) return
+
+      // Calculate scale to fit content in viewport
+      const scaleX = containerWidth / contentWidth
+      const scaleY = containerHeight / contentHeight
+      const newZoom = Math.min(scaleX, scaleY, 1) // Don't zoom in beyond 100%
+
+      // Apply new zoom and reset pan
+      setZoom(newZoom)
+      setPanX(0)
+      setPanY(0)
+    })
   }, [output])
 
 
@@ -852,19 +911,27 @@ function App() {
 
       {/* Input Pane - Full screen on mobile, floating on desktop */}
       <div
-        className={`bg-card border border-border flex flex-col overflow-hidden transition-shadow duration-200 ${
+        className={`bg-card border border-border flex flex-col overflow-hidden transition-all duration-200 select-none ${
           mobileView === 'results' ? 'hidden md:flex' : 'flex'
         } fixed inset-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:inset-auto`}
         style={!isMobile ? {
-          width: `${paneWidth}px`,
-          height: `${paneHeight}px`,
+          width: inputPaneCollapsed ? 'auto' : `${paneWidth}px`,
+          height: inputPaneCollapsed ? 'auto' : `${paneHeight}px`,
         } : {}}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
-          <h1 className="text-sm font-medium text-foreground font-mono">
-            {'[ graph ] ~~> [ easy ]'}
-          </h1>
+        {/* Header - Clickable to collapse/expand */}
+        <button
+          onClick={() => !isMobile && setInputPaneCollapsed(!inputPaneCollapsed)}
+          className={`flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30 w-full text-left ${!isMobile ? 'cursor-pointer hover:bg-muted/50' : ''} transition-colors`}
+        >
+          <div className="flex items-center gap-2">
+            {!isMobile && (
+              <ChevronLeft className={`w-4 h-4 text-muted-foreground transition-transform ${inputPaneCollapsed ? 'rotate-180' : ''}`} />
+            )}
+            <h1 className="text-sm font-medium text-foreground font-mono">
+              {'[ graph ] ~~> [ easy ]'}
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
             {loadingState === 'ready' ? (
               !perlReady && conversionEngine === 'webperl' ? (
@@ -876,78 +943,85 @@ function App() {
               <div className="w-2 h-2 rounded-full bg-red-500" title="Error" />
             ) : null}
           </div>
-        </div>
+        </button>
 
-        {/* Content */}
-        <div className="flex-1 flex flex-col p-4 gap-3 overflow-hidden">
-          {/* Example selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-muted-foreground shrink-0">Example:</label>
-            <Select
-              onChange={handleExampleChange}
-              className="flex-1 text-xs h-8"
-              defaultValue={EXAMPLES[0].name}
-            >
-              {EXAMPLES.map(ex => (
-                <option key={ex.name} value={ex.name}>{ex.name}</option>
-              ))}
-            </Select>
-          </div>
-
-          {/* Input */}
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder=""
-            className="flex-1 resize-none text-xs"
-          />
-
-          {/* Error display */}
-          {error && loadingState === 'ready' && (
-            <div className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
-              {error}
+        {/* Content - Hidden when collapsed */}
+        {!inputPaneCollapsed && (
+          <div className="flex-1 flex flex-col p-4 gap-3 overflow-hidden">
+            {/* Example selector */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground shrink-0">Example:</label>
+              <Select
+                onChange={handleExampleChange}
+                className="flex-1 text-xs h-8"
+                value={selectedExample}
+              >
+                <option value="">Custom</option>
+                {EXAMPLES.map(ex => (
+                  <option key={ex.name} value={ex.name}>{ex.name}</option>
+                ))}
+              </Select>
             </div>
-          )}
 
-          {/* Performance metrics */}
-          {!error && output && engineUsed && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Zap className="w-3 h-3" />
-                <span className="font-medium">
-                  {engineUsed === 'elk' ? 'ELK' : 'Perl'}
-                </span>
+            {/* Input */}
+            <Textarea
+              value={input}
+              onChange={handleInputChange}
+              placeholder=""
+              className="flex-1 resize-none text-xs select-text"
+            />
+
+            {/* Error display */}
+            {error && loadingState === 'ready' && (
+              <div className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
+                {error}
               </div>
-              <span>•</span>
-              <span>{conversionTime.toFixed(1)}ms</span>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Resize handles - Desktop only */}
-        <div
-          className="hidden md:block absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/20 transition-colors"
-          onMouseDown={(e) => {
-            e.preventDefault()
-            setIsDragging('width')
-          }}
-        />
-        <div
-          className="hidden md:block absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize hover:bg-primary/20 transition-colors"
-          onMouseDown={(e) => {
-            e.preventDefault()
-            setIsDragging('height')
-          }}
-        />
-        <div
-          className="hidden md:block absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/20 transition-colors rounded-tl-sm"
-          onMouseDown={(e) => {
-            e.preventDefault()
-            setIsDragging('width')
-            // Also enable height dragging
-            setTimeout(() => setIsDragging('height'), 0)
-          }}
-        />
+            {/* Performance metrics */}
+            {!error && output && engineUsed && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  <span className="font-medium">
+                    {engineUsed === 'elk' ? 'ELK' : 'Perl'}
+                  </span>
+                </div>
+                <span>•</span>
+                <span>{conversionTime.toFixed(1)}ms</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Resize handles - Desktop only, hidden when collapsed */}
+        {!inputPaneCollapsed && (
+          <>
+            <div
+              className="hidden md:block absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/20 transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                setIsDragging('width')
+              }}
+            />
+            <div
+              className="hidden md:block absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize hover:bg-primary/20 transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                setIsDragging('height')
+              }}
+            />
+            <div
+              className="hidden md:block absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/20 transition-colors rounded-tl-sm"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                setIsDragging('width')
+                // Also enable height dragging
+                setTimeout(() => setIsDragging('height'), 0)
+              }}
+            />
+          </>
+        )}
       </div>
 
       {/* Top Right Controls - Zoom, Engine, Copy and Dark Mode Toggle */}
@@ -1158,6 +1232,79 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Help Button - Bottom Left */}
+      <div className="hidden md:block absolute bottom-8 left-8 z-10">
+        <Button
+          onClick={() => setHelpOpen(!helpOpen)}
+          size="sm"
+          variant="outline"
+          className="h-9 w-9 p-0"
+          title="Help & Documentation"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Help Overlay */}
+      {helpOpen && (
+        <div className="hidden md:block absolute bottom-20 left-8 z-20 w-80 bg-card border border-border rounded-lg shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
+            <h2 className="text-sm font-medium">Help & Documentation</h2>
+            <button
+              onClick={() => setHelpOpen(false)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ×
+            </button>
+          </div>
+          <div className="p-4 space-y-4 text-sm">
+            <div>
+              <h3 className="font-medium mb-1">About</h3>
+              <p className="text-muted-foreground text-xs">
+                Graph::Easy is a tool for converting graph notation into ASCII art, SVG, and other formats using the original Perl engine or ELK layout.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium mb-1">Quick Tips</h3>
+              <ul className="text-muted-foreground text-xs space-y-1">
+                <li>• <strong>Shift + Scroll</strong> to zoom</li>
+                <li>• <strong>Ctrl/Cmd + Drag</strong> to pan</li>
+                <li>• Click header to collapse editor</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium mb-1">Syntax Examples</h3>
+              <ul className="text-muted-foreground text-xs space-y-1 font-mono">
+                <li>[ A ] -&gt; [ B ]</li>
+                <li>[ A ] &lt;-&gt; [ B ]</li>
+                <li>[ A ] -&gt; {'{ label: text; }'} [ B ]</li>
+              </ul>
+            </div>
+            <div className="pt-2 border-t border-border">
+              <h3 className="font-medium mb-2">Resources</h3>
+              <div className="space-y-1">
+                <a
+                  href="https://metacpan.org/pod/Graph::Easy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-primary hover:underline"
+                >
+                  Graph::Easy Documentation →
+                </a>
+                <a
+                  href="https://github.com/ironcamel/Graph-Easy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-primary hover:underline"
+                >
+                  GitHub Repository →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile View Toggle - Bottom Center (Mobile Only) */}
       <div className="md:hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
