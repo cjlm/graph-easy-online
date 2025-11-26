@@ -1121,9 +1121,12 @@ function App() {
         )}
       </div>
 
-      {/* Top Right Controls - Zoom, Engine, Copy and Dark Mode Toggle */}
-      <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10 flex gap-2">
-        <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
+      {/* Top Right Controls - Desktop: full controls, Mobile: minimal on left */}
+      <div className={`absolute top-4 left-4 md:left-auto md:right-8 md:top-8 z-10 flex gap-2 ${
+        mobileView === 'editor' ? 'hidden md:flex' : 'flex'
+      }`}>
+        {/* Zoom controls - Desktop only */}
+        <div className="hidden md:flex gap-1 bg-card border border-border rounded-lg overflow-hidden">
           <Button
             onClick={handleZoomOut}
             size="sm"
@@ -1159,8 +1162,8 @@ function App() {
           </Button>
         </div>
 
-        {/* Engine Toggle */}
-        <div className="flex gap-1 bg-card border border-border rounded-lg overflow-hidden p-1">
+        {/* Engine Toggle - Desktop only */}
+        <div className="hidden md:flex gap-1 bg-card border border-border rounded-lg overflow-hidden p-1">
           <button
             onClick={() => handleEngineChange('webperl')}
             disabled={!perlReady}
@@ -1188,6 +1191,7 @@ function App() {
           </button>
         </div>
 
+        {/* Copy - Always visible */}
         <Button
           onClick={handleCopyOutput}
           size="sm"
@@ -1202,21 +1206,25 @@ function App() {
             <Copy className="h-4 w-4" />
           )}
         </Button>
+
+        {/* Download - Desktop only */}
         <Button
           onClick={handleDownload}
           size="sm"
           variant="outline"
-          className="h-9 w-9 p-0"
+          className="hidden md:flex h-9 w-9 p-0"
           title="Download output"
           disabled={!output || loadingState !== 'ready'}
         >
           <Download className="h-4 w-4" />
         </Button>
+
+        {/* Share - Desktop only */}
         <Button
           onClick={handleShare}
           size="sm"
           variant="outline"
-          className="h-9 w-9 p-0"
+          className="hidden md:flex h-9 w-9 p-0"
           title="Copy shareable URL"
         >
           {shareCopied ? (
@@ -1225,6 +1233,8 @@ function App() {
             <Share2 className="h-4 w-4" />
           )}
         </Button>
+
+        {/* Dark mode - Always visible */}
         <Button
           onClick={() => setIsDarkMode(!isDarkMode)}
           size="sm"
