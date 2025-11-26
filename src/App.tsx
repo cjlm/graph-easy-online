@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap, HelpCircle, ChevronLeft } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap, HelpCircle } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -250,7 +250,7 @@ function App() {
   const [loadingState, setLoadingState] = useState<LoadingState>('initializing')
   const [paneWidth, setPaneWidth] = useState(400)
   const [paneHeight, setPaneHeight] = useState(300)
-  const [isDragging, setIsDragging] = useState<'width' | 'height' | null>(null)
+  const [isDragging, setIsDragging] = useState<'width' | 'height' | 'both' | null>(null)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>(urlState.format || 'ascii')
   const [formatPanelOpen, setFormatPanelOpen] = useState(false)
   const [advancedFormatsOpen, setAdvancedFormatsOpen] = useState(false)
@@ -736,10 +736,15 @@ function App() {
 
     const handleMouseMove = (e: MouseEvent) => {
       e.preventDefault() // Prevent text selection during drag
-      if (isDragging === 'width') {
-        setPaneWidth(Math.max(300, Math.min(800, e.clientX)))
-      } else if (isDragging === 'height') {
-        setPaneHeight(Math.max(200, Math.min(600, e.clientY)))
+      if (isDragging === 'width' || isDragging === 'both') {
+        // Account for the 32px (8 * 4) left offset of the pane
+        const width = e.clientX - 32
+        setPaneWidth(Math.max(300, Math.min(window.innerWidth - 64, width)))
+      }
+      if (isDragging === 'height' || isDragging === 'both') {
+        // Account for the 32px top offset of the pane
+        const height = e.clientY - 32
+        setPaneHeight(Math.max(200, Math.min(window.innerHeight - 64, height)))
       }
     }
 
@@ -911,9 +916,9 @@ function App() {
 
       {/* Input Pane - Full screen on mobile, floating on desktop */}
       <div
-        className={`bg-card border border-border flex flex-col overflow-hidden transition-all duration-200 select-none ${
+        className={`bg-card border border-border flex flex-col overflow-hidden select-none ${
           mobileView === 'results' ? 'hidden md:flex' : 'flex'
-        } fixed inset-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:inset-auto`}
+        } ${isDragging ? '' : 'transition-shadow duration-200'} fixed inset-0 md:absolute md:top-8 md:left-8 md:rounded-lg md:shadow-2xl md:hover:shadow-3xl md:inset-auto`}
         style={!isMobile ? {
           width: inputPaneCollapsed ? 'auto' : `${paneWidth}px`,
           height: inputPaneCollapsed ? 'auto' : `${paneHeight}px`,
@@ -926,13 +931,13 @@ function App() {
         >
           <div className="flex items-center gap-2">
             {!isMobile && (
-              <ChevronLeft className={`w-4 h-4 text-muted-foreground transition-transform ${inputPaneCollapsed ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${inputPaneCollapsed ? '-rotate-90' : ''}`} />
             )}
             <h1 className="text-sm font-medium text-foreground font-mono">
               {'[ graph ] ~~> [ easy ]'}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-4">
             {loadingState === 'ready' ? (
               !perlReady && conversionEngine === 'webperl' ? (
                 <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" title="Loading Perl modules..." />
@@ -998,26 +1003,27 @@ function App() {
         {!inputPaneCollapsed && (
           <>
             <div
-              className="hidden md:block absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/20 transition-colors"
+              className="hidden md:block absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-primary/20 transition-colors"
               onMouseDown={(e) => {
                 e.preventDefault()
+                e.stopPropagation()
                 setIsDragging('width')
               }}
             />
             <div
-              className="hidden md:block absolute left-0 right-0 bottom-0 h-1 cursor-ns-resize hover:bg-primary/20 transition-colors"
+              className="hidden md:block absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize hover:bg-primary/20 transition-colors"
               onMouseDown={(e) => {
                 e.preventDefault()
+                e.stopPropagation()
                 setIsDragging('height')
               }}
             />
             <div
-              className="hidden md:block absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/20 transition-colors rounded-tl-sm"
+              className="hidden md:block absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/20 transition-colors z-10"
               onMouseDown={(e) => {
                 e.preventDefault()
-                setIsDragging('width')
-                // Also enable height dragging
-                setTimeout(() => setIsDragging('height'), 0)
+                e.stopPropagation()
+                setIsDragging('both')
               }}
             />
           </>
@@ -1288,7 +1294,7 @@ function App() {
                   href="https://metacpan.org/pod/Graph::Easy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs text-primary hover:underline"
+                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Graph::Easy Documentation →
                 </a>
@@ -1296,7 +1302,7 @@ function App() {
                   href="https://github.com/ironcamel/Graph-Easy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs text-primary hover:underline"
+                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   GitHub Repository →
                 </a>

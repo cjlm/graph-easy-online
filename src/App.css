@@ -12,7 +12,7 @@
 }
 
 .dark ::selection {
-  background-color: hsl(210 100% 60% / 0.4);
+  background-color: hsl(240 5% 45% / 0.5);
   color: hsl(0 0% 98%);
 }
 
