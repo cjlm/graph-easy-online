@@ -71,7 +71,7 @@ Graph::Easy is a pure Perl module with minimal dependencies:
 
 This makes it suitable for running in WebPerl, which compiles Perl itself to WebAssembly using Emscripten.
 
-### Architecture
+### [Architecture](https://graph-easy.online/?input=graph+%7B+flow%3A+south%3B+%7D%0A%28+Browser+%28index.html%29%0A++%5B+JavaScript+Interface+%5D+-%3E+%7B+start%3A+south%3B+end%3A+north%3B+%7D+%0A++%5B+WebPerl+%28Perl+via+WebAssembly%29+%5D+-%3E+%7B+start%3A+south%3B+end%3A+north%3B+%7D+%0A++%5B+Graph%3A%3AEasy+Perl+Module+%28from+lib%2F+directory%29+%5D%0A%29&format=ascii)
 
 ```
 +------------------------------------------+
