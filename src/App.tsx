@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 
-import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap, HelpCircle, Share2, Download, X } from 'lucide-react'
+import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, Check, Copy, ZoomIn, ZoomOut, Minimize2, Zap, HelpCircle, Share2, Download, X, Github, Mail } from 'lucide-react'
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
@@ -1486,14 +1486,24 @@ function App() {
                 >
                   DOT Language Docs →
                 </a>
-                <a
-                  href="https://github.com/cjlm/graph-easy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  GitHub →
-                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://github.com/cjlm/graph-easy-online"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <Github className="w-3 h-3" />
+                    GitHub
+                  </a>
+                  <a
+                    href="mailto:graph-easy@christianmiles.ca"
+                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <Mail className="w-3 h-3" />
+                    Contact
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -1584,14 +1594,24 @@ function App() {
                 >
                   Graph::Easy Docs →
                 </a>
-                <a
-                  href="https://github.com/cjlm/graph-easy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  GitHub →
-                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://github.com/cjlm/graph-easy-online"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <Github className="w-3 h-3" />
+                    GitHub
+                  </a>
+                  <a
+                    href="mailto:graph-easy@christianmiles.ca"
+                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <Mail className="w-3 h-3" />
+                    Contact
+                  </a>
+                </div>
               </div>
             </div>
           </div>
