@@ -1,25 +1,23 @@
 # Graph::Easy Online
 
-A browser-based implementation of [Graph::Easy](https://metacpan.org/pod/Graph::Easy) running entirely client-side using WebAssembly and [WebPerl](https://webperl.zero-g.net/).
+A webapp to turn simple text descriptions of graphs into ASCII art diagrams, in the browser.
 
-## What is this?
+Based on [Graph::Easy](https://metacpan.org/pod/Graph::Easy), running client-side via [WebPerl](https://webperl.zero-g.net/).
 
-This project brings the Perl module Graph::Easy to the browser, allowing you to create ASCII art graphs without installing Perl or any dependencies. Just open the page and start drawing.
+## Background
 
-## Inspiration
-
-This project was inspired by:
-- [Simon Willison's SLOCCount in WebAssembly](https://simonwillison.net/2025/Oct/22/sloccount-in-webassembly/) - showing how to run Perl tools in the browser
-- [SourceTarget Newsletter Edition 17](https://sourcetarget.email/editions/17/) - which noted in 2020 that Graph::Easy was "impossible to find anything I could run directly in the browser"
-- [Graph::Easy](https://metacpan.org/pod/Graph::Easy) - the Perl library by Tels
+The journey of building this is documented here: [The Port I Couldn't Ship](https://ammil.industries/the-port-i-couldnt-ship/)
 
 ## Features
 
-- No installation required - runs entirely in your browser
-- Uses WebPerl to run actual Perl code via WebAssembly
-- Live preview as you type
-- Supports both Graph::Easy and DOT notation
-- ASCII art and Box art output formats
+- Runs in your browser (nothing to install)
+- Live preview while you type
+- Support for Graph::Easy and DOT notation inputs
+- Quickly copy the current output to the clipboard
+- Share current graphs via the URL
+- Pre-loaded with example graphs
+- ASCII art and Box art output
+- Mobile device support
 
 ## How to use
 
@@ -102,7 +100,7 @@ This makes it suitable for running in WebPerl, which compiles Perl itself to Web
 ## Limitations
 
 - Requires a modern browser with WebAssembly support
-- Loading may take a few seconds as WebPerl initializes
+- Loading may take a few seconds as WebPerl initialises
 - Some advanced Graph::Easy features may not work
 
 ## Credits
@@ -121,4 +119,4 @@ See the [LICENSE](LICENSE) file for the full license text.
 
 ## Contributing
 
-Found a bug or have a suggestion? Please open an issue at https://github.com/cjlm/graph-easy
+Found a bug or have a suggestion? Please open an issue at https://github.com/cjlm/graph-easy-online
