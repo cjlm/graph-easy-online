@@ -426,21 +426,46 @@ function App() {
     const savedTheme = localStorage.getItem('theme')
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+    // Only use saved theme if user explicitly set it, otherwise follow system
+    if (savedTheme === 'dark') {
       setIsDarkMode(true)
+    } else if (savedTheme === 'light') {
+      setIsDarkMode(false)
+    } else {
+      // No saved preference - follow system
+      setIsDarkMode(prefersDark)
     }
   }, [])
 
-  // Update document class and localStorage when dark mode changes
+  // Listen for system preference changes (only applies if user hasn't set explicit preference)
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (e: MediaQueryListEvent) => {
+      const savedTheme = localStorage.getItem('theme')
+      // Only follow system changes if user hasn't explicitly set a preference
+      if (!savedTheme) {
+        setIsDarkMode(e.matches)
+      }
+    }
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  // Update document class when dark mode changes (don't auto-save to localStorage)
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
     } else {
       document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
     }
   }, [isDarkMode])
+
+  // Toggle dark mode and save explicit preference
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode
+    setIsDarkMode(newMode)
+    localStorage.setItem('theme', newMode ? 'dark' : 'light')
+  }
 
   // Update URL when input or output format changes (debounced)
   useEffect(() => {
@@ -1158,7 +1183,7 @@ function App() {
                   {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
                 <Button
-                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  onClick={toggleDarkMode}
                   size="sm"
                   variant="outline"
                   className="h-8 w-8 p-0"
@@ -1285,7 +1310,7 @@ function App() {
 
         {/* Dark mode - Always visible */}
         <Button
-          onClick={() => setIsDarkMode(!isDarkMode)}
+          onClick={toggleDarkMode}
           size="sm"
           variant="outline"
           className="h-9 w-9 p-0"
