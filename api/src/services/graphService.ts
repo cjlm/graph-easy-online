@@ -49,7 +49,7 @@ export function convert(
       throw new Error(`Unsupported format: ${format}`);
   }
 
-  const timing_ms = Math.round((performance.now() - startTime) * 100) / 100;
+  const timing_ms = Math.round((performance.now() - startTime) * 1000) / 1000;
 
   return { output, timing_ms };
 }
