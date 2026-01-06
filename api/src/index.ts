@@ -7,7 +7,7 @@ import { handleCors, addCorsHeaders } from './middleware/cors';
 import { checkRateLimit, rateLimitHeaders } from './middleware/rateLimit';
 import { rateLimitedError, jsonResponse } from './utils/response';
 
-const router = Router({ base: '/api' });
+const router = Router();
 
 // API v1 routes
 router.get('/v1/health', handleHealth);
@@ -28,10 +28,10 @@ router.get('/', () => {
     version: '1.0.0',
     engine: 'graph-easy-ts',
     endpoints: {
-      convert: 'POST /api/v1/convert',
-      parse: 'POST /api/v1/parse',
-      health: 'GET /api/v1/health',
-      formats: 'GET /api/v1/formats',
+      convert: 'POST /v1/convert',
+      parse: 'POST /v1/parse',
+      health: 'GET /v1/health',
+      formats: 'GET /v1/formats',
     },
     documentation: 'https://github.com/cjlm/graph-easy-online',
   });
