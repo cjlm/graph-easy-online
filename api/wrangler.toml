@@ -1,0 +1,17 @@
+name = "graph-easy-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "npm run build"
+
+# Development settings
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Production settings
+[env.production]
+vars = { ENVIRONMENT = "production" }
+routes = [
+  { pattern = "*/api/*", zone_name = "graph-easy.online" }
+]
