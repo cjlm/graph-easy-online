@@ -6,9 +6,7 @@ Based on [Graph::Easy](https://metacpan.org/pod/Graph::Easy), running client-sid
 
 ## Background
 
-The journey of building this is documented here: [The Port I Couldn't Ship](https://ammil.industries/the-port-i-couldnt-ship/)
-
-The TypeScript port that powers the API: [graph-easy-ts](https://tomisin.space/graph-easy-ts/)
+The journey of building this is documented [here](https://ammil.industries/the-port-i-couldnt-ship/) and [continued](https://tomisin.space/graph-easy-ts/) elsewhere.
 
 ## Features
 
