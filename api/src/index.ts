@@ -52,7 +52,7 @@ router.all('*', () => {
 });
 
 export default {
-  async fetch(request: Request, env: unknown, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, _env: unknown, _ctx: ExecutionContext): Promise<Response> {
     // Handle CORS preflight
     const corsResponse = handleCors(request);
     if (corsResponse) {
