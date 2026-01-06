@@ -7,7 +7,7 @@ import { Settings, ChevronDown, ChevronUp, ChevronRight, Moon, Sun, Code, Eye, C
 import * as Viz from '@viz-js/viz'
 
 import './App.css'
-import { graphConversionService } from './services/graphConversionService'
+import { graphConversionService, type ConversionBackend } from './services/graphConversionService'
 
 // Example graphs
 const EXAMPLES = [
@@ -269,6 +269,8 @@ function App() {
   const [selectedExample, setSelectedExample] = useState<string>(EXAMPLES[0].name)
   const [helpOpen, setHelpOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [conversionBackend, setConversionBackend] = useState<ConversionBackend>('typescript')
+  const [lastUsedBackend, setLastUsedBackend] = useState<ConversionBackend>('typescript')
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
@@ -282,12 +284,16 @@ function App() {
     setLoadingState('ready')
   }, [])
 
-  // Auto-convert first example when Perl is ready
+  // Auto-convert first example on mount
+  // TypeScript backend can convert immediately
+  const initialConvertDoneRef = useRef(false)
   useEffect(() => {
-    if (perlReady) {
+    if (initialConvertDoneRef.current) return
+    if (conversionBackend === 'typescript' || perlReady) {
+      initialConvertDoneRef.current = true
       setTimeout(() => convertGraph(EXAMPLES[0].graph), 100)
     }
-  }, [perlReady])
+  }, [perlReady, conversionBackend])
 
   // Initialize Perl modules in background (slow, non-blocking)
   // Note: WebPerl is loaded in index.html, not dynamically
@@ -497,8 +503,10 @@ function App() {
   useEffect(() => {
     if (loadingState !== 'ready' || !input.trim()) return
 
-    // Don't auto-convert until modules are loaded
-    if (!perlReady) return
+    // TypeScript backend can convert immediately
+    // WebPerl backend needs to wait for modules to load
+    const canConvert = conversionBackend === 'typescript' || perlReady
+    if (!canConvert) return
 
     const timeoutId = setTimeout(() => {
       setIsConverting(true)
@@ -506,7 +514,7 @@ function App() {
     }, 500) // 500ms debounce
 
     return () => clearTimeout(timeoutId)
-  }, [input, loadingState, perlReady])
+  }, [input, loadingState, perlReady, conversionBackend])
 
   // Auto-convert when output format changes
   useEffect(() => {
@@ -514,13 +522,27 @@ function App() {
       // Only re-convert if we already have output
       // (don't convert on initial mount)
 
-      // Don't auto-convert until modules are loaded
-      if (!perlReady) return
+      // TypeScript backend can convert immediately
+      // WebPerl backend needs to wait for modules to load
+      const canConvert = conversionBackend === 'typescript' || perlReady
+      if (!canConvert) return
 
       setIsConverting(true)
       convertGraph()
     }
-  }, [outputFormat, perlReady])
+  }, [outputFormat, perlReady, conversionBackend])
+
+  // Auto-convert when backend changes
+  useEffect(() => {
+    if (loadingState === 'ready' && input.trim() && output) {
+      // Only re-convert if we already have output
+      const canConvert = conversionBackend === 'typescript' || perlReady
+      if (!canConvert) return
+
+      setIsConverting(true)
+      convertGraph()
+    }
+  }, [conversionBackend])
 
   // Render Graphviz DOT output when format is 'graphviz'
   useEffect(() => {
@@ -640,7 +662,8 @@ function App() {
         // Use the conversion service
         const result = await graphConversionService.convert(
           textToConvert,
-          outputFormat
+          outputFormat,
+          conversionBackend
         )
 
         // Check if this request is still the latest one
@@ -653,6 +676,7 @@ function App() {
 
         // Update performance metrics
         setConversionTime(result.timeMs)
+        setLastUsedBackend(result.backend)
 
         if (result.error) {
           setError(result.error)
@@ -1119,7 +1143,7 @@ function App() {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Zap className="w-3 h-3" />
-                      <span className="font-medium">Perl</span>
+                      <span className="font-medium">{lastUsedBackend === 'typescript' ? 'TS' : 'Perl'}</span>
                     </div>
                     <span>•</span>
                     <span>{conversionTime.toFixed(1)}ms</span>
@@ -1307,6 +1331,29 @@ function App() {
             <Share2 className="h-4 w-4" />
           )}
         </Button>
+
+        {/* Backend Toggle */}
+        <div className="hidden md:flex gap-0 bg-card border border-border rounded-lg overflow-hidden">
+          <Button
+            onClick={() => setConversionBackend('typescript')}
+            size="sm"
+            variant={conversionBackend === 'typescript' ? 'default' : 'ghost'}
+            className="h-9 px-3 rounded-none text-xs font-medium"
+            title="Use TypeScript engine (graph-easy-ts)"
+          >
+            TS
+          </Button>
+          <Button
+            onClick={() => setConversionBackend('webperl')}
+            size="sm"
+            variant={conversionBackend === 'webperl' ? 'default' : 'ghost'}
+            className="h-9 px-3 rounded-none text-xs font-medium"
+            title="Use WebPerl engine (Graph::Easy)"
+            disabled={!perlReady}
+          >
+            Perl
+          </Button>
+        </div>
 
         {/* Dark mode - Always visible */}
         <Button

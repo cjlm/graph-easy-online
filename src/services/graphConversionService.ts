@@ -1,47 +1,102 @@
 /**
  * Graph Conversion Service
  *
- * Handles conversion using WebPerl Graph::Easy
+ * Handles conversion using either graph-easy-ts (TypeScript) or WebPerl Graph::Easy
  */
 
 import type { OutputFormat } from '../App'
+import { Parser } from 'graph-easy-ts'
+
+export type ConversionBackend = 'typescript' | 'webperl'
 
 export interface ConversionResult {
   output: string
   timeMs: number
   error?: string
+  backend: ConversionBackend
 }
+
+// Formats supported by the TypeScript library
+const TS_SUPPORTED_FORMATS: OutputFormat[] = ['ascii', 'boxart', 'txt', 'graphviz']
 
 export class GraphConversionService {
   private perlMutex: Promise<void> = Promise.resolve()
 
   /**
-   * Convert graph using WebPerl
+   * Check if a format is supported by the TypeScript backend
    */
-  async convert(input: string, format: OutputFormat): Promise<ConversionResult> {
+  isFormatSupportedByTS(format: OutputFormat): boolean {
+    return TS_SUPPORTED_FORMATS.includes(format)
+  }
+
+  /**
+   * Convert graph using the specified backend
+   */
+  async convert(
+    input: string,
+    format: OutputFormat,
+    preferredBackend: ConversionBackend = 'typescript'
+  ): Promise<ConversionResult> {
     const startTime = performance.now()
 
+    // If preferred backend is TypeScript but format isn't supported, fall back to WebPerl
+    const actualBackend = preferredBackend === 'typescript' && !this.isFormatSupportedByTS(format)
+      ? 'webperl'
+      : preferredBackend
+
     try {
-      console.log('🐪 Converting with WebPerl engine...')
-      const output = await this.convertWithWebPerl(input, format)
-      const timeMs = performance.now() - startTime
-
-      console.log(`✅ WebPerl conversion succeeded in ${timeMs.toFixed(1)}ms`)
-
-      return {
-        output,
-        timeMs,
+      if (actualBackend === 'typescript') {
+        console.log('🔷 Converting with TypeScript engine...')
+        const output = this.convertWithTypeScript(input, format)
+        const timeMs = performance.now() - startTime
+        console.log(`✅ TypeScript conversion succeeded in ${timeMs.toFixed(1)}ms`)
+        return { output, timeMs, backend: 'typescript' }
+      } else {
+        console.log('🐪 Converting with WebPerl engine...')
+        const output = await this.convertWithWebPerl(input, format)
+        const timeMs = performance.now() - startTime
+        console.log(`✅ WebPerl conversion succeeded in ${timeMs.toFixed(1)}ms`)
+        return { output, timeMs, backend: 'webperl' }
       }
     } catch (error) {
       const timeMs = performance.now() - startTime
       const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error('💥 Conversion failed:', error)
+      console.error(`💥 ${actualBackend} conversion failed:`, error)
 
       return {
         output: '',
         timeMs,
         error: errorMessage,
+        backend: actualBackend,
       }
+    }
+  }
+
+  /**
+   * Convert using the TypeScript graph-easy-ts library
+   */
+  private convertWithTypeScript(input: string, format: OutputFormat): string {
+    // Parse the input
+    const graph = Parser.fromText(input)
+
+    // Set a seed for deterministic output
+    graph.seed = 12345
+
+    // Perform layout
+    graph.layout()
+
+    // Render based on format
+    switch (format) {
+      case 'ascii':
+        return graph.asAscii()
+      case 'boxart':
+        return graph.asBoxart()
+      case 'txt':
+        return graph.asTxt()
+      case 'graphviz':
+        return graph.asGraphviz()
+      default:
+        throw new Error(`Format '${format}' is not supported by TypeScript backend`)
     }
   }
 
