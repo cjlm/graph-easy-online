@@ -1,0 +1,21 @@
+name = "graph-easy-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Wrangler bundles TypeScript directly via esbuild
+# No explicit build step needed
+
+[alias]
+"graph-easy-ts" = "./node_modules/graph-easy-ts/src/index.ts"
+
+# Development settings
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Production settings
+[env.production]
+vars = { ENVIRONMENT = "production" }
+routes = [
+  { pattern = "*/api/*", zone_name = "graph-easy.online" }
+]
