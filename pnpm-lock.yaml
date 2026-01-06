@@ -17,6 +17,9 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
+      graph-easy-ts:
+        specifier: github:fairfieldt/graph-easy-ts
+        version: https://codeload.github.com/fairfieldt/graph-easy-ts/tar.gz/24ec2ae443d9531fdefb1d6c24b959da2c13970a
       lucide-react:
         specifier: ^0.344.0
         version: 0.344.0(react@18.3.1)
@@ -697,6 +700,9 @@ packages:
   '@viz-js/viz@3.20.0':
     resolution: {integrity: sha512-STXaKkBvsxrwJ/8jMa1iBolEm+sitkMkX/yrhVRQnfngVwJjBtsV7c0DqbdFq25HltxAcPQ7+hxRG1pCfBOshg==}
 
+  '@viz-js/viz@3.24.0':
+    resolution: {integrity: sha512-sTRz2cFN6PwICVC7GVlF2aYNAZ/LwF7Y1mp3B+8LXQ7otyHrzQYSzNBwJ4lctL/aS3x97ppw59z6zIW+wPs6bQ==}
+
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
     engines: {node: '>=8'}
@@ -920,6 +926,10 @@ packages:
   glob@10.4.5:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
     hasBin: true
+
+  graph-easy-ts@https://codeload.github.com/fairfieldt/graph-easy-ts/tar.gz/24ec2ae443d9531fdefb1d6c24b959da2c13970a:
+    resolution: {tarball: https://codeload.github.com/fairfieldt/graph-easy-ts/tar.gz/24ec2ae443d9531fdefb1d6c24b959da2c13970a}
+    version: 0.0.0
 
   happy-dom@20.0.8:
     resolution: {integrity: sha512-TlYaNQNtzsZ97rNMBAm8U+e2cUQXNithgfCizkDgc11lgmN4j9CKMhO3FPGKWQYPwwkFcPpoXYF/CqEPLgzfOg==}
@@ -1939,6 +1949,8 @@ snapshots:
 
   '@viz-js/viz@3.20.0': {}
 
+  '@viz-js/viz@3.24.0': {}
+
   ansi-regex@5.0.1: {}
 
   ansi-regex@6.2.2: {}
@@ -2179,6 +2191,10 @@ snapshots:
       minipass: 7.1.2
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
+
+  graph-easy-ts@https://codeload.github.com/fairfieldt/graph-easy-ts/tar.gz/24ec2ae443d9531fdefb1d6c24b959da2c13970a:
+    dependencies:
+      '@viz-js/viz': 3.24.0
 
   happy-dom@20.0.8:
     dependencies:
