@@ -97,6 +97,28 @@ This makes it suitable for running in WebPerl, which compiles Perl itself to Web
 - `lib/Graph/Easy.pm` - The Graph::Easy Perl module
 - `lib/Graph/Easy/` - Supporting modules (Parser, Layout, Node, Edge, etc.)
 
+## API
+
+A REST API is available at `https://api.graph-easy.online`:
+
+```bash
+# Convert graph to ASCII
+curl -X POST https://api.graph-easy.online/v1/convert \
+  -H "Content-Type: application/json" \
+  -d '{"input": "[A] -> [B] -> [C]", "format": "ascii"}'
+
+# Response
+{"success":true,"output":"+---+     +---+     +---+\n| A | --> | B | --> | C |\n+---+     +---+     +---+\n","format":"ascii","timing_ms":0.5}
+```
+
+**Endpoints:**
+- `POST /v1/convert` - Convert graph notation (formats: `ascii`, `boxart`, `text`, `graphviz`)
+- `POST /v1/parse` - Parse graph to structured JSON (nodes/edges)
+- `GET /v1/health` - Health check
+- `GET /v1/formats` - List supported formats
+
+Rate limited to 100 requests/minute per IP.
+
 ## Limitations
 
 - Requires a modern browser with WebAssembly support
@@ -106,6 +128,7 @@ This makes it suitable for running in WebPerl, which compiles Perl itself to Web
 ## Credits
 
 - **Graph::Easy** - Created by Tels, maintained by Shlomi Fish
+- **[graph-easy-ts](https://github.com/fairfieldt/graph-easy-ts)** - TypeScript port, powers the API
 - **WebPerl** - Created by Hauke Dämpfling
 - **Concept** - Inspired by Simon Willison's WebAssembly experiments
 
