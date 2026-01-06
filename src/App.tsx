@@ -176,25 +176,33 @@ graph { flow: east; }
 ]
 
 // Utility functions for URL state serialization
-const getStateFromURL = (): { input?: string; format?: OutputFormat } => {
+const getStateFromURL = (): { input?: string; format?: OutputFormat; backend?: ConversionBackend } => {
   const params = new URLSearchParams(window.location.search)
   const input = params.get('input')
   const format = params.get('format') as OutputFormat | null
+  const backend = params.get('engine') as ConversionBackend | null
 
   return {
     input: input || undefined,
     format: format && ['ascii', 'boxart', 'html', 'svg', 'graphviz', 'graphml', 'vcg', 'txt'].includes(format)
       ? format
       : undefined,
+    backend: backend && ['typescript', 'webperl'].includes(backend)
+      ? backend
+      : undefined,
   }
 }
 
-const updateURL = (input: string, format: OutputFormat) => {
+const updateURL = (input: string, format: OutputFormat, backend: ConversionBackend) => {
   const params = new URLSearchParams()
   if (input.trim()) {
     params.set('input', input)
   }
   params.set('format', format)
+  if (backend !== 'typescript') {
+    // Only include engine if not default (typescript)
+    params.set('engine', backend)
+  }
 
   const newURL = `${window.location.pathname}?${params.toString()}`
   window.history.replaceState({}, '', newURL)
@@ -269,8 +277,8 @@ function App() {
   const [selectedExample, setSelectedExample] = useState<string>(EXAMPLES[0].name)
   const [helpOpen, setHelpOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
-  const [conversionBackend, setConversionBackend] = useState<ConversionBackend>('typescript')
-  const [lastUsedBackend, setLastUsedBackend] = useState<ConversionBackend>('typescript')
+  const [conversionBackend, setConversionBackend] = useState<ConversionBackend>(urlState.backend || 'typescript')
+  const [lastUsedBackend, setLastUsedBackend] = useState<ConversionBackend>(urlState.backend || 'typescript')
 
   const modulesLoadedRef = useRef(false)
   const vizInstanceRef = useRef<any>(null)
@@ -473,13 +481,13 @@ function App() {
     localStorage.setItem('theme', newMode ? 'dark' : 'light')
   }
 
-  // Update URL when input or output format changes (debounced)
+  // Update URL when input, output format, or backend changes (debounced)
   useEffect(() => {
     if (urlUpdateTimeoutRef.current) {
       clearTimeout(urlUpdateTimeoutRef.current)
     }
     urlUpdateTimeoutRef.current = setTimeout(() => {
-      updateURL(input, outputFormat)
+      updateURL(input, outputFormat, conversionBackend)
     }, 1000) // 1 second debounce to reduce browser history clutter
 
     return () => {
@@ -487,7 +495,7 @@ function App() {
         clearTimeout(urlUpdateTimeoutRef.current)
       }
     }
-  }, [input, outputFormat])
+  }, [input, outputFormat, conversionBackend])
   
   // Handle window resize to update isMobile state
   useEffect(() => {
@@ -752,7 +760,7 @@ function App() {
   const handleShare = async () => {
     try {
       // Force URL update immediately
-      updateURL(input, outputFormat)
+      updateURL(input, outputFormat, conversionBackend)
       await navigator.clipboard.writeText(window.location.href)
       setShareCopied(true)
       setTimeout(() => setShareCopied(false), 2000)
